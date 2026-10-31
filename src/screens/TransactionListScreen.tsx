@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useFocusEffect, useRoute, type RouteProp } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 
 import { listAccounts } from '../db/repos/accounts';
 import { getCategory } from '../db/repos/categories';
@@ -13,7 +13,7 @@ import type { Account } from '../domain/types';
 import { LedgerRow } from '../components/LedgerRow';
 import { LedgerDayHeader } from '../components/LedgerSection';
 import { Txt } from '../components/Txt';
-import type { RootStackParamList } from '../navigation/types';
+import type { RootNavigation, RootStackParamList } from '../navigation/types';
 import { useQuickAdd } from '../quickadd/QuickAddProvider';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 
@@ -47,6 +47,7 @@ function describe(item: LedgerItem): { title?: string; subtitle: string } {
 
 export default function TransactionListScreen() {
   const db = useSQLiteContext();
+  const navigation = useNavigation<RootNavigation>();
   const route = useRoute<RouteProp<RootStackParamList, 'Transactions'>>();
   const styles = useThemedStyles(makeStyles);
   const quickAdd = useQuickAdd();
@@ -116,6 +117,7 @@ export default function TransactionListScreen() {
 
   const open = (item: LedgerItem) => {
     if (item.kind === 'tx') quickAdd.open({ transactionId: item.id });
+    else navigation.navigate('TransferForm', { transferId: item.id });
   };
 
   const chip = (label: string, selected: boolean, onPress: () => void, key: string) => (
@@ -180,7 +182,7 @@ export default function TransactionListScreen() {
             subtitle={subtitle}
             signedMinor={entry.item.signedMinor}
             currency={entry.item.currency}
-            onPress={entry.item.kind === 'tx' ? () => open(entry.item) : undefined}
+            onPress={() => open(entry.item)}
           />
         );
       }}

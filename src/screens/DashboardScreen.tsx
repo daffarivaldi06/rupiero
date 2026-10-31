@@ -122,7 +122,10 @@ export default function DashboardScreen() {
         </View>
 
         <View style={styles.sectionHeader}>
-          <Txt variant="title">Akun</Txt>
+          <Txt variant="title" style={styles.rowText}>Akun</Txt>
+          <Pressable onPress={() => navigation.navigate('TransferForm')} style={styles.headerLink} accessibilityRole="button">
+            <Txt variant="bodyStrong">Transfer</Txt>
+          </Pressable>
           <Pressable onPress={() => navigation.navigate('Accounts')} style={styles.headerLink} accessibilityRole="button">
             <Txt variant="bodyStrong">Kelola</Txt>
           </Pressable>
