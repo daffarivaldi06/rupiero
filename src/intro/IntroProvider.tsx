@@ -29,9 +29,10 @@ const LIFT_MS = 170;
 const PRESS_MS = 110;
 const SETTLE_MS = 100;
 const IMPACT_MS = LIFT_MS + PRESS_MS;
-const FADE_START_MS = 400;
-const FADE_MS = 200;
-const ROLL: { delayMs: number; durationMs: number } = { delayMs: 450, durationMs: 450 };
+const FADE_START_MS = 380;
+const FADE_MS = 180;
+// The count-up starts as the overlay is mostly gone, so it visibly begins near 0, and ends at 920 ms.
+const ROLL: { delayMs: number; durationMs: number } = { delayMs: 480, durationMs: 440 };
 // Hide the splash anyway if the first screen never reports in (e.g. a database error).
 const FALLBACK_MS = 4000;
 
