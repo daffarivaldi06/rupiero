@@ -14,8 +14,11 @@ import { RupieroMark } from '../brand/RupieroMark';
 import type { RollSpec } from '../components/rolling';
 import { useTheme } from '../theme/ThemeProvider';
 
-// Keep the native splash up until the first screen has its data.
+// Keep the native splash up until the overlay below (the same mark, same spot) is laid out. Holding it
+// longer blocks the app's first frame, and if that outlasts Android's splash hand-off timeout the
+// system drops the splash and shows an empty black window.
 SplashScreen.preventAutoHideAsync().catch(() => {});
+const hideNativeSplash = () => SplashScreen.hide();
 
 // Android 12+ draws the splash icon at 288 dp; the mark fills 1 − 2 × 0.27 of it
 // (SPLASH_PADDING in scripts/render-brand-assets.ts), so the overlay mark lines up with it.
@@ -46,7 +49,8 @@ export const useIntro = () => useContext(IntroContext);
 type Phase = 'waiting' | 'stamping' | 'done';
 
 /**
- * Opening sequence: static native splash → the mark is stamped (lift, press, ink ring) while the
+ * Opening sequence: static native splash → the same mark as an overlay while the first screen loads →
+ * once it is ready, the mark is stamped (lift, press, ink ring) while the
  * overlay fades → the balances roll in. With the system's reduce-motion setting on, the splash just
  * goes away and nothing moves.
  */
@@ -71,7 +75,7 @@ export function IntroProvider({ children }: { children: React.ReactNode }) {
   const ready = useCallback(() => {
     if (started.current) return;
     started.current = true;
-    SplashScreen.hide();
+    hideNativeSplash();
 
     if (reduceMotion) {
       setPhase('done');
@@ -131,6 +135,7 @@ function StampOverlay({ overlayStyle, markStyle, ringStyle }: StampOverlayProps)
   return (
     <Animated.View
       pointerEvents="none"
+      onLayout={hideNativeSplash}
       style={[StyleSheet.absoluteFill, styles.center, { backgroundColor: color.bg }, overlayStyle]}
     >
       <View style={styles.stage}>
