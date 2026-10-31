@@ -74,3 +74,20 @@ function numberToPlainString(value: number): string {
   if (/e/i.test(text)) throw new RangeError(`Rate in exponent form is not supported: ${text}`);
   return text;
 }
+
+/**
+ * All balances converted into `base` with the reference rate and added up: the "≈ total" line.
+ * Each conversion rounds once; null if any amount is too large to convert safely.
+ */
+export function combinedTotal(
+  balances: { currency: CurrencyCode; balanceMinor: number }[],
+  base: CurrencyCode,
+  rateMicro: number,
+): number | null {
+  try {
+    const total = balances.reduce((sum, b) => sum + convertWithReference(b.balanceMinor, b.currency, base, rateMicro), 0);
+    return Number.isSafeInteger(total) ? total : null;
+  } catch {
+    return null;
+  }
+}

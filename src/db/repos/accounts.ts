@@ -33,18 +33,22 @@ export async function listAccounts(db: Db, options: { includeArchived?: boolean 
   return rows.map(toAccount);
 }
 
+/** With `asOf`, only movements dated on or before that day count. */
 export async function listAccountsWithBalance(
   db: Db,
-  options: { includeArchived?: boolean } = {},
+  options: { includeArchived?: boolean; asOf?: LocalDate } = {},
 ): Promise<AccountWithBalance[]> {
+  const asOf = options.asOf ?? null;
   const rows = await db.getAllAsync<AccountRow & { balance_minor: number }>(
     `SELECT ${COLUMNS},
             a.opening_balance_minor + COALESCE(SUM(l.signed_minor), 0) AS balance_minor
      FROM accounts a
-     LEFT JOIN ledger l ON l.account_id = a.id
+     LEFT JOIN ledger l ON l.account_id = a.id AND (? IS NULL OR l.date <= ?)
      WHERE ? OR a.archived = 0
      GROUP BY a.id
      ORDER BY a.archived, a.sort_order, a.name`,
+    asOf,
+    asOf,
     options.includeArchived ? 1 : 0,
   );
   return rows.map((row) => ({ ...toAccount(row), balanceMinor: row.balance_minor }));

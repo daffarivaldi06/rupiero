@@ -1,3 +1,4 @@
+import { isCurrencyCode, type CurrencyCode } from '../../domain/money';
 import type { Db } from '../client';
 
 export async function getSetting(db: Db, key: string): Promise<string | null> {
@@ -23,4 +24,12 @@ export async function getLastAccountId(db: Db): Promise<number | null> {
 
 export async function setLastAccountId(db: Db, accountId: number): Promise<void> {
   await setSetting(db, LAST_ACCOUNT_KEY, String(accountId));
+}
+
+export const BASE_CURRENCY_KEY = 'base_currency';
+
+/** Currency of the combined "≈" total (EUR unless changed). */
+export async function getBaseCurrency(db: Db): Promise<CurrencyCode> {
+  const value = await getSetting(db, BASE_CURRENCY_KEY);
+  return value !== null && isCurrencyCode(value) ? value : 'EUR';
 }

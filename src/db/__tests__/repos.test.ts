@@ -19,7 +19,7 @@ import {
   renameCategory,
 } from '../repos/categories';
 import { getCategoryMonthTotals, getMonthSummary } from '../repos/reports';
-import { getLastAccountId, getSetting, setLastAccountId, setSetting } from '../repos/settings';
+import { getBaseCurrency, getLastAccountId, getSetting, setLastAccountId, setSetting } from '../repos/settings';
 import {
   createTransaction,
   deleteTransaction,
@@ -65,6 +65,9 @@ describe('accounts', () => {
 
     const balances = Object.fromEntries((await listAccountsWithBalance(db)).map((a) => [a.name, a.balanceMinor]));
     expect(balances).toEqual({ 'Rekening EUR': 182655, 'Rekening IDR': 0, Dompet: 65_000 });
+
+    const asOf = Object.fromEntries((await listAccountsWithBalance(db, { asOf: '2026-10-01' })).map((a) => [a.name, a.balanceMinor]));
+    expect(asOf).toEqual({ 'Rekening EUR': 185000, 'Rekening IDR': 0, Dompet: 100_000 });
   });
 
   it('sums balances per currency, optionally up to a date', async () => {
@@ -314,4 +317,12 @@ it('remembers the last account', async () => {
   expect(await getLastAccountId(db)).toBeNull();
   await setLastAccountId(db, idr);
   expect(await getLastAccountId(db)).toBe(idr);
+});
+
+it('defaults the base currency to EUR', async () => {
+  expect(await getBaseCurrency(db)).toBe('EUR');
+  await setSetting(db, 'base_currency', 'IDR');
+  expect(await getBaseCurrency(db)).toBe('IDR');
+  await setSetting(db, 'base_currency', 'USD');
+  expect(await getBaseCurrency(db)).toBe('EUR');
 });

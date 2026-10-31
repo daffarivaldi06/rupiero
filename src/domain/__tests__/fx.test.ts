@@ -1,4 +1,5 @@
 import {
+  combinedTotal,
   convertWithReference,
   differenceBasisPoints,
   eurToIdr,
@@ -92,5 +93,23 @@ describe('parseRateMicro', () => {
     for (const bad of [0, -1, NaN, Infinity, 1e-7, '', 'abc', '1,5', '-3', '0.0000001']) {
       expect(() => parseRateMicro(bad as number | string)).toThrow(RangeError);
     }
+  });
+});
+
+describe('combinedTotal', () => {
+  const balances = [
+    { currency: 'EUR' as const, balanceMinor: 263_968 },
+    { currency: 'IDR' as const, balanceMinor: 6_127_030 },
+  ];
+
+  it('converts every balance into the base currency and adds them up', () => {
+    // Rp 6.127.030 ≈ € 302,19 at the ECB rate.
+    expect(combinedTotal(balances, 'EUR', ECB)).toBe(263_968 + 30_219);
+    expect(combinedTotal(balances, 'IDR', ECB)).toBe(convertWithReference(263_968, 'EUR', 'IDR', ECB) + 6_127_030);
+  });
+
+  it('handles negative balances and gives up on unsafe amounts', () => {
+    expect(combinedTotal([{ currency: 'EUR', balanceMinor: -100 }, { currency: 'IDR', balanceMinor: 0 }], 'EUR', ECB)).toBe(-100);
+    expect(combinedTotal([{ currency: 'EUR', balanceMinor: Number.MAX_SAFE_INTEGER }], 'IDR', ECB)).toBeNull();
   });
 });
