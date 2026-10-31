@@ -60,7 +60,7 @@ export const Money: React.FC<MoneyProps> = ({
     <Text
       style={[textVariants[variant], TABULAR, { color: textColor }, style]}
       numberOfLines={1}
-      adjustsFontSizeToFit={variant === 'display' || variant === 'title'}
+      adjustsFontSizeToFit={variant === 'hero' || variant === 'display' || variant === 'title'}
     >
       {signChar}
       {symbol}

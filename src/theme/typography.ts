@@ -11,10 +11,12 @@ export const fontFamily = {
   mono: 'IBMPlexMono_500Medium',
 } as const;
 
-export type TextVariant = 'display' | 'title' | 'heading' | 'body' | 'bodyStrong' | 'label' | 'caption' | 'code';
+export type TextVariant = 'hero' | 'display' | 'title' | 'heading' | 'body' | 'bodyStrong' | 'label' | 'caption' | 'code';
 
 export const textVariants: Record<TextVariant, TextStyle> = {
-  /** Big balances. */
+  /** Dashboard balances, the largest thing on screen. */
+  hero: { fontFamily: fontFamily.bold, fontSize: 52, lineHeight: 62, letterSpacing: -0.5 },
+  /** Big amounts. */
   display: { fontFamily: fontFamily.bold, fontSize: 40, lineHeight: 48 },
   title: { fontFamily: fontFamily.semibold, fontSize: 22, lineHeight: 28 },
   heading: { fontFamily: fontFamily.semibold, fontSize: 17, lineHeight: 24 },
