@@ -29,6 +29,8 @@ const DURATION_MS = 4000;
 const ACTION_DURATION_MS = 6000;
 // TalkBack users need time to reach the action after it is announced.
 const SCREEN_READER_DURATION_MS = 12000;
+// Above the dashboard's add button (64 dp + its 16 dp margin) so it never covers it.
+const BOTTOM_OFFSET = 96;
 
 /** One toast at a time, at the bottom; a new one replaces the current one. */
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -63,7 +65,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={value}>
       {children}
       {toast && (
-        <View pointerEvents="box-none" style={[styles.host, { bottom: insets.bottom + 16 }]}>
+        <View pointerEvents="box-none" style={[styles.host, { bottom: insets.bottom + BOTTOM_OFFSET }]}>
           <Animated.View
             key={toast.id}
             entering={FadeInDown.duration(160)}

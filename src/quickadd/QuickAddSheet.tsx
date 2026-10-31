@@ -334,11 +334,10 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
           {editingId !== null && <Button title={t('common.delete')} variant="outline" onPress={remove} style={styles.deleteButton} />}
           <Button title={t(editingId !== null ? 'common.saveChanges' : 'common.save')} onPress={save} disabled={!canSave} style={styles.saveButton} />
         </View>
-        {missing !== null && (
-          <Txt variant="caption" tone="inkMuted" style={styles.missing} accessibilityLiveRegion="polite">
-            {missing}
-          </Txt>
-        )}
+        {/* Always rendered (blank when nothing is missing) so Save does not move as the hint comes and goes. */}
+        <Txt variant="caption" tone="inkMuted" style={styles.missing} accessibilityLiveRegion="polite">
+          {missing ?? ' '}
+        </Txt>
       </BottomSheetScrollView>
     </BottomSheetModal>
   );

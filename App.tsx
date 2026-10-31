@@ -7,6 +7,7 @@ import { DataProvider } from './src/data/DataProvider';
 import { DatabaseProvider } from './src/db/DatabaseProvider';
 import { FxProvider } from './src/fx/FxProvider';
 import { ToastProvider } from './src/feedback/ToastProvider';
+import { ErrorBoundary } from './src/feedback/ErrorBoundary';
 import { I18nProvider } from './src/i18n/I18nProvider';
 import { IntroProvider } from './src/intro/IntroProvider';
 import { RootNavigator } from './src/navigation/RootNavigator';
@@ -20,21 +21,23 @@ export default function App() {
       <SafeAreaProvider>
         <ThemeProvider>
           <IntroProvider>
-            <DatabaseProvider>
-              <I18nProvider>
-                <ToastProvider>
-                  <PrivacyProvider>
-                    <DataProvider>
-                      <FxProvider>
-                        <QuickAddProvider>
-                          <RootNavigator />
-                        </QuickAddProvider>
-                      </FxProvider>
-                    </DataProvider>
-                  </PrivacyProvider>
-                </ToastProvider>
-              </I18nProvider>
-            </DatabaseProvider>
+            <ErrorBoundary>
+              <DatabaseProvider>
+                <I18nProvider>
+                  <ToastProvider>
+                    <PrivacyProvider>
+                      <DataProvider>
+                        <FxProvider>
+                          <QuickAddProvider>
+                            <RootNavigator />
+                          </QuickAddProvider>
+                        </FxProvider>
+                      </DataProvider>
+                    </PrivacyProvider>
+                  </ToastProvider>
+                </I18nProvider>
+              </DatabaseProvider>
+            </ErrorBoundary>
           </IntroProvider>
         </ThemeProvider>
       </SafeAreaProvider>

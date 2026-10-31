@@ -389,6 +389,19 @@ export const id = {
     transferIn: 'Transfer masuk',
     transferFee: 'Biaya transfer',
   },
+  startup: {
+    title: 'Rupiero tidak dapat dibuka',
+    schemaTooNew: 'Data di perangkat ini dibuat oleh versi Rupiero yang lebih baru. Perbarui aplikasi; datamu tidak diubah.',
+    failed: 'Database tidak dapat dibuka. Datamu tidak diubah. Coba lagi, atau tutup dan buka ulang aplikasi.',
+    detail: 'Detail: {message}',
+  },
+  errorBoundary: {
+    title: 'Terjadi kesalahan',
+    message: 'Layar ini gagal ditampilkan. Datamu aman.',
+  },
+  loadError: {
+    message: 'Data tidak dapat dimuat.',
+  },
   widget: {
     open: 'Buka Rupiero',
     empty: 'Buka aplikasi untuk memulai',

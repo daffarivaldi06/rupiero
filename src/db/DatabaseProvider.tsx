@@ -1,6 +1,12 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { openDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
 import { applyThemePreference } from '../theme/themePreference';
+import { ErrorScreen } from '../feedback/ErrorScreen';
+import { t } from '../i18n';
+import { getLocale, resolveLocale, setLocale } from '../i18n/locale';
+import { systemLanguageCodes } from '../i18n/system';
+import { useIntro } from '../intro/IntroProvider';
+import { SchemaTooNewError } from './migrations';
 import { DATABASE_NAME, initDb } from './init';
 import { getThemePreference } from './repos/settings';
 
@@ -29,20 +35,51 @@ export function getDatabase(): Promise<SQLiteDatabase> {
 
 const DatabaseContext = createContext<SQLiteDatabase | null>(null);
 
-/** Renders children once the shared connection is open and migrated (the splash covers the wait). */
+/**
+ * Renders children once the shared connection is open and migrated (the splash covers the wait). If
+ * that fails, says why with a retry instead of staying blank; nothing has been changed by then
+ * (migrations run in one transaction).
+ */
 export function DatabaseProvider({ children }: { children: React.ReactNode }) {
   const [db, setDb] = useState<SQLiteDatabase | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const intro = useIntro();
 
   useEffect(() => {
     let cancelled = false;
     getDatabase()
       .then((opened) => !cancelled && setDb(opened))
-      .catch(console.error);
+      .catch((e: unknown) => {
+        console.error(e);
+        if (cancelled) return;
+        // The stored language could not be read; the phone's is the best guess.
+        setLocale(resolveLocale('system', systemLanguageCodes()));
+        setError(e instanceof Error ? e : new Error(String(e)));
+        intro.ready();
+      });
     return () => {
       cancelled = true;
     };
+  }, [attempt, intro]);
+
+  const retry = useCallback(() => {
+    setError(null);
+    setAttempt((n) => n + 1);
   }, []);
 
+  if (error) {
+    const tooNew = error instanceof SchemaTooNewError;
+    return (
+      <ErrorScreen
+        key={getLocale()}
+        title={t('startup.title')}
+        message={t(tooNew ? 'startup.schemaTooNew' : 'startup.failed')}
+        detail={tooNew ? undefined : error.message}
+        onRetry={retry}
+      />
+    );
+  }
   return db ? <DatabaseContext.Provider value={db}>{children}</DatabaseContext.Provider> : null;
 }
 

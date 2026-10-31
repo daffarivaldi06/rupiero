@@ -1,12 +1,11 @@
 import type React from 'react';
-import { setThemePreference } from '../../db/repos/settings';
 import { budgetWidgetRepresentation } from '../Widget';
 import { createTestDb, type TestDb } from '../../../test/sqljs-db';
 import { initDb } from '../../db/init';
 import { listAccounts, setAccountArchived } from '../../db/repos/accounts';
 import { setBudget } from '../../db/repos/budgets';
 import { createCategory } from '../../db/repos/categories';
-import { setHideBalances, setHideBalancesInWidget } from '../../db/repos/settings';
+import { setHideBalances, setHideBalancesInWidget, setThemePreference } from '../../db/repos/settings';
 import { createTransaction } from '../../db/repos/transactions';
 import { widgetData } from '../data';
 
