@@ -51,6 +51,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.remove();
   }, [db]);
 
+  // Redraw the widget whenever the app opens: after an update or a killed widget task it may still
+  // show the launcher's placeholder until the next data change.
+  useEffect(() => {
+    refreshWidgets(db).catch(console.error);
+  }, [db]);
+
   const value = useMemo(() => ({ revision }), [revision]);
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

@@ -41,6 +41,14 @@
       "expo-sqlite",
       "expo-asset",
       [
+        "./plugins/with-native-translations.js",
+        {
+          "strings": {
+            "widget_budgetwidget_description": "Sisa budget per mata uang dan catat cepat"
+          }
+        }
+      ],
+      [
         "react-native-android-widget",
         {
           "widgets": [
@@ -52,7 +60,7 @@
               "targetCellWidth": 3,
               "targetCellHeight": 2,
               "resizeMode": "horizontal|vertical",
-              "description": "Sisa budget per mata uang dan catat cepat",
+              "description": "Budget left per currency, and quick add",
               "previewImage": "./assets/icon.png"
             }
           ]
