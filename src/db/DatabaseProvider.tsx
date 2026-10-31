@@ -9,6 +9,7 @@ import { useIntro } from '../intro/IntroProvider';
 import { SchemaTooNewError } from './migrations';
 import { DATABASE_NAME, initDb } from './init';
 import { getThemePreference } from './repos/settings';
+import { serializeTransactions } from './serialize';
 
 // One connection per process, shared by the app and the home-screen widget task. The widget task
 // runs in the app's JS runtime when the app is alive, and expo-sqlite shares native connections by
@@ -19,7 +20,7 @@ let connection: Promise<SQLiteDatabase> | null = null;
 export function getDatabase(): Promise<SQLiteDatabase> {
   if (!connection) {
     connection = (async () => {
-      const db = await openDatabaseAsync(DATABASE_NAME);
+      const db = serializeTransactions(await openDatabaseAsync(DATABASE_NAME));
       await initDb(db);
       // Before the first screen renders, so a chosen theme does not flash the system one.
       applyThemePreference(await getThemePreference(db));
