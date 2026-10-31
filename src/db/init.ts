@@ -11,6 +11,8 @@ export async function configureConnection(db: Db): Promise<void> {
   // WAL lets the widget's connection read while the app writes.
   await db.execAsync('PRAGMA journal_mode = WAL');
   await db.execAsync('PRAGMA foreign_keys = ON');
+  // The widget writes through its own connection; wait for a lock instead of failing at once.
+  await db.execAsync('PRAGMA busy_timeout = 3000');
 }
 
 export interface InitOptions {

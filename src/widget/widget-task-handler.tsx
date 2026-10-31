@@ -6,11 +6,16 @@ import { todayLocal } from '../domain/dates';
 import { widgetData, type WidgetData } from './data';
 import { budgetWidgetRepresentation } from './Widget';
 
-// Runs without the app: open the database the same way the app does (pragmas, migrations), record
+// Runs without the app UI: open the database the same way the app does (pragmas, migrations), record
 // recurring transactions that fell due, then read what to show. On any failure, show the prompt.
+//
+// The task may run inside the app's process. expo-sqlite shares one native connection per database
+// name by default, so a connection opened (and later closed or garbage-collected) here would take
+// the app's connection down with it. Hence a dedicated connection, closed when done.
 async function loadWidgetData(): Promise<WidgetData | null> {
+  let db: SQLite.SQLiteDatabase | null = null;
   try {
-    const db = await SQLite.openDatabaseAsync(DATABASE_NAME);
+    db = await SQLite.openDatabaseAsync(DATABASE_NAME, { useNewConnection: true });
     await initDb(db, { seed: false });
     const today = todayLocal();
     await materializeDue(db, today);
@@ -18,6 +23,8 @@ async function loadWidgetData(): Promise<WidgetData | null> {
   } catch (e) {
     console.error(e);
     return null;
+  } finally {
+    await db?.closeAsync().catch(() => {});
   }
 }
 
