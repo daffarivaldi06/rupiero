@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useLayoutEffect } from 'react';
+import React, { useState, useCallback, useEffect, useLayoutEffect } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Pressable, Alert } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect, useRoute, useNavigation, RouteProp } from '@react-navigation/native';
@@ -15,6 +15,7 @@ import { CategoryMonthSummary } from '../components/CategoryMonthSummary';
 import { Txt } from '../components/Txt';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
+import { useQuickAdd } from '../quickadd/QuickAddProvider';
 
 const signed = (t: TransactionDetail) => (t.type === 'income' ? t.amountMinor : -t.amountMinor);
 
@@ -25,6 +26,7 @@ export default function CategoryDetailScreen() {
   const { color } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const { categoryId, month } = route.params;
+  const quickAdd = useQuickAdd();
 
   const [category, setCategory] = useState('');
   const [totals, setTotals] = useState<CurrencyTotals[]>([]);
@@ -52,6 +54,11 @@ export default function CategoryDetailScreen() {
       loadData();
     }, [loadData])
   );
+
+  // The quick-add sheet opens over this screen, so focus does not change when it saves or deletes.
+  useEffect(() => {
+    if (quickAdd.revision > 0) loadData();
+  }, [quickAdd.revision, loadData]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -115,13 +122,13 @@ export default function CategoryDetailScreen() {
         <Button
           title="+ Pemasukan"
           variant="outline"
-          onPress={() => navigation.navigate('TransactionForm', { categoryId, initialType: 'income' })}
+          onPress={() => quickAdd.open({ categoryId, type: 'income' })}
           style={styles.actionButton}
         />
         <Button
           title="− Pengeluaran"
           variant="outline"
-          onPress={() => navigation.navigate('TransactionForm', { categoryId, initialType: 'expense' })}
+          onPress={() => quickAdd.open({ categoryId, type: 'expense' })}
           style={styles.actionButton}
         />
       </View>
@@ -139,6 +146,7 @@ export default function CategoryDetailScreen() {
                 subtitle={t.accountName}
                 signedMinor={signed(t)}
                 currency={t.currency}
+                onPress={() => quickAdd.open({ transactionId: t.id })}
               />
             ))}
           </LedgerSection>

@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Pressable } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getBalancesByCurrency } from '../db/repos/accounts';
 import { listCategories } from '../db/repos/categories';
@@ -14,6 +15,7 @@ import { Money } from '../components/Money';
 import { MonthFlow } from '../components/MonthFlow';
 import { Txt } from '../components/Txt';
 import { useIntro } from '../intro/IntroProvider';
+import { useQuickAdd } from '../quickadd/QuickAddProvider';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import type { RootNavigation } from '../navigation/types';
 
@@ -23,6 +25,8 @@ export default function DashboardScreen() {
   const { color } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const { ready: introReady, roll } = useIntro();
+  const quickAdd = useQuickAdd();
+  const insets = useSafeAreaInsets();
 
   const [balances, setBalances] = useState<CurrencyBalance[]>([]);
   const [totals, setTotals] = useState<CurrencyTotals[]>([]);
@@ -57,6 +61,11 @@ export default function DashboardScreen() {
       loadData();
     }, [loadData])
   );
+
+  // The quick-add sheet opens over this screen, so focus does not change when it saves or deletes.
+  useEffect(() => {
+    if (quickAdd.revision > 0) loadData();
+  }, [quickAdd.revision, loadData]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -109,11 +118,19 @@ export default function DashboardScreen() {
           </Pressable>
         </View>
       </ScrollView>
+      <Pressable
+        onPress={() => quickAdd.open()}
+        style={[styles.fab, { bottom: insets.bottom + 16 }]}
+        accessibilityRole="button"
+        accessibilityLabel="Catat transaksi"
+      >
+        <Txt variant="title" tone="onInk">+</Txt>
+      </Pressable>
     </View>
   );
 }
 
-const makeStyles = ({ color, space }: Theme) =>
+const makeStyles = ({ color, radius, space }: Theme) =>
   StyleSheet.create({
     screen: {
       flex: 1,
@@ -122,7 +139,18 @@ const makeStyles = ({ color, space }: Theme) =>
     content: {
       paddingHorizontal: space.lg,
       paddingTop: space.md,
-      paddingBottom: space.xxl,
+      // Room for the add button over the last row.
+      paddingBottom: space.xxl + 64,
+    },
+    fab: {
+      position: 'absolute',
+      right: space.lg,
+      width: 60,
+      height: 60,
+      borderRadius: radius.md,
+      backgroundColor: color.ink,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     section: {
       marginTop: space.xl,

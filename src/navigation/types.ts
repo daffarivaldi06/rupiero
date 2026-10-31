@@ -1,13 +1,11 @@
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { Month } from '../domain/dates';
-import type { TransactionType } from '../domain/types';
 
 export type RootStackParamList = {
   Dashboard: undefined;
   /** The name is read from the database, so a rename never leaves a stale title behind. */
   CategoryDetail: { categoryId: number; month: Month };
   CategoryForm: { categoryId?: number } | undefined;
-  TransactionForm: { categoryId?: number; initialType?: TransactionType } | undefined;
   Settings: undefined;
 };
 

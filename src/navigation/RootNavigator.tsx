@@ -8,7 +8,6 @@ import CategoryDetailScreen from '../screens/CategoryDetailScreen';
 import CategoryFormScreen from '../screens/CategoryFormScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import SettingsScreen from '../screens/SettingsScreen';
-import TransactionFormScreen from '../screens/TransactionFormScreen';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -36,19 +35,6 @@ export function RootNavigator() {
           component={CategoryFormScreen}
           options={({ route }) => ({
             title: route.params?.categoryId !== undefined ? 'Ubah Kategori' : 'Kategori Baru',
-            presentation: 'modal',
-          })}
-        />
-        <Stack.Screen
-          name="TransactionForm"
-          component={TransactionFormScreen}
-          options={({ route }) => ({
-            title:
-              route.params?.initialType === 'income'
-                ? 'Tambah Pemasukan'
-                : route.params?.initialType === 'expense'
-                  ? 'Tambah Pengeluaran'
-                  : 'Tambah Transaksi',
             presentation: 'modal',
           })}
         />

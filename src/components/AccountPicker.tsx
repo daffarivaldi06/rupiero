@@ -1,5 +1,7 @@
 import React from 'react';
-import { ScrollView, Pressable, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
+// Gesture-handler's ScrollView so horizontal scrolling also works inside the bottom sheet.
+import { ScrollView } from 'react-native-gesture-handler';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import type { Account } from '../domain/types';
 import { Txt } from './Txt';

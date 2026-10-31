@@ -97,3 +97,56 @@ export const hasOperator = (expression: string) => /[+\-−×÷*/]/.test(express
 
 /** Drops a trailing operator or separator so a half-typed expression ("12+") can be previewed. */
 export const withoutTrailingOperator = (expression: string) => expression.replace(/[+\-−×÷*/,]+$/, '');
+
+export type KeypadKey = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '000' | ',' | Operator | 'back';
+
+const MAX_EXPRESSION_LENGTH = 32;
+const isOperator = (char: string | undefined): char is Operator => !!char && (OPERATORS as readonly string[]).includes(char);
+
+/**
+ * The expression after pressing `key`, following keypad rules: no leading or doubled operator (a new
+ * operator replaces the previous one), a decimal separator only where the currency has minor units
+ * and at most that many decimals, no leading zeros, "000" only after a non-zero whole number.
+ */
+export function pressKey(expression: string, key: KeypadKey, currency: CurrencyCode): string {
+  if (key === 'back') return expression.slice(0, -1);
+
+  const lastOperator = Math.max(...OPERATORS.map((op) => expression.lastIndexOf(op)));
+  const head = expression.slice(0, lastOperator + 1);
+  const number = expression.slice(lastOperator + 1);
+  const digits = CURRENCIES[currency].minorDigits;
+  const [whole, fraction] = number.split(',');
+
+  if (isOperator(key)) {
+    if (expression === '') return expression;
+    const trimmed = expression.replace(/,$/, '');
+    return isOperator(trimmed.at(-1)) ? trimmed.slice(0, -1) + key : trimmed + key;
+  }
+
+  let next: string;
+  if (key === ',') {
+    if (digits === 0 || fraction !== undefined) return expression;
+    next = head + (whole === '' ? '0,' : `${whole},`);
+  } else if (key === '000') {
+    if (whole === '' || whole === '0' || fraction !== undefined) return expression;
+    next = expression + '000';
+  } else {
+    if (fraction !== undefined) {
+      if (fraction.length >= digits) return expression;
+      next = expression + key;
+    } else {
+      next = head + (whole === '0' ? key : whole + key);
+    }
+  }
+  return next.length > MAX_EXPRESSION_LENGTH ? expression : next;
+}
+
+/** A stored amount as keypad text, for editing: 1570 EUR → "15,70", 25000 IDR → "25000". */
+export function expressionFromMinor(minor: number, currency: CurrencyCode): string {
+  const digits = CURRENCIES[currency].minorDigits;
+  if (digits === 0) return String(minor);
+  const unit = 10 ** digits;
+  const whole = Math.trunc(minor / unit);
+  const fraction = minor % unit;
+  return fraction === 0 ? String(whole) : `${whole},${String(fraction).padStart(digits, '0')}`;
+}

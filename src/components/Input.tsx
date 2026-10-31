@@ -9,7 +9,7 @@ interface InputProps extends TextInputProps {
   error?: string;
 }
 
-// Plain text input. Amounts go through MoneyInput instead.
+// Plain text input. Amounts go through the quick-add keypad instead.
 export const Input: React.FC<InputProps> = ({ label, error, style, ...props }) => {
   const { color } = useTheme();
   const styles = useThemedStyles(makeStyles);
