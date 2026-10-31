@@ -111,6 +111,14 @@ export default function DashboardScreen() {
 
         <View style={styles.section}>
           <MonthFlow title={`Arus ${monthLabel}`} totals={totals} />
+          <Pressable
+            onPress={() => navigation.navigate('Transactions', { month: selectedMonth })}
+            style={styles.row}
+            accessibilityRole="button"
+          >
+            <Txt variant="bodyStrong" style={styles.rowText}>Semua transaksi</Txt>
+            <Txt tone="inkMuted" style={styles.chevron}>›</Txt>
+          </Pressable>
         </View>
 
         <View style={styles.sectionHeader}>
@@ -121,7 +129,12 @@ export default function DashboardScreen() {
         </View>
         <View style={styles.list}>
           {accounts.map((account) => (
-            <View key={account.id} style={styles.row}>
+            <Pressable
+              key={account.id}
+              onPress={() => navigation.navigate('Transactions', { month: selectedMonth, accountId: account.id })}
+              style={styles.row}
+              accessibilityRole="button"
+            >
               <View style={styles.rowText}>
                 <Txt numberOfLines={1}>{account.name}</Txt>
                 <Txt variant="code" tone={account.currency === 'EUR' ? 'eur' : 'idrText'}>{account.currency}</Txt>
@@ -132,7 +145,8 @@ export default function DashboardScreen() {
                 variant="bodyStrong"
                 tone={account.balanceMinor < 0 ? 'expense' : 'neutral'}
               />
-            </View>
+              <Txt tone="inkMuted" style={styles.chevron}>›</Txt>
+            </Pressable>
           ))}
         </View>
 

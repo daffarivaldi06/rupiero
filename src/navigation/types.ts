@@ -8,6 +8,7 @@ export type RootStackParamList = {
   CategoryForm: { categoryId?: number } | undefined;
   Settings: undefined;
   Accounts: undefined;
+  Transactions: { month?: Month; accountId?: number; categoryId?: number } | undefined;
   AccountForm: { accountId?: number } | undefined;
 };
 

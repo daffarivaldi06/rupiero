@@ -10,6 +10,7 @@ import CategoryDetailScreen from '../screens/CategoryDetailScreen';
 import CategoryFormScreen from '../screens/CategoryFormScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import TransactionListScreen from '../screens/TransactionListScreen';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -42,6 +43,7 @@ export function RootNavigator() {
         />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Pengaturan' }} />
         <Stack.Screen name="Accounts" component={AccountsScreen} options={{ title: 'Akun' }} />
+        <Stack.Screen name="Transactions" component={TransactionListScreen} options={{ title: 'Transaksi' }} />
         <Stack.Screen
           name="AccountForm"
           component={AccountFormScreen}
