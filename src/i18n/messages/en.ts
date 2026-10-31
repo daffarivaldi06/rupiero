@@ -73,7 +73,7 @@ export const en: Messages = {
     of: '{spent} of {limit}',
     left: '{amount} left',
     over: '{amount} over',
-    levelWarning: 'Almost used up',
+    levelWarning: 'Almost spent',
     levelOver: 'Over budget',
   },
   categorySummary: {
