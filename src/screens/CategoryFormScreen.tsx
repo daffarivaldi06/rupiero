@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, Alert, Text } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useNavigation, useRoute } from '@react-navigation/native';

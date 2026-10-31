@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Text, Alert, ScrollView } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useNavigation } from '@react-navigation/native';
 
 import { getSettings, updateSettings, AppSettings, resetTransactions } from '../db/database';
 import { Card } from '../components/Card';
@@ -11,7 +10,6 @@ import { colors } from '../theme/colors';
 
 export default function SettingsScreen() {
   const db = useSQLiteContext();
-  const navigation = useNavigation();
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [tempRate, setTempRate] = useState('');
 

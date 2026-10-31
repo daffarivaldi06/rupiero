@@ -1,12 +1,10 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, Pressable, Dimensions } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { PieChart } from 'react-native-gifted-charts';
 
-import { getBalance, getTransactions, getCategories, Category } from '../db/database';
+import { getBalance, getCategories, Category } from '../db/database';
 import { Card } from '../components/Card';
-import { Button } from '../components/Button';
 import { colors } from '../theme/colors';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../App';
@@ -55,11 +53,6 @@ export default function DashboardScreen() {
   };
 
   const sym = balance.displayCurrency === 'EUR' ? '€' : 'Rp';
-
-  const pieData = [
-    { value: balance.totalExpense || 1, color: colors.danger, text: 'Expense' },
-    { value: balance.totalIncome || 1, color: colors.primary, text: 'Income' }
-  ];
 
   return (
     <ScrollView 
