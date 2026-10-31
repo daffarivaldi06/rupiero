@@ -12,15 +12,17 @@ export interface Share<K> {
 
 /**
  * The `top` largest items as they are, the rest folded into one "Other (n)" entry, each with its
- * share of the total. Items with no value are dropped.
+ * share of the total. A single leftover item keeps its own name ("Other (1)" would only hide it).
+ * Items with no value are dropped.
  */
 export function topShares<K>(items: { key: K; label: string; value: number }[], top: number): Share<K>[] {
   const positive = items.filter((i) => i.value > 0).sort((a, b) => b.value - a.value);
   const total = positive.reduce((sum, i) => sum + i.value, 0);
   if (total === 0) return [];
   const percent = (value: number) => Math.round((value * 100) / total);
-  const head: Share<K>[] = positive.slice(0, top).map((i) => ({ ...i, percent: percent(i.value) }));
-  const rest = positive.slice(top);
+  const shown = positive.length === top + 1 ? top + 1 : top;
+  const head: Share<K>[] = positive.slice(0, shown).map((i) => ({ ...i, percent: percent(i.value) }));
+  const rest = positive.slice(shown);
   if (rest.length === 0) return head;
   const value = rest.reduce((sum, i) => sum + i.value, 0);
   return [...head, { key: 'other', label: t('chart.other', { count: rest.length }), value, percent: percent(value) }];

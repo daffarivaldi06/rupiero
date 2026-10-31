@@ -19,6 +19,10 @@ describe('topShares', () => {
     ]);
   });
 
+  it('shows a single leftover item by name instead of "Other (1)"', () => {
+    expect(topShares(items, 4).map((s) => s.label)).toEqual(['Sewa', 'Makanan', 'Transport', 'Tagihan', 'Hiburan']);
+  });
+
   it('drops empty items and handles no spending', () => {
     expect(topShares(items, 10).map((s) => s.key)).toEqual([1, 2, 3, 4, 5]);
     expect(topShares([{ key: 1, label: 'x', value: 0 }], 5)).toEqual([]);
