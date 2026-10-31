@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, RefreshControl, Pressable, Alert } from '
 import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect, useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 
-import { deleteCategoryWithTransactions, getCategory } from '../db/repos/categories';
+import { countCategoryTransactions, deleteCategory, getCategory, setCategoryArchived } from '../db/repos/categories';
 import { getMonthSummary } from '../db/repos/reports';
 import { listTransactions } from '../db/repos/transactions';
 import { groupByDate } from '../domain/ledger';
@@ -66,26 +66,33 @@ export default function CategoryDetailScreen() {
     setRefreshing(false);
   };
 
-  const handleDelete = () => {
+  // Transactions are never deleted with their category: an unused one goes, a used one is moved or archived.
+  const handleDelete = async () => {
+    const run = (action: () => Promise<void>) => async () => {
+      try {
+        await action();
+        navigation.popTo('Dashboard');
+      } catch (e) {
+        console.error(e);
+        Alert.alert('Gagal', 'Kategori tidak dapat diubah');
+      }
+    };
+    const used = await countCategoryTransactions(db, categoryId);
+    if (used === 0) {
+      Alert.alert('Hapus kategori', `Hapus "${category}"?`, [
+        { text: 'Batal', style: 'cancel' },
+        { text: 'Hapus', style: 'destructive', onPress: run(() => deleteCategory(db, categoryId)) },
+      ]);
+      return;
+    }
     Alert.alert(
-      'Hapus Kategori',
-      `Yakin ingin menghapus "${category}"? Semua transaksi di kategori ini juga akan dihapus.`,
+      'Kategori masih dipakai',
+      `${used} transaksi memakai "${category}". Pindahkan ke kategori lain lalu hapus, atau arsipkan agar tidak muncul di daftar.`,
       [
         { text: 'Batal', style: 'cancel' },
-        {
-          text: 'Hapus',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteCategoryWithTransactions(db, categoryId);
-              navigation.popTo('Dashboard');
-            } catch (e) {
-              console.error(e);
-              Alert.alert('Gagal', 'Kategori tidak dapat dihapus');
-            }
-          }
-        }
-      ]
+        { text: 'Arsipkan', onPress: run(() => setCategoryArchived(db, categoryId, true)) },
+        { text: 'Pindahkan…', onPress: () => navigation.navigate('CategoryReassign', { categoryId }) },
+      ],
     );
   };
 

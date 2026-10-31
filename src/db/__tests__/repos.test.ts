@@ -13,7 +13,10 @@ import {
 } from '../repos/accounts';
 import {
   createCategory,
-  deleteCategoryWithTransactions,
+  countCategoryTransactions,
+  deleteCategory,
+  reassignAndDeleteCategory,
+  setCategoryArchived,
   getCategory,
   listCategories,
   renameCategory,
@@ -140,14 +143,35 @@ describe('categories', () => {
     await expect(renameCategory(db, salary, 'MAKANAN')).rejects.toThrow(/UNIQUE/);
   });
 
-  it('deletes a category together with its transactions only', async () => {
+  it('deletes an unused category but refuses one that is in use', async () => {
     await createTransaction(db, { accountId: eur, categoryId: food, type: 'expense', amountMinor: 100, date: '2026-10-01' });
-    await createTransaction(db, { accountId: eur, categoryId: salary, type: 'income', amountMinor: 500, date: '2026-10-01' });
+    expect(await countCategoryTransactions(db, food)).toBe(1);
+    expect(await countCategoryTransactions(db, salary)).toBe(0);
 
-    await deleteCategoryWithTransactions(db, food);
+    await expect(deleteCategory(db, food)).rejects.toThrow(/FOREIGN KEY/);
+    await deleteCategory(db, salary);
+    expect((await listCategories(db)).map((c) => c.name)).toEqual(['Makanan']);
+  });
 
+  it('moves transactions to another category before deleting', async () => {
+    const groceries = await createCategory(db, 'Belanja');
+    await createTransaction(db, { accountId: eur, categoryId: food, type: 'expense', amountMinor: 100, date: '2026-10-01' });
+    await createTransaction(db, { accountId: idr, categoryId: food, type: 'expense', amountMinor: 5000, date: '2026-10-02' });
+
+    await reassignAndDeleteCategory(db, food, groceries);
+
+    expect(await getCategory(db, food)).toBeNull();
+    expect((await listTransactions(db)).map((t) => t.categoryName)).toEqual(['Belanja', 'Belanja']);
+    await expect(reassignAndDeleteCategory(db, groceries, groceries)).rejects.toThrow();
+  });
+
+  it('archives a category: gone from lists, still on its transactions', async () => {
+    await createTransaction(db, { accountId: eur, categoryId: food, type: 'expense', amountMinor: 100, date: '2026-10-01' });
+    await setCategoryArchived(db, food, true);
     expect((await listCategories(db)).map((c) => c.name)).toEqual(['Gaji']);
-    expect((await listTransactions(db)).map((t) => t.categoryId)).toEqual([salary]);
+    expect((await listTransactions(db))[0].categoryName).toBe('Makanan');
+    await setCategoryArchived(db, food, false);
+    expect((await listCategories(db)).length).toBe(2);
   });
 });
 

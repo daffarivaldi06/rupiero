@@ -6,6 +6,7 @@ export type RootStackParamList = {
   /** The name is read from the database, so a rename never leaves a stale title behind. */
   CategoryDetail: { categoryId: number; month: Month };
   CategoryForm: { categoryId?: number } | undefined;
+  CategoryReassign: { categoryId: number };
   Settings: undefined;
   Accounts: undefined;
   TransferForm: { transferId?: number } | undefined;

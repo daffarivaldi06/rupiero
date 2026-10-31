@@ -45,13 +45,27 @@ export async function renameCategory(db: Db, id: number, name: string): Promise<
   await db.runAsync('UPDATE categories SET name = ? WHERE id = ?', name.trim(), id);
 }
 
-/**
- * Deletes the category and every transaction in it, matching the pre-overhaul behaviour.
- * Phase 2 replaces this with reassign-or-archive.
- */
-export async function deleteCategoryWithTransactions(db: Db, id: number): Promise<void> {
+/** How many transactions use the category (all time). */
+export async function countCategoryTransactions(db: Db, id: number): Promise<number> {
+  const row = await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM transactions WHERE category_id = ?', id);
+  return row?.n ?? 0;
+}
+
+/** Deletes an unused category. Throws (FOREIGN KEY) while transactions still use it. */
+export async function deleteCategory(db: Db, id: number): Promise<void> {
+  await db.runAsync('DELETE FROM categories WHERE id = ?', id);
+}
+
+/** Moves every transaction to `targetId`, then deletes the category, all or nothing. */
+export async function reassignAndDeleteCategory(db: Db, id: number, targetId: number): Promise<void> {
+  if (id === targetId) throw new Error('Target category must differ');
   await db.withTransactionAsync(async () => {
-    await db.runAsync('DELETE FROM transactions WHERE category_id = ?', id);
+    await db.runAsync("UPDATE transactions SET category_id = ?, updated_at = datetime('now') WHERE category_id = ?", targetId, id);
     await db.runAsync('DELETE FROM categories WHERE id = ?', id);
   });
+}
+
+/** Hides the category from lists and pickers; its transactions keep it. */
+export async function setCategoryArchived(db: Db, id: number, archived: boolean): Promise<void> {
+  await db.runAsync('UPDATE categories SET archived = ? WHERE id = ?', archived ? 1 : 0, id);
 }

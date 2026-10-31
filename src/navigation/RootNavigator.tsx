@@ -8,6 +8,7 @@ import AccountFormScreen from '../screens/AccountFormScreen';
 import AccountsScreen from '../screens/AccountsScreen';
 import CategoryDetailScreen from '../screens/CategoryDetailScreen';
 import CategoryFormScreen from '../screens/CategoryFormScreen';
+import CategoryReassignScreen from '../screens/CategoryReassignScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import TransactionListScreen from '../screens/TransactionListScreen';
@@ -41,6 +42,11 @@ export function RootNavigator() {
             title: route.params?.categoryId !== undefined ? 'Ubah Kategori' : 'Kategori Baru',
             presentation: 'modal',
           })}
+        />
+        <Stack.Screen
+          name="CategoryReassign"
+          component={CategoryReassignScreen}
+          options={{ title: 'Pindahkan transaksi', presentation: 'modal' }}
         />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Pengaturan' }} />
         <Stack.Screen name="Accounts" component={AccountsScreen} options={{ title: 'Akun' }} />
