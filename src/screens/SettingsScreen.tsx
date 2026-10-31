@@ -1,16 +1,13 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, StyleSheet, Alert, ScrollView, Pressable } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 import { SHOW_DEV_TOOLS } from '../config/dev';
 import { getUserVersion } from '../db/client';
 import { resetDatabase } from '../db/init';
-import { listAccountsWithBalance } from '../db/repos/accounts';
-import type { AccountWithBalance } from '../domain/types';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
-import { Money } from '../components/Money';
 import { Txt } from '../components/Txt';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import type { RootNavigation } from '../navigation/types';
@@ -19,13 +16,11 @@ export default function SettingsScreen() {
   const db = useSQLiteContext();
   const navigation = useNavigation<RootNavigation>();
   const styles = useThemedStyles(makeStyles);
-  const [accounts, setAccounts] = useState<AccountWithBalance[]>([]);
   const [schemaVersion, setSchemaVersion] = useState<number>();
 
   useFocusEffect(
     useCallback(() => {
       (async () => {
-        setAccounts(await listAccountsWithBalance(db));
         setSchemaVersion(await getUserVersion(db));
       })().catch(console.error);
     }, [db])
@@ -56,20 +51,14 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <Txt variant="title">Akun</Txt>
-      <Txt tone="inkMuted" style={styles.description}>
-        Setiap akun memakai satu mata uang. Saldo tidak dikonversi antar mata uang.
-      </Txt>
       <View style={styles.list}>
-        {accounts.map((account) => (
-          <View key={account.id} style={styles.accountRow}>
-            <View style={styles.accountText}>
-              <Txt variant="bodyStrong">{account.name}</Txt>
-              <Txt variant="code" tone={account.currency === 'EUR' ? 'eur' : 'idrText'}>{account.currency}</Txt>
-            </View>
-            <Money minor={account.balanceMinor} currency={account.currency} variant="bodyStrong" />
+        <Pressable onPress={() => navigation.navigate('Accounts')} style={styles.row} accessibilityRole="button">
+          <View style={styles.rowText}>
+            <Txt variant="bodyStrong">Akun</Txt>
+            <Txt variant="caption" tone="inkMuted">Tambah, ganti nama, saldo awal, arsip</Txt>
           </View>
-        ))}
+          <Txt tone="inkMuted">›</Txt>
+        </Pressable>
       </View>
 
       {SHOW_DEV_TOOLS && (
@@ -92,15 +81,11 @@ const makeStyles = ({ color, space }: Theme) =>
       padding: space.lg,
       paddingBottom: space.xxl,
     },
-    description: {
-      marginTop: space.xs,
-      marginBottom: space.lg,
-    },
     list: {
       borderTopWidth: 1,
       borderTopColor: color.ink,
     },
-    accountRow: {
+    row: {
       flexDirection: 'row',
       alignItems: 'center',
       minHeight: 56,
@@ -108,7 +93,7 @@ const makeStyles = ({ color, space }: Theme) =>
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: color.line,
     },
-    accountText: {
+    rowText: {
       flex: 1,
     },
     devCard: {

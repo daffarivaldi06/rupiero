@@ -7,6 +7,8 @@ export type RootStackParamList = {
   CategoryDetail: { categoryId: number; month: Month };
   CategoryForm: { categoryId?: number } | undefined;
   Settings: undefined;
+  Accounts: undefined;
+  AccountForm: { accountId?: number } | undefined;
 };
 
 export type RootScreenProps<T extends keyof RootStackParamList> = NativeStackScreenProps<RootStackParamList, T>;

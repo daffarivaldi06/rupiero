@@ -33,15 +33,19 @@ export async function listAccounts(db: Db, options: { includeArchived?: boolean 
   return rows.map(toAccount);
 }
 
-export async function listAccountsWithBalance(db: Db): Promise<AccountWithBalance[]> {
+export async function listAccountsWithBalance(
+  db: Db,
+  options: { includeArchived?: boolean } = {},
+): Promise<AccountWithBalance[]> {
   const rows = await db.getAllAsync<AccountRow & { balance_minor: number }>(
     `SELECT ${COLUMNS},
             a.opening_balance_minor + COALESCE(SUM(l.signed_minor), 0) AS balance_minor
      FROM accounts a
      LEFT JOIN ledger l ON l.account_id = a.id
-     WHERE a.archived = 0
+     WHERE ? OR a.archived = 0
      GROUP BY a.id
-     ORDER BY a.sort_order, a.name`,
+     ORDER BY a.archived, a.sort_order, a.name`,
+    options.includeArchived ? 1 : 0,
   );
   return rows.map((row) => ({ ...toAccount(row), balanceMinor: row.balance_minor }));
 }
@@ -89,4 +93,44 @@ export async function createAccount(db: Db, account: NewAccount): Promise<number
     account.openingBalanceMinor ?? 0,
   );
   return result.lastInsertRowId;
+}
+
+/** True once any transaction or transfer touches the account; its currency is then fixed. */
+export async function accountHasActivity(db: Db, id: number): Promise<boolean> {
+  const row = await db.getFirstAsync<{ used: number }>(
+    `SELECT EXISTS (SELECT 1 FROM transactions WHERE account_id = ?)
+         OR EXISTS (SELECT 1 FROM transfers WHERE from_account_id = ? OR to_account_id = ?) AS used`,
+    id,
+    id,
+    id,
+  );
+  return row?.used === 1;
+}
+
+export class AccountCurrencyLockedError extends Error {
+  constructor() {
+    super('Mata uang akun yang sudah punya transaksi tidak bisa diganti');
+    this.name = 'AccountCurrencyLockedError';
+  }
+}
+
+/** Throws on a duplicate name, or on a currency change once the account has activity. */
+export async function updateAccount(db: Db, id: number, account: NewAccount): Promise<void> {
+  const current = await getAccount(db, id);
+  if (!current) throw new Error(`Account ${id} not found`);
+  if (current.currency !== account.currency && (await accountHasActivity(db, id))) {
+    throw new AccountCurrencyLockedError();
+  }
+  await db.runAsync(
+    'UPDATE accounts SET name = ?, currency = ?, opening_balance_minor = ? WHERE id = ?',
+    account.name.trim(),
+    account.currency,
+    account.openingBalanceMinor ?? 0,
+    id,
+  );
+}
+
+/** Archived accounts leave pickers and balances; their history stays. */
+export async function setAccountArchived(db: Db, id: number, archived: boolean): Promise<void> {
+  await db.runAsync('UPDATE accounts SET archived = ? WHERE id = ?', archived ? 1 : 0, id);
 }

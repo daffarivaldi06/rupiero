@@ -1,6 +1,16 @@
 import { createTestDb, type TestDb } from '../../../test/sqljs-db';
 import { initDb } from '../init';
-import { createAccount, getAccount, getBalancesByCurrency, listAccounts, listAccountsWithBalance } from '../repos/accounts';
+import {
+  AccountCurrencyLockedError,
+  accountHasActivity,
+  createAccount,
+  getAccount,
+  getBalancesByCurrency,
+  listAccounts,
+  listAccountsWithBalance,
+  setAccountArchived,
+  updateAccount,
+} from '../repos/accounts';
 import {
   createCategory,
   deleteCategoryWithTransactions,
@@ -72,6 +82,43 @@ describe('accounts', () => {
       { currency: 'EUR', balanceMinor: 185000 },
       { currency: 'IDR', balanceMinor: 350_000 },
     ]);
+  });
+});
+
+describe('account management', () => {
+  it('renames and changes the opening balance and currency of an unused account', async () => {
+    const id = await createAccount(db, { name: 'Dompet', currency: 'IDR' });
+    expect(await accountHasActivity(db, id)).toBe(false);
+    await updateAccount(db, id, { name: ' Tabungan ', currency: 'EUR', openingBalanceMinor: 5000 });
+    expect(await getAccount(db, id)).toMatchObject({ name: 'Tabungan', currency: 'EUR', openingBalanceMinor: 5000 });
+  });
+
+  it('locks the currency once a transaction or transfer uses the account', async () => {
+    await createTransaction(db, { accountId: eur, categoryId: food, type: 'expense', amountMinor: 100, date: '2026-10-01' });
+    expect(await accountHasActivity(db, eur)).toBe(true);
+    await expect(updateAccount(db, eur, { name: 'Rekening EUR', currency: 'IDR' })).rejects.toThrow(AccountCurrencyLockedError);
+    await updateAccount(db, eur, { name: 'Bank EUR', currency: 'EUR', openingBalanceMinor: 1000 });
+    expect((await getAccount(db, eur))?.name).toBe('Bank EUR');
+
+    const wallet = await createAccount(db, { name: 'Dompet', currency: 'IDR' });
+    await db.runAsync(
+      "INSERT INTO transfers (from_account_id, to_account_id, from_amount_minor, to_amount_minor, date) VALUES (?, ?, 1, 1, '2026-10-01')",
+      idr,
+      wallet,
+    );
+    expect(await accountHasActivity(db, wallet)).toBe(true);
+  });
+
+  it('hides archived accounts from pickers and balances but can list them', async () => {
+    await setAccountArchived(db, idr, true);
+    expect((await listAccounts(db)).map((a) => a.currency)).toEqual(['EUR']);
+    expect((await listAccountsWithBalance(db)).map((a) => a.currency)).toEqual(['EUR']);
+    expect((await listAccountsWithBalance(db, { includeArchived: true })).map((a) => [a.currency, a.archived])).toEqual([
+      ['EUR', false],
+      ['IDR', true],
+    ]);
+    await setAccountArchived(db, idr, false);
+    expect((await listAccounts(db)).length).toBe(2);
   });
 });
 

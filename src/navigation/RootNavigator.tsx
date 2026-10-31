@@ -4,6 +4,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 
 import { navigationTheme, useTheme } from '../theme/ThemeProvider';
+import AccountFormScreen from '../screens/AccountFormScreen';
+import AccountsScreen from '../screens/AccountsScreen';
 import CategoryDetailScreen from '../screens/CategoryDetailScreen';
 import CategoryFormScreen from '../screens/CategoryFormScreen';
 import DashboardScreen from '../screens/DashboardScreen';
@@ -39,6 +41,15 @@ export function RootNavigator() {
           })}
         />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Pengaturan' }} />
+        <Stack.Screen name="Accounts" component={AccountsScreen} options={{ title: 'Akun' }} />
+        <Stack.Screen
+          name="AccountForm"
+          component={AccountFormScreen}
+          options={({ route }) => ({
+            title: route.params?.accountId !== undefined ? 'Ubah Akun' : 'Akun Baru',
+            presentation: 'modal',
+          })}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
