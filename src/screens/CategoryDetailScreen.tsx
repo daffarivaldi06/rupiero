@@ -4,10 +4,13 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect, useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 
 import { countCategoryTransactions, deleteCategory, getCategory, setCategoryArchived } from '../db/repos/categories';
+import { listCategoryBudgets, type BudgetLine } from '../db/repos/budgets';
 import { getMonthSummary } from '../db/repos/reports';
 import { listTransactions } from '../db/repos/transactions';
+import { budgetStatus } from '../domain/budget';
 import { groupByDate } from '../domain/ledger';
 import type { CurrencyTotals, TransactionDetail } from '../domain/types';
+import { BudgetBar } from '../components/BudgetBar';
 import { Button } from '../components/Button';
 import { LedgerRow } from '../components/LedgerRow';
 import { LedgerSection } from '../components/LedgerSection';
@@ -32,6 +35,7 @@ export default function CategoryDetailScreen() {
 
   const [category, setCategory] = useState('');
   const [totals, setTotals] = useState<CurrencyTotals[]>([]);
+  const [budgets, setBudgets] = useState<BudgetLine[]>([]);
   const [transactions, setTransactions] = useState<TransactionDetail[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -44,6 +48,7 @@ export default function CategoryDetailScreen() {
         return;
       }
       setCategory(found.name);
+      setBudgets(await listCategoryBudgets(db, categoryId, month));
       setTotals(await getMonthSummary(db, month, { categoryId }));
       setTransactions(await listTransactions(db, { month, categoryId }));
     } catch (e) {
@@ -128,6 +133,20 @@ export default function CategoryDetailScreen() {
     >
       <CategoryMonthSummary month={month} totals={totals} />
 
+      <Pressable
+        onPress={() => navigation.navigate('BudgetForm', { categoryId, month })}
+        style={styles.budgetBlock}
+        accessibilityRole="button"
+      >
+        <View style={styles.budgetHeader}>
+          <Txt variant="label" tone="inkMuted">Budget</Txt>
+          <Txt variant="label">{budgets.length === 0 ? 'Atur ›' : 'Ubah ›'}</Txt>
+        </View>
+        {budgets.map((line) => (
+          <BudgetBar key={line.currency} status={budgetStatus(line.spentMinor, line.limitMinor)} currency={line.currency} />
+        ))}
+      </Pressable>
+
       <View style={styles.actionRow}>
         <Button
           title="+ Pemasukan"
@@ -166,7 +185,7 @@ export default function CategoryDetailScreen() {
   );
 }
 
-const makeStyles = ({ space }: Theme) =>
+const makeStyles = ({ color, space }: Theme) =>
   StyleSheet.create({
     content: {
       padding: space.lg,
@@ -174,6 +193,18 @@ const makeStyles = ({ space }: Theme) =>
     },
     headerActions: {
       flexDirection: 'row',
+    },
+    budgetBlock: {
+      marginTop: space.md,
+      paddingVertical: space.sm,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: color.line,
+    },
+    budgetHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      minHeight: 32,
+      alignItems: 'center',
     },
     headerButton: {
       minHeight: 48,

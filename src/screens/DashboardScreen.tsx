@@ -5,15 +5,18 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getBalancesByCurrency, listAccountsWithBalance } from '../db/repos/accounts';
+import { listBudgets, type BudgetLine } from '../db/repos/budgets';
 import { getBaseCurrency } from '../db/repos/settings';
 import { listCategories } from '../db/repos/categories';
 import { getCategoryMonthTotals, getMonthSummary, type CategoryCurrencyTotal } from '../db/repos/reports';
 import { currentMonth, formatDayMonth, formatMonthLabel, monthRange } from '../domain/dates';
+import { budgetStatus } from '../domain/budget';
 import { combinedTotal } from '../domain/fx';
 import type { CurrencyCode } from '../domain/money';
 import type { AccountWithBalance, Category, CurrencyBalance, CurrencyTotals } from '../domain/types';
 import { AppHeader } from '../components/AppHeader';
 import { BalanceHero } from '../components/BalanceHero';
+import { BudgetBar } from '../components/BudgetBar';
 import { Money } from '../components/Money';
 import { MonthFlow } from '../components/MonthFlow';
 import { Txt } from '../components/Txt';
@@ -41,6 +44,7 @@ export default function DashboardScreen() {
   const [totals, setTotals] = useState<CurrencyTotals[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryTotals, setCategoryTotals] = useState<CategoryCurrencyTotal[]>([]);
+  const [budgets, setBudgets] = useState<BudgetLine[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth());
   const [refreshing, setRefreshing] = useState(false);
 
@@ -49,14 +53,16 @@ export default function DashboardScreen() {
   const loadData = useCallback(async () => {
     try {
       const asOf = monthRange(selectedMonth).end;
-      const [nextBalances, nextAccounts, nextBase, nextTotals, nextCategories, nextCategoryTotals] = await Promise.all([
+      const [nextBalances, nextAccounts, nextBase, nextTotals, nextCategories, nextCategoryTotals, nextBudgets] = await Promise.all([
         getBalancesByCurrency(db, { asOf }),
         listAccountsWithBalance(db, { asOf }),
         getBaseCurrency(db),
         getMonthSummary(db, selectedMonth),
         listCategories(db),
         getCategoryMonthTotals(db, selectedMonth),
+        listBudgets(db, selectedMonth),
       ]);
+      setBudgets(nextBudgets);
       setBalances(nextBalances);
       setAccounts(nextAccounts);
       setBaseCurrency(nextBase);
@@ -92,6 +98,10 @@ export default function DashboardScreen() {
   // Hidden until an ECB rate has been fetched at least once.
   const combined = referenceRate && balances.length > 1 ? combinedTotal(balances, baseCurrency, referenceRate.rateMicro) : null;
   const fees = totals.filter((t) => t.feeMinor > 0);
+  // Only budgets that need attention (≥ 80 %) are shown here; the budget screen has the rest.
+  const budgetAlerts = budgets
+    .map((line) => ({ line, status: budgetStatus(line.spentMinor, line.limitMinor) }))
+    .filter(({ status }) => status.level !== 'ok');
 
   return (
     <View style={styles.screen}>
@@ -122,6 +132,36 @@ export default function DashboardScreen() {
             <Txt variant="bodyStrong" style={styles.rowText}>Semua transaksi</Txt>
             <Txt tone="inkMuted" style={styles.chevron}>›</Txt>
           </Pressable>
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <Txt variant="title" style={styles.rowText}>Budget</Txt>
+          <Pressable
+            onPress={() => navigation.navigate('Budget', { month: selectedMonth })}
+            style={styles.headerLink}
+            accessibilityRole="button"
+          >
+            <Txt variant="bodyStrong">{budgets.length === 0 ? 'Atur' : 'Semua'}</Txt>
+          </Pressable>
+        </View>
+        <View style={styles.list}>
+          {budgets.length === 0 ? (
+            <Txt tone="inkMuted" style={styles.note}>Belum ada budget bulan ini.</Txt>
+          ) : budgetAlerts.length === 0 ? (
+            <Txt tone="inkMuted" style={styles.note}>Semua kategori masih di bawah 80% budget.</Txt>
+          ) : (
+            budgetAlerts.map(({ line, status }) => (
+              <Pressable
+                key={`${line.categoryId}-${line.currency}`}
+                onPress={() => navigation.navigate('CategoryDetail', { categoryId: line.categoryId, month: selectedMonth })}
+                style={styles.budgetRow}
+                accessibilityRole="button"
+              >
+                <Txt variant="bodyStrong" numberOfLines={1}>{line.categoryName}</Txt>
+                <BudgetBar status={status} currency={line.currency} />
+              </Pressable>
+            ))
+          )}
         </View>
 
         <View style={styles.sectionHeader}>
@@ -232,6 +272,14 @@ const makeStyles = ({ color, radius, space }: Theme) =>
     },
     combined: {
       marginTop: space.sm,
+    },
+    note: {
+      paddingVertical: space.md,
+    },
+    budgetRow: {
+      paddingVertical: space.sm,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: color.line,
     },
     sectionHeader: {
       flexDirection: 'row',
