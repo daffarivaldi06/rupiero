@@ -1,17 +1,17 @@
-import React from 'react';
 import { Platform } from 'react-native';
 import { requestWidgetUpdate } from 'react-native-android-widget';
 import type { Db } from '../db/client';
-import { widgetAccountLines } from './data';
-import { BudgetWidget } from './Widget';
+import { todayLocal } from '../domain/dates';
+import { widgetData } from './data';
+import { budgetWidgetRepresentation } from './Widget';
 
-/** Redraws placed widgets now (e.g. after balances are hidden), instead of at the next update period. */
+/** Redraws placed widgets now (after a data change) instead of at the next update period. */
 export async function refreshWidgets(db: Db): Promise<void> {
   if (Platform.OS !== 'android') return;
-  const accounts = await widgetAccountLines(db);
+  const data = await widgetData(db, todayLocal());
   await requestWidgetUpdate({
     widgetName: 'BudgetWidget',
-    renderWidget: () => React.createElement(BudgetWidget, { accounts }),
+    renderWidget: () => budgetWidgetRepresentation(data),
     widgetNotFound: () => {},
   });
 }

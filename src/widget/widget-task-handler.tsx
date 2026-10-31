@@ -1,22 +1,23 @@
-import React from 'react';
 import type { WidgetTaskHandlerProps } from 'react-native-android-widget';
-import { BudgetWidget, type WidgetAccountLine } from './Widget';
 import * as SQLite from 'expo-sqlite';
-import { DATABASE_NAME } from '../db/init';
+import { DATABASE_NAME, initDb } from '../db/init';
 import { materializeDue } from '../db/repos/recurring';
 import { todayLocal } from '../domain/dates';
-import { widgetAccountLines } from './data';
+import { widgetData, type WidgetData } from './data';
+import { budgetWidgetRepresentation } from './Widget';
 
-// Reads balances without React context. If the app has never been opened the schema does not
-// exist yet and the widget asks the user to open it (Phase 4 initialises the DB from here).
-async function fetchAccounts(): Promise<WidgetAccountLine[]> {
+// Runs without the app: open the database the same way the app does (pragmas, migrations), record
+// recurring transactions that fell due, then read what to show. On any failure, show the prompt.
+async function loadWidgetData(): Promise<WidgetData | null> {
   try {
     const db = await SQLite.openDatabaseAsync(DATABASE_NAME);
-    // Recurring transactions due today count even if the app has not been opened.
-    await materializeDue(db, todayLocal());
-    return await widgetAccountLines(db);
-  } catch {
-    return [];
+    await initDb(db, { seed: false });
+    const today = todayLocal();
+    await materializeDue(db, today);
+    return await widgetData(db, today);
+  } catch (e) {
+    console.error(e);
+    return null;
   }
 }
 
@@ -25,7 +26,7 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
     case 'WIDGET_ADDED':
     case 'WIDGET_UPDATE':
     case 'WIDGET_RESIZED':
-      props.renderWidget(<BudgetWidget accounts={await fetchAccounts()} />);
+      props.renderWidget(budgetWidgetRepresentation(await loadWidgetData()));
       break;
 
     default:
