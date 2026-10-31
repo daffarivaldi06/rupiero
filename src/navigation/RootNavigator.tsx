@@ -6,6 +6,8 @@ import { StatusBar } from 'expo-status-bar';
 import { navigationTheme, useTheme } from '../theme/ThemeProvider';
 import AccountFormScreen from '../screens/AccountFormScreen';
 import AccountsScreen from '../screens/AccountsScreen';
+import BudgetFormScreen from '../screens/BudgetFormScreen';
+import BudgetScreen from '../screens/BudgetScreen';
 import CategoryDetailScreen from '../screens/CategoryDetailScreen';
 import CategoryFormScreen from '../screens/CategoryFormScreen';
 import CategoryReassignScreen from '../screens/CategoryReassignScreen';
@@ -50,6 +52,8 @@ export function RootNavigator() {
         />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Pengaturan' }} />
         <Stack.Screen name="Accounts" component={AccountsScreen} options={{ title: 'Akun' }} />
+        <Stack.Screen name="Budget" component={BudgetScreen} options={{ title: 'Budget' }} />
+        <Stack.Screen name="BudgetForm" component={BudgetFormScreen} options={{ title: 'Budget', presentation: 'modal' }} />
         <Stack.Screen name="Transactions" component={TransactionListScreen} options={{ title: 'Transaksi' }} />
         <Stack.Screen
           name="TransferForm"

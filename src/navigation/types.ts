@@ -9,6 +9,8 @@ export type RootStackParamList = {
   CategoryReassign: { categoryId: number };
   Settings: undefined;
   Accounts: undefined;
+  Budget: { month?: Month } | undefined;
+  BudgetForm: { categoryId: number; month: Month };
   TransferForm: { transferId?: number } | undefined;
   Transactions: { month?: Month; accountId?: number; categoryId?: number } | undefined;
   AccountForm: { accountId?: number } | undefined;
