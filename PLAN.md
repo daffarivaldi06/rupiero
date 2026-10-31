@@ -12,7 +12,8 @@
 | 1 | ✅ selesai (tag `phase-1-done`) | Uji manual di perangkat lolos (2026-10-31) |
 | 1.5 | ✅ selesai (tag `phase-1.5-done`) | Disetujui bersama review Fase 1.6 (2026-10-31) |
 | 1.6 | ✅ selesai (tag `phase-1.6-done`) | Review screenshot + 5 perbaikan (2026-10-31): count-up saldo, detail kategori bergaya ledger, ringkasan tanpa minus, subtotal harian hanya jika >1 transaksi, ikon adaptif lebih besar |
-| 2–5 | belum dimulai | |
+| 2 | ✅ kode selesai, **menunggu uji manual** | 214 test lolos; typecheck + lint bersih; diuji di emulator (quick-add, pratinjau kurs, transfer + fee, list, edit/ubah tanggal, rename, hapus kategori). Tag `phase-2-done` setelah uji di perangkat |
+| 3–5 | belum dimulai | |
 | 6 | backlog | Belum dijadwalkan; tiap item butuh persetujuan sendiri |
 
 Penyimpangan dari rencana (Fase 0–1):
@@ -40,6 +41,16 @@ Penyimpangan dari rencana (Fase 1.6):
   detail kategori memakai nama kategori sebagai judul header dan ringkasan bergaris tanpa kartu ("Pengeluaran Oktober € 178,70",
   baris nol disembunyikan); subtotal harian hanya jika hari itu punya >1 transaksi; ikon adaptif ~24% lebih besar dengan sudut bingkai
   lebih bulat (radius 18) agar tetap di lingkaran aman, bilah €/Rp lebih tebal.
+
+Penyimpangan dari rencana (Fase 2):
+- Langkah 7–9 (sheet, pratinjau kurs, akun terakhir, edit/hapus) masuk satu commit karena saling terkait; keypad & kategori chip ikut di commit itu.
+- Kurs ECB diambil dari `https://api.frankfurter.dev/v1/latest?base=EUR&symbols=IDR` (domain lama `api.frankfurter.app` sekarang redirect 301 ke sana).
+  `FxProvider` menyimpan kurs terbaru di context; sync paling banyak sekali sehari (setting `fx_checked_on`), saat start dan saat app kembali ke foreground.
+- Pratinjau di quick-add dan total "≈" memakai kurs ECB **terbaru** (tanggalnya ditampilkan), bukan kurs pada tanggal transaksi. Form transfer membandingkan dengan kurs ECB **pada tanggal transfer**.
+- Saldo di Dashboard (hero dan daftar akun) dihitung sampai akhir bulan yang dipilih; total "≈" menjumlahkan saldo itu.
+- Hapus kategori yang masih dipakai: pilih "Pindahkan…" (layar `CategoryReassign`) atau "Arsipkan". Kategori yang diarsipkan belum bisa dikembalikan dari UI (backlog).
+- `MoneyInput` dan `TransactionFormScreen` dihapus; nominal hanya lewat keypad quick-add. Form akun/transfer memakai input teks biasa + `parseAmount`.
+- Date picker Android masih bergaya bawaan sistem (teal), belum mengikuti token tema.
 
 ## Prinsip kerja
 
