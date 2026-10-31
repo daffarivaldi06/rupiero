@@ -50,5 +50,8 @@ export interface CurrencyBalance {
 export interface CurrencyTotals {
   currency: CurrencyCode;
   incomeMinor: number;
+  /** Includes transfer fees. */
   expenseMinor: number;
+  /** Transfer fees ("Biaya transfer"), already part of expenseMinor. */
+  feeMinor: number;
 }

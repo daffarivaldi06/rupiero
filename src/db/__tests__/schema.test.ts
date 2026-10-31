@@ -67,3 +67,69 @@ it('indexes month/category and account/date lookups', async () => {
   );
   expect(plan.map((p) => p.detail).join(' ')).toContain('idx_tx_month_category');
 });
+
+describe('transfers and fx_rates (v2)', () => {
+  let idrId: number;
+  beforeEach(async () => {
+    idrId = (await db.getFirstAsync<{ id: number }>("SELECT id FROM accounts WHERE currency = 'IDR'"))!.id;
+  });
+
+  const insertTransfer = (overrides: Partial<Record<string, number | string>> = {}) => {
+    const row = { from: eurId, to: idrId, fromAmount: 20000, toAmount: 3_420_000, fee: 150, date: '2026-10-30', ...overrides };
+    return db.runAsync(
+      `INSERT INTO transfers (from_account_id, to_account_id, from_amount_minor, to_amount_minor, fee_minor, date)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      row.from,
+      row.to,
+      row.fromAmount,
+      row.toAmount,
+      row.fee,
+      row.date,
+    );
+  };
+
+  it('stores a transfer with its month and rejects invalid ones', async () => {
+    const { lastInsertRowId } = await insertTransfer();
+    expect(await db.getFirstAsync('SELECT month FROM transfers WHERE id = ?', lastInsertRowId)).toEqual({ month: '2026-10' });
+    await expect(insertTransfer({ to: eurId })).rejects.toThrow(/CHECK/);
+    await expect(insertTransfer({ fromAmount: 0 })).rejects.toThrow(/CHECK/);
+    await expect(insertTransfer({ fee: -1 })).rejects.toThrow(/CHECK/);
+    await expect(insertTransfer({ date: '30-10-2026' })).rejects.toThrow(/CHECK/);
+  });
+
+  it('keeps accounts with transfers from being deleted', async () => {
+    await insertTransfer();
+    await expect(db.runAsync('DELETE FROM accounts WHERE id = ?', idrId)).rejects.toThrow(/FOREIGN KEY/);
+  });
+
+  it('only stores EUR→IDR rates, one per date', async () => {
+    await db.runAsync("INSERT INTO fx_rates (date, rate_micro) VALUES ('2026-10-30', 20275170000)");
+    expect(await db.getFirstAsync('SELECT base, quote, source FROM fx_rates')).toEqual({
+      base: 'EUR',
+      quote: 'IDR',
+      source: 'ecb-frankfurter',
+    });
+    await expect(db.runAsync("INSERT INTO fx_rates (date, rate_micro) VALUES ('2026-10-30', 1)")).rejects.toThrow(/UNIQUE|PRIMARY/);
+    await expect(
+      db.runAsync("INSERT INTO fx_rates (date, base, quote, rate_micro) VALUES ('2026-10-29', 'IDR', 'EUR', 49)"),
+    ).rejects.toThrow(/CHECK/);
+    await expect(db.runAsync("INSERT INTO fx_rates (date, rate_micro) VALUES ('2026-10-28', 0)")).rejects.toThrow(/CHECK/);
+  });
+
+  it('puts every movement in the ledger view with its sign', async () => {
+    await insertTx({ type: 'income', amount_minor: 5000 });
+    await insertTransfer();
+    await insertTransfer({ fee: 0, fromAmount: 100, toAmount: 17_100 });
+    const rows = await db.getAllAsync<{ kind: string; account_id: number; signed_minor: number }>(
+      'SELECT kind, account_id, signed_minor FROM ledger ORDER BY kind, signed_minor',
+    );
+    expect(rows).toEqual([
+      { kind: 'transfer_fee', account_id: eurId, signed_minor: -150 },
+      { kind: 'transfer_in', account_id: idrId, signed_minor: 17_100 },
+      { kind: 'transfer_in', account_id: idrId, signed_minor: 3_420_000 },
+      { kind: 'transfer_out', account_id: eurId, signed_minor: -20000 },
+      { kind: 'transfer_out', account_id: eurId, signed_minor: -100 },
+      { kind: 'tx', account_id: eurId, signed_minor: 5000 },
+    ]);
+  });
+});

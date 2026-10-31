@@ -29,7 +29,9 @@ describe('migrate', () => {
     await migrate(db);
 
     expect(await getUserVersion(db)).toBe(LATEST);
-    expect(await tableNames()).toEqual(['accounts', 'categories', 'settings', 'transactions']);
+    expect(await tableNames()).toEqual(['accounts', 'categories', 'fx_rates', 'settings', 'transactions', 'transfers']);
+    expect(await db.getAllAsync("SELECT name FROM sqlite_master WHERE type = 'view'")).toEqual([{ name: 'ledger' }]);
+    expect(await db.getFirstAsync("SELECT value FROM settings WHERE key = 'base_currency'")).toEqual({ value: 'EUR' });
     expect(await columnNames('transactions')).toEqual(
       expect.arrayContaining(['account_id', 'category_id', 'amount_minor', 'date', 'month']),
     );

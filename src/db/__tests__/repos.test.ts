@@ -134,23 +134,70 @@ describe('getMonthSummary', () => {
 
   it('keeps currencies apart', async () => {
     expect(await getMonthSummary(db, '2026-10')).toEqual([
-      { currency: 'EUR', incomeMinor: 185000, expenseMinor: 2345 },
-      { currency: 'IDR', incomeMinor: 0, expenseMinor: 35_000 },
+      { currency: 'EUR', incomeMinor: 185000, expenseMinor: 2345, feeMinor: 0 },
+      { currency: 'IDR', incomeMinor: 0, expenseMinor: 35_000, feeMinor: 0 },
     ]);
   });
 
   it('narrows to one category', async () => {
     expect(await getMonthSummary(db, '2026-10', { categoryId: salary })).toEqual([
-      { currency: 'EUR', incomeMinor: 185000, expenseMinor: 0 },
-      { currency: 'IDR', incomeMinor: 0, expenseMinor: 0 },
+      { currency: 'EUR', incomeMinor: 185000, expenseMinor: 0, feeMinor: 0 },
+      { currency: 'IDR', incomeMinor: 0, expenseMinor: 0, feeMinor: 0 },
     ]);
   });
 
   it('returns zero rows for currencies without activity', async () => {
     expect(await getMonthSummary(db, '2026-11')).toEqual([
-      { currency: 'EUR', incomeMinor: 0, expenseMinor: 0 },
-      { currency: 'IDR', incomeMinor: 0, expenseMinor: 0 },
+      { currency: 'EUR', incomeMinor: 0, expenseMinor: 0, feeMinor: 0 },
+      { currency: 'IDR', incomeMinor: 0, expenseMinor: 0, feeMinor: 0 },
     ]);
+  });
+});
+
+describe('transfers in balances and summaries', () => {
+  const transfer = (fromAmount: number, toAmount: number, fee: number, date = '2026-10-30') =>
+    db.runAsync(
+      `INSERT INTO transfers (from_account_id, to_account_id, from_amount_minor, to_amount_minor, fee_minor, date)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      eur,
+      idr,
+      fromAmount,
+      toAmount,
+      fee,
+      date,
+    );
+
+  beforeEach(async () => {
+    await createTransaction(db, { accountId: eur, categoryId: salary, type: 'income', amountMinor: 185000, date: '2026-10-01' });
+    await transfer(20000, 3_420_000, 150);
+  });
+
+  it('moves money between currencies and charges the fee to the source account', async () => {
+    const balances = Object.fromEntries((await listAccountsWithBalance(db)).map((a) => [a.currency, a.balanceMinor]));
+    expect(balances).toEqual({ EUR: 185000 - 20000 - 150, IDR: 3_420_000 });
+    expect(await getBalancesByCurrency(db)).toEqual([
+      { currency: 'EUR', balanceMinor: 164850 },
+      { currency: 'IDR', balanceMinor: 3_420_000 },
+    ]);
+    expect(await getBalancesByCurrency(db, { asOf: '2026-10-29' })).toEqual([
+      { currency: 'EUR', balanceMinor: 185000 },
+      { currency: 'IDR', balanceMinor: 0 },
+    ]);
+  });
+
+  it('counts the fee as expense but not the transferred amounts', async () => {
+    expect(await getMonthSummary(db, '2026-10')).toEqual([
+      { currency: 'EUR', incomeMinor: 185000, expenseMinor: 150, feeMinor: 150 },
+      { currency: 'IDR', incomeMinor: 0, expenseMinor: 0, feeMinor: 0 },
+    ]);
+  });
+
+  it('keeps fees out of category summaries and totals', async () => {
+    expect(await getMonthSummary(db, '2026-10', { categoryId: salary })).toEqual([
+      { currency: 'EUR', incomeMinor: 185000, expenseMinor: 0, feeMinor: 0 },
+      { currency: 'IDR', incomeMinor: 0, expenseMinor: 0, feeMinor: 0 },
+    ]);
+    expect(await getCategoryMonthTotals(db, '2026-10')).toEqual([{ categoryId: salary, currency: 'EUR', netMinor: 185000 }]);
   });
 });
 

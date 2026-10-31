@@ -36,11 +36,9 @@ export async function listAccounts(db: Db, options: { includeArchived?: boolean 
 export async function listAccountsWithBalance(db: Db): Promise<AccountWithBalance[]> {
   const rows = await db.getAllAsync<AccountRow & { balance_minor: number }>(
     `SELECT ${COLUMNS},
-            a.opening_balance_minor + COALESCE(SUM(
-              CASE t.type WHEN 'income' THEN t.amount_minor ELSE -t.amount_minor END
-            ), 0) AS balance_minor
+            a.opening_balance_minor + COALESCE(SUM(l.signed_minor), 0) AS balance_minor
      FROM accounts a
-     LEFT JOIN transactions t ON t.account_id = a.id
+     LEFT JOIN ledger l ON l.account_id = a.id
      WHERE a.archived = 0
      GROUP BY a.id
      ORDER BY a.sort_order, a.name`,
@@ -49,7 +47,7 @@ export async function listAccountsWithBalance(db: Db): Promise<AccountWithBalanc
 }
 
 /**
- * Total balance per currency over active accounts (opening balance + transactions), never mixing
+ * Total balance per currency over active accounts (opening balance + ledger), never mixing
  * currencies. With `asOf`, only transactions dated on or before that day count.
  */
 export async function getBalancesByCurrency(db: Db, options: { asOf?: LocalDate } = {}): Promise<CurrencyBalance[]> {
@@ -58,11 +56,9 @@ export async function getBalancesByCurrency(db: Db, options: { asOf?: LocalDate 
     `SELECT currency, SUM(balance) AS balanceMinor
      FROM (
        SELECT a.currency,
-              a.opening_balance_minor + COALESCE(SUM(
-                CASE t.type WHEN 'income' THEN t.amount_minor ELSE -t.amount_minor END
-              ), 0) AS balance
+              a.opening_balance_minor + COALESCE(SUM(l.signed_minor), 0) AS balance
        FROM accounts a
-       LEFT JOIN transactions t ON t.account_id = a.id AND (? IS NULL OR t.date <= ?)
+       LEFT JOIN ledger l ON l.account_id = a.id AND (? IS NULL OR l.date <= ?)
        WHERE a.archived = 0
        GROUP BY a.id
      )
