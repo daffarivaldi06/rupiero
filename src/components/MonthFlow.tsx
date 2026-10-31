@@ -50,7 +50,8 @@ const makeStyles = ({ color, space }: Theme) =>
       minHeight: 24,
     },
     codeCell: {
-      width: 44,
+      minWidth: 44,
+      flexShrink: 0,
     },
     amountCell: {
       flex: 1,

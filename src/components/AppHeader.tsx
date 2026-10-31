@@ -23,8 +23,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ month, onChangeMonth, onPr
   const styles = useThemedStyles(makeStyles);
   const { hidden, toggleHidden } = usePrivacy();
   const { t, locale } = useI18n();
-  // Below ~380 dp the name would push the icons off screen.
-  const compact = useWindowDimensions().width < 380;
+  // Below ~380 dp, or with large system fonts, the name would push the icons off screen.
+  const { width, fontScale } = useWindowDimensions();
+  const compact = width < 380 || fontScale > 1.3;
 
   return (
     <View style={[styles.bar, { paddingTop: insets.top }]}>
@@ -45,6 +46,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ month, onChangeMonth, onPr
           style={styles.monthLabel}
           numberOfLines={1}
           adjustsFontSizeToFit
+          maxFontSizeMultiplier={1.5}
           accessibilityLabel={formatMonthLabel(month, locale)}
         >
           {formatMonthShort(month, locale)}

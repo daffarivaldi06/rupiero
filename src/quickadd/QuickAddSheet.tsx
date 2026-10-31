@@ -237,6 +237,8 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
     <BottomSheetModal
       ref={sheetRef}
       onDismiss={() => setOpen(false)}
+      // Tall content (large fonts) scrolls inside the sheet instead of sliding under the status bar.
+      topInset={insets.top}
       backdropComponent={renderBackdrop}
       backgroundStyle={styles.sheet}
       handleIndicatorStyle={{ backgroundColor: color.lineStrong }}
