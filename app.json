@@ -25,7 +25,12 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      ["./plugins/with-night-window-background.js", { "color": "#16181D" }],
+      [
+        "./plugins/with-night-window-background.js",
+        {
+          "color": "#16181D"
+        }
+      ],
       "expo-sqlite",
       "expo-asset",
       [
@@ -67,7 +72,8 @@
             "backgroundColor": "#16181D"
           }
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ]
   }
 }
