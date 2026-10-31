@@ -147,11 +147,20 @@ export function invertRate(rate: ExchangeRate): ExchangeRate {
   return { from: rate.to, to: rate.from, fromMinor: rate.toMinor, toMinor: rate.fromMinor };
 }
 
-/** Converts `minor` of `rate.from` into `rate.to`, rounding half away from zero. */
+const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
+
+/**
+ * Converts `minor` of `rate.from` into `rate.to`. All arithmetic is BigInt with a single rounding
+ * (half away from zero) at the end, so intermediate products may exceed 2^53 without losing a unit.
+ * Throws a RangeError when the result itself is not a safe integer.
+ */
 export function convertMinor(minor: number, rate: ExchangeRate): number {
   assertMinor(minor);
   const numerator = BigInt(Math.abs(minor)) * BigInt(rate.toMinor);
   const denominator = BigInt(rate.fromMinor);
-  const rounded = Number((numerator * 2n + denominator) / (denominator * 2n));
-  return minor < 0 ? -rounded : rounded;
+  const rounded = (numerator * 2n + denominator) / (denominator * 2n);
+  if (rounded > MAX_SAFE) {
+    throw new RangeError(`Converted amount ${rounded} ${rate.to} is beyond the safe integer range`);
+  }
+  return minor < 0 ? -Number(rounded) : Number(rounded);
 }
