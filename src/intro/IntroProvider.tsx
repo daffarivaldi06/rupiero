@@ -11,7 +11,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { RupieroMark } from '../brand/RupieroMark';
-import type { RollSpec } from '../components/rolling';
+import type { RollSpec } from '../components/countUp';
 import { useTheme } from '../theme/ThemeProvider';
 
 // Keep the native splash up until the overlay below (the same mark, same spot) is laid out. Holding it
@@ -38,7 +38,7 @@ const FALLBACK_MS = 4000;
 interface IntroContextValue {
   /** Call once the first screen can be shown; starts the stamp. Safe to call repeatedly. */
   ready: () => void;
-  /** Digit roll for the opening balances, or null (reduced motion, or not started). */
+  /** Count-up for the opening balances, or null (reduced motion, or not started). */
   roll: RollSpec | null;
 }
 
@@ -51,7 +51,7 @@ type Phase = 'waiting' | 'stamping' | 'done';
 /**
  * Opening sequence: static native splash → the same mark as an overlay while the first screen loads →
  * once it is ready, the mark is stamped (lift, press, ink ring) while the
- * overlay fades → the balances roll in. With the system's reduce-motion setting on, the splash just
+ * overlay fades → the balances count up from 0. With the system's reduce-motion setting on, the splash just
  * goes away and nothing moves.
  */
 export function IntroProvider({ children }: { children: React.ReactNode }) {

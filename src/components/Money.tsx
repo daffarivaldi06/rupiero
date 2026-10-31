@@ -3,7 +3,7 @@ import { Text, type StyleProp, type TextStyle } from 'react-native';
 import { useTheme } from '../theme/ThemeProvider';
 import { textVariants, type TextVariant } from '../theme/typography';
 import { formatMoneyParts, type CurrencyCode } from '../domain/money';
-import { useRollingText, type RollSpec } from './rolling';
+import { useCountUp, type RollSpec } from './countUp';
 import type { TextTone } from './Txt';
 
 /**
@@ -22,7 +22,7 @@ interface MoneyProps {
   /** Append the ISO code in Plex Mono, e.g. "€ 12,50 EUR". */
   showCode?: boolean;
   style?: StyleProp<TextStyle>;
-  /** Roll the digits in (opening animation). */
+  /** Count up from 0 to `minor` (opening animation). */
   roll?: RollSpec | null;
 }
 
@@ -43,8 +43,8 @@ export const Money: React.FC<MoneyProps> = ({
   roll,
 }) => {
   const { color } = useTheme();
-  const { sign: signChar, symbol, amount: finalAmount } = formatMoneyParts(minor, currency, { sign });
-  const amount = useRollingText(finalAmount, roll);
+  const shownMinor = useCountUp(minor, roll);
+  const { sign: signChar, symbol, amount } = formatMoneyParts(shownMinor, currency, { sign });
 
   const textColor =
     tone === 'neutral'

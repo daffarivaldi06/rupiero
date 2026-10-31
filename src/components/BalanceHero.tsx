@@ -3,7 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import type { CurrencyBalance } from '../domain/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { Money } from './Money';
-import type { RollSpec } from './rolling';
+import type { RollSpec } from './countUp';
 import { Txt } from './Txt';
 
 interface BalanceHeroProps {
