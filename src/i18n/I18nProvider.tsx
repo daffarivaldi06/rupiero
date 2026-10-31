@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useLocales } from 'expo-localization';
+import { setAppLocale } from '../../modules/app-locale';
 import { useSQLiteContext } from '../db/DatabaseProvider';
 import { notifyDataChanged } from '../db/events';
 import { getLanguagePreference, setLanguagePreference } from '../db/repos/settings';
@@ -43,6 +44,11 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     getLanguagePreference(db).then(setPreferenceState).catch(console.error);
   }, [db]);
+
+  // Native UI (the date picker) follows an explicit choice too; 'system' hands it back to the phone.
+  useEffect(() => {
+    if (preference !== null) setAppLocale(preference === 'system' ? null : preference);
+  }, [preference]);
 
   useEffect(() => {
     if (preference === null) return;

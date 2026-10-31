@@ -164,7 +164,7 @@ export default function SettingsScreen() {
           <RadioRow
             key={option}
             label={t(LANGUAGE_LABEL[option])}
-            hint={option === 'system' ? t('settings.languageSystemHint', { language: t(LANGUAGE_LABEL[systemLocale]) }) : undefined}
+            hint={option === 'system' && preference === 'system' ? t('settings.languageSystemHint', { language: t(LANGUAGE_LABEL[systemLocale]) }) : undefined}
             selected={preference === option}
             onPress={() => setPreference(option)}
           />

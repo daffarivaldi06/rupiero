@@ -42,3 +42,7 @@ yarn-error.*
 
 # IDE
 .idea/
+
+# Gradle output of local native modules
+modules/*/android/build/
+modules/*/android/.cxx/
