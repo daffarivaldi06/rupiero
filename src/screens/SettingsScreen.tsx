@@ -4,6 +4,8 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 import { SHOW_DEV_TOOLS } from '../config/dev';
+import { pickBackupText, shareJsonBackup, shareLedgerCsv } from '../backup/files';
+import { BackupError, importBackup, parseBackup } from '../db/backup';
 import { getUserVersion } from '../db/client';
 import { resetDatabase } from '../db/init';
 import { Card } from '../components/Card';
@@ -36,6 +38,53 @@ export default function SettingsScreen() {
       })().catch(console.error);
     }, [db])
   );
+
+  const run = async (action: () => Promise<void>, failure: string) => {
+    try {
+      await action();
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Gagal', failure);
+    }
+  };
+
+  const handleImport = async () => {
+    let text: string | null;
+    try {
+      text = await pickBackupText();
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Gagal', 'File tidak dapat dibaca');
+      return;
+    }
+    if (text === null) return;
+    try {
+      const backup = parseBackup(text, await getUserVersion(db));
+      const exportedOn = backup.exportedAt.slice(0, 10);
+      Alert.alert(
+        'Pulihkan dari backup?',
+        `Semua data di perangkat ini diganti dengan backup ${exportedOn}: ${backup.accounts.length} akun, ` +
+          `${backup.transactions.length} transaksi, ${backup.transfers.length} transfer. Pengaturan perangkat tetap.`,
+        [
+          { text: 'Batal', style: 'cancel' },
+          {
+            text: 'Pulihkan',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await importBackup(db, backup);
+                Alert.alert('Selesai', 'Data dipulihkan dari backup.');
+              } catch (e) {
+                Alert.alert('Backup ditolak', e instanceof BackupError ? e.message : 'Data tidak dapat dipulihkan');
+              }
+            },
+          },
+        ],
+      );
+    } catch (e) {
+      Alert.alert('Backup ditolak', e instanceof BackupError ? e.message : 'File tidak dapat dibaca');
+    }
+  };
 
   const handleReset = (seed: boolean) => {
     Alert.alert(
@@ -102,6 +151,23 @@ export default function SettingsScreen() {
             accessibilityLabel="Ikut sembunyikan di widget"
           />
         </View>
+      </View>
+
+      <Txt variant="label" tone="inkMuted" style={styles.sectionLabel}>Data</Txt>
+      <View style={styles.list}>
+        {[
+          { title: 'Ekspor backup (JSON)', description: 'Semua akun, transaksi, transfer, budget dan aturan berulang', onPress: () => run(() => shareJsonBackup(db), 'Backup tidak dapat dibuat') },
+          { title: 'Ekspor transaksi (CSV)', description: 'Untuk spreadsheet; jumlah memakai titik desimal', onPress: () => run(() => shareLedgerCsv(db), 'CSV tidak dapat dibuat') },
+          { title: 'Pulihkan dari backup', description: 'Ganti semua data dengan file backup JSON', onPress: handleImport },
+        ].map((item) => (
+          <Pressable key={item.title} onPress={item.onPress} style={styles.row} accessibilityRole="button">
+            <View style={styles.rowText}>
+              <Txt variant="bodyStrong">{item.title}</Txt>
+              <Txt variant="caption" tone="inkMuted">{item.description}</Txt>
+            </View>
+            <Txt tone="inkMuted">›</Txt>
+          </Pressable>
+        ))}
       </View>
 
       {SHOW_DEV_TOOLS && (
