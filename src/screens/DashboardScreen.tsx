@@ -132,6 +132,14 @@ export default function DashboardScreen() {
             <Txt variant="bodyStrong" style={styles.rowText}>Semua transaksi</Txt>
             <Txt tone="inkMuted" style={styles.chevron}>›</Txt>
           </Pressable>
+          <Pressable
+            onPress={() => navigation.navigate('Insights', { month: selectedMonth })}
+            style={styles.row}
+            accessibilityRole="button"
+          >
+            <Txt variant="bodyStrong" style={styles.rowText}>Grafik pengeluaran</Txt>
+            <Txt tone="inkMuted" style={styles.chevron}>›</Txt>
+          </Pressable>
         </View>
 
         <View style={styles.sectionHeader}>

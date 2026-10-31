@@ -13,6 +13,7 @@ import CategoryDetailScreen from '../screens/CategoryDetailScreen';
 import CategoryFormScreen from '../screens/CategoryFormScreen';
 import CategoryReassignScreen from '../screens/CategoryReassignScreen';
 import DashboardScreen from '../screens/DashboardScreen';
+import InsightsScreen from '../screens/InsightsScreen';
 import RecurringFormScreen from '../screens/RecurringFormScreen';
 import RecurringListScreen from '../screens/RecurringListScreen';
 import SettingsScreen from '../screens/SettingsScreen';
@@ -57,6 +58,7 @@ export function RootNavigator() {
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Pengaturan' }} />
         <Stack.Screen name="Accounts" component={AccountsScreen} options={{ title: 'Akun' }} />
         <Stack.Screen name="Budget" component={BudgetScreen} options={{ title: 'Budget' }} />
+        <Stack.Screen name="Insights" component={InsightsScreen} options={{ title: 'Grafik' }} />
         <Stack.Screen name="Categories" component={CategoriesScreen} options={{ title: 'Kategori' }} />
         <Stack.Screen name="Subscriptions" component={SubscriptionsScreen} options={{ title: 'Langganan' }} />
         <Stack.Screen name="Recurring" component={RecurringListScreen} options={{ title: 'Transaksi Berulang' }} />

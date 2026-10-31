@@ -9,6 +9,7 @@ export type RootStackParamList = {
   CategoryReassign: { categoryId: number };
   Settings: undefined;
   Accounts: undefined;
+  Insights: { month?: Month } | undefined;
   Categories: undefined;
   Subscriptions: undefined;
   Recurring: undefined;
