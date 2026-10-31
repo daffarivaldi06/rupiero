@@ -1,7 +1,8 @@
 import type { Db } from '../db/client';
 import { getBalancesByCurrency, listAccounts } from '../db/repos/accounts';
 import { listBudgets } from '../db/repos/budgets';
-import { getHideBalances, getHideBalancesInWidget } from '../db/repos/settings';
+import { getHideBalances, getHideBalancesInWidget, getThemePreference } from '../db/repos/settings';
+import type { ThemePreference } from '../theme/themePreference';
 import { budgetStatus, type BudgetLevel } from '../domain/budget';
 import { formatMonthLabel, monthOf, type LocalDate } from '../domain/dates';
 import { formatMoneyDisplay, type CurrencyCode } from '../domain/money';
@@ -25,6 +26,8 @@ export interface WidgetLine {
 }
 
 export interface WidgetData {
+  /** Settings → Theme: the widget follows the app's choice, not only the launcher's. */
+  theme: ThemePreference;
   monthLabel: string;
   lines: WidgetLine[];
   /** One quick-add button per currency, for its first account. */
@@ -37,12 +40,13 @@ export interface WidgetData {
  */
 export async function widgetData(db: Db, today: LocalDate): Promise<WidgetData> {
   const month = monthOf(today);
-  const [balances, budgets, accounts, hideBalances, hideInWidget] = await Promise.all([
+  const [balances, budgets, accounts, hideBalances, hideInWidget, theme] = await Promise.all([
     getBalancesByCurrency(db),
     listBudgets(db, month),
     listAccounts(db),
     getHideBalances(db),
     getHideBalancesInWidget(db),
+    getThemePreference(db),
   ]);
   const hidden = hideBalances && hideInWidget;
 
@@ -78,5 +82,5 @@ export async function widgetData(db: Db, today: LocalDate): Promise<WidgetData> 
     return account ? [{ currency, accountId: account.id }] : [];
   });
 
-  return { monthLabel: formatMonthLabel(month), lines, quickAdd };
+  return { theme, monthLabel: formatMonthLabel(month), lines, quickAdd };
 }

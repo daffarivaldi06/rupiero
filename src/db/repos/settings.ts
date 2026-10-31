@@ -1,5 +1,6 @@
 import { isCurrencyCode, type CurrencyCode } from '../../domain/money';
 import { isLanguagePreference, type LanguagePreference } from '../../i18n/locale';
+import { isThemePreference, type ThemePreference } from '../../theme/themePreference';
 import type { Db } from '../client';
 import { notifyDataChanged } from '../events';
 
@@ -67,4 +68,18 @@ export async function getLanguagePreference(db: Db): Promise<LanguagePreference>
 
 export async function setLanguagePreference(db: Db, value: LanguagePreference): Promise<void> {
   await setSetting(db, LANGUAGE_KEY, value);
+}
+
+export const THEME_KEY = 'theme';
+
+/** Light, dark, or following the phone ('system', the default). */
+export async function getThemePreference(db: Db): Promise<ThemePreference> {
+  const value = await getSetting(db, THEME_KEY);
+  return isThemePreference(value) ? value : 'system';
+}
+
+export async function setThemePreference(db: Db, value: ThemePreference): Promise<void> {
+  await setSetting(db, THEME_KEY, value);
+  // The widget draws in the chosen theme too.
+  notifyDataChanged();
 }

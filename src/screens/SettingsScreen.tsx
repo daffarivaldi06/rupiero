@@ -14,6 +14,8 @@ import { Txt } from '../components/Txt';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import type { RootNavigation } from '../navigation/types';
 import { usePrivacy } from '../privacy/PrivacyProvider';
+import { getThemePreference, setThemePreference } from '../db/repos/settings';
+import { applyThemePreference, THEME_PREFERENCES, type ThemePreference } from '../theme/themePreference';
 import { useI18n } from '../i18n/I18nProvider';
 import { useToast } from '../feedback/ToastProvider';
 import { LANGUAGE_PREFERENCES, resolveLocale, type LanguagePreference } from '../i18n/locale';
@@ -27,6 +29,12 @@ const LINKS = [
   { route: 'Recurring', key: 'recurring' },
   { route: 'Subscriptions', key: 'subscriptions' },
 ] as const;
+
+const THEME_LABEL: Record<ThemePreference, MessageKey> = {
+  system: 'settings.themeSystem',
+  light: 'settings.themeLight',
+  dark: 'settings.themeDark',
+};
 
 /** Each language is named in itself, so it can be found whatever the current language is. */
 const LANGUAGE_LABEL: Record<LanguagePreference, MessageKey> = {
@@ -45,11 +53,13 @@ export default function SettingsScreen() {
   const toast = useToast();
   const systemLocale = resolveLocale('system', systemLanguageCodes());
   const [schemaVersion, setSchemaVersion] = useState<number>();
+  const [theme, setTheme] = useState<ThemePreference>('system');
 
   useFocusEffect(
     useCallback(() => {
       (async () => {
         setSchemaVersion(await getUserVersion(db));
+        setTheme(await getThemePreference(db));
       })().catch(console.error);
     }, [db])
   );
@@ -61,6 +71,12 @@ export default function SettingsScreen() {
       console.error(e);
       toast.show(failure, { tone: 'error' });
     }
+  };
+
+  const changeTheme = (next: ThemePreference) => {
+    setTheme(next);
+    applyThemePreference(next);
+    setThemePreference(db, next).catch(console.error);
   };
 
   const handleImport = async () => {
@@ -144,30 +160,22 @@ export default function SettingsScreen() {
 
       <Txt variant="label" tone="inkMuted" style={styles.sectionLabel}>{t('settings.language')}</Txt>
       <View style={styles.list} accessibilityRole="radiogroup">
-        {LANGUAGE_PREFERENCES.map((option) => {
-          const selected = preference === option;
-          return (
-            <Pressable
-              key={option}
-              onPress={() => setPreference(option)}
-              style={styles.row}
-              accessibilityRole="radio"
-              accessibilityState={{ selected }}
-            >
-              <View style={styles.rowText}>
-                <Txt variant="bodyStrong">{t(LANGUAGE_LABEL[option])}</Txt>
-                {option === 'system' && (
-                  <Txt variant="caption" tone="inkMuted">
-                    {t('settings.languageSystemHint', { language: t(LANGUAGE_LABEL[systemLocale]) })}
-                  </Txt>
-                )}
-              </View>
-              <View style={[styles.radio, selected && styles.radioSelected]}>
-                {selected && <View style={styles.radioDot} />}
-              </View>
-            </Pressable>
-          );
-        })}
+        {LANGUAGE_PREFERENCES.map((option) => (
+          <RadioRow
+            key={option}
+            label={t(LANGUAGE_LABEL[option])}
+            hint={option === 'system' ? t('settings.languageSystemHint', { language: t(LANGUAGE_LABEL[systemLocale]) }) : undefined}
+            selected={preference === option}
+            onPress={() => setPreference(option)}
+          />
+        ))}
+      </View>
+
+      <Txt variant="label" tone="inkMuted" style={styles.sectionLabel}>{t('settings.theme')}</Txt>
+      <View style={styles.list} accessibilityRole="radiogroup">
+        {THEME_PREFERENCES.map((option) => (
+          <RadioRow key={option} label={t(THEME_LABEL[option])} selected={theme === option} onPress={() => changeTheme(option)} />
+        ))}
       </View>
 
       <Txt variant="label" tone="inkMuted" style={styles.sectionLabel}>{t('settings.privacy')}</Txt>
@@ -228,6 +236,19 @@ export default function SettingsScreen() {
         </Card>
       )}
     </ScrollView>
+  );
+}
+
+function RadioRow({ label, hint, selected, onPress }: { label: string; hint?: string; selected: boolean; onPress: () => void }) {
+  const styles = useThemedStyles(makeStyles);
+  return (
+    <Pressable onPress={onPress} style={styles.row} accessibilityRole="radio" accessibilityState={{ selected }}>
+      <View style={styles.rowText}>
+        <Txt variant="bodyStrong">{label}</Txt>
+        {hint !== undefined && <Txt variant="caption" tone="inkMuted">{hint}</Txt>}
+      </View>
+      <View style={[styles.radio, selected && styles.radioSelected]}>{selected && <View style={styles.radioDot} />}</View>
+    </Pressable>
   );
 }
 

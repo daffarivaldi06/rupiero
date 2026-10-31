@@ -134,8 +134,15 @@ function BudgetRow({ budget, color }: { budget: NonNullable<WidgetLine['budget']
   );
 }
 
-/** Light and dark versions; the launcher picks one with the system theme. */
-export const budgetWidgetRepresentation = (data: WidgetData | null) => ({
-  light: <BudgetWidget data={data} scheme="light" />,
-  dark: <BudgetWidget data={data} scheme="dark" />,
-});
+/**
+ * Light and dark versions for the launcher to pick with the system theme, or just the one the user
+ * chose in Settings → Theme.
+ */
+export const budgetWidgetRepresentation = (data: WidgetData | null) => {
+  const theme = data?.theme ?? 'system';
+  if (theme !== 'system') return <BudgetWidget data={data} scheme={theme} />;
+  return {
+    light: <BudgetWidget data={data} scheme="light" />,
+    dark: <BudgetWidget data={data} scheme="dark" />,
+  };
+};

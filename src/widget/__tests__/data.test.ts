@@ -1,3 +1,6 @@
+import type React from 'react';
+import { setThemePreference } from '../../db/repos/settings';
+import { budgetWidgetRepresentation } from '../Widget';
 import { createTestDb, type TestDb } from '../../../test/sqljs-db';
 import { initDb } from '../../db/init';
 import { listAccounts, setAccountArchived } from '../../db/repos/accounts';
@@ -26,9 +29,23 @@ beforeEach(async () => {
 });
 afterEach(() => db.close());
 
+describe('widget theme', () => {
+  it('draws light and dark for the launcher, or only the theme chosen in Settings', async () => {
+    const both = budgetWidgetRepresentation(await widgetData(db, TODAY));
+    expect(Object.keys(both)).toEqual(['light', 'dark']);
+
+    await setThemePreference(db, 'dark');
+    const data = await widgetData(db, TODAY);
+    expect(data.theme).toBe('dark');
+    const single = budgetWidgetRepresentation(data) as React.ReactElement<{ scheme: string }>;
+    expect(single.props.scheme).toBe('dark');
+  });
+});
+
 describe('widgetData', () => {
   it('shows balances per currency when no budget is set', async () => {
     expect(await widgetData(db, TODAY)).toEqual({
+      theme: 'system',
       monthLabel: 'Oktober 2026',
       lines: [
         { currency: 'EUR', kind: 'balance', amount: `€${NBSP}1.671,30`, negative: false },

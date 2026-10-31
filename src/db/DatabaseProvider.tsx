@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { openDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
+import { applyThemePreference } from '../theme/themePreference';
 import { DATABASE_NAME, initDb } from './init';
+import { getThemePreference } from './repos/settings';
 
 // One connection per process, shared by the app and the home-screen widget task. The widget task
 // runs in the app's JS runtime when the app is alive, and expo-sqlite shares native connections by
@@ -13,6 +15,8 @@ export function getDatabase(): Promise<SQLiteDatabase> {
     connection = (async () => {
       const db = await openDatabaseAsync(DATABASE_NAME);
       await initDb(db);
+      // Before the first screen renders, so a chosen theme does not flash the system one.
+      applyThemePreference(await getThemePreference(db));
       return db;
     })();
     // Let a later call try again if opening failed.
