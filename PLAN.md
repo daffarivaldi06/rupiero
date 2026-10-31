@@ -10,7 +10,9 @@
 |---|---|---|
 | 0 | ✅ selesai (tag `phase-0-done`) | Build debug Android dengan package id baru berhasil |
 | 1 | ✅ kode selesai, **menunggu uji manual** di perangkat | 95 test lolos, setiap commit lolos typecheck + test, bundle Hermes berhasil. Tag `phase-1-done` dibuat setelah uji manual lolos |
+| 1.5 | belum dimulai | Design system "Buku Kas" (ditambahkan 2026-10-31) |
 | 2–5 | belum dimulai | |
+| 6 | backlog | Belum dijadwalkan; tiap item butuh persetujuan sendiri |
 
 Penyimpangan dari rencana (Fase 0–1):
 - Adapter test memakai build **asm.js** dari sql.js. Build WASM gagal di sandbox VM Jest (`sqlite3_open` → "out of memory"), padahal jalan di Node biasa.
@@ -36,17 +38,19 @@ src/
   db/
     client.ts                # interface Db minimal (runAsync/getAllAsync/getFirstAsync/execAsync)
     init.ts                  # PRAGMA + migrate + seed
-    migrations/              # 001_initial.ts, 002_transfers.ts, 003_budgets_recurring.ts, index.ts (runner)
-    repos/                   # accounts, categories, transactions, transfers, budgets, recurring, reports
+    migrations/              # 001_initial.ts, 002_transfers_fx.ts, 003_budgets_recurring.ts, index.ts (runner)
+    repos/                   # accounts, categories, transactions, transfers, fxRates, budgets, recurring, reports
     seed.ts
     events.ts                # notifyDataChanged() → refresh widget & listener
+  fx/                        # frankfurter.ts (ambil kurs ECB), sync.ts (cache harian + fallback)
+  theme/                     # tokens.ts (light/dark), typography.ts, ThemeProvider.tsx (useTheme)
   hooks/                     # useAccounts, useMonthSummary, useTransactions, ... (fetch + reload saat fokus/ada perubahan)
-  components/                # Button, Card, Input, MoneyInput, AccountPicker, CategoryPicker, MonthSelector, BalanceCard, ...
+  components/                # Txt, Money, Ledger*, Keypad, QuickAddSheet, Button, Input, MoneyInput, AccountPicker, ...
   screens/
   navigation/                # types.ts (RootStackParamList), RootNavigator.tsx
   widget/
 test/
-  sqljs-db.ts                # adapter Db di atas sql.js (WASM, tanpa build native di Windows)
+  sqljs-db.ts                # adapter Db di atas sql.js (build asm.js, tanpa build native di Windows)
 ```
 
 ---
@@ -194,9 +198,81 @@ Catatan:
 
 ---
 
+## Fase 1.5: Design system "Buku Kas"
+
+Tujuan: semua layar baru di Fase 2+ langsung memakai gaya ini. Arah visual mengikuti Opsi A di [docs/RESEARCH.md](docs/RESEARCH.md):
+kertas hangat / tinta arang, angka tabular sebagai elemen utama, warna hanya untuk makna (EUR, IDR, pengeluaran, pemasukan).
+Bagian visual dari Fase 5 (kontras, tema, splash) dipindah ke sini.
+
+### Token warna (ikut light/dark sistem)
+
+| Token | Light | Dark | Dipakai untuk |
+|---|---|---|---|
+| `bg` | `#F4F1EA` | `#16181D` | latar layar |
+| `surface` | `#FBFAF6` | `#1F232A` | sheet, kartu saldo, input |
+| `ink` | `#1C1B19` | `#ECE8DF` | teks utama |
+| `inkMuted` | `#5F5B53`* | `#A39E93`* | teks sekunder, label |
+| `line` | `#D9D4C7` | `#323843`* | garis buku kas (dekoratif) |
+| `eur` | `#2E4A8B` | `#9DB2EA`* | tanda/teks EUR |
+| `idr` | `#C98A0B` | `#E0A93A`* | tanda/isian IDR (teks di atasnya pakai `ink`) |
+| `idrText` | `#8A5D00`* | `#E0A93A`* | teks IDR di atas `bg`/`surface` |
+| `expense` | `#B23A2E` | `#E8877B`* | pengeluaran |
+| `income` | `#2F7D4F` | `#6FC08F`* | pemasukan (isian, teks di `surface`) |
+| `incomeText` | `#2A7047`* | `#6FC08F`* | teks pemasukan di atas `bg` |
+
+\* = usulan saya, bukan dari riset. Semua kombinasi teks/latar di atas sudah dihitung ≥ 4.5:1 (AA).
+**Nilai riset yang gagal AA sebagai teks** dan karena itu diberi varian:
+- light: IDR `#C98A0B` di `bg` = 2.61:1; income `#2F7D4F` di `bg` = 4.47:1.
+- dark: EUR `#2E4A8B` = 2.09:1, expense `#B23A2E` = 2.99:1, income `#2F7D4F` = 3.52:1 di `#16181D`.
+
+Garis `line` sengaja tipis (dekoratif, sekitar 1.3–1.5:1). Batas komponen interaktif (input, chip) memakai `lineStrong` ≥ 3:1 (WCAG 1.4.11), ditentukan dan dites saat implementasi.
+
+### Tipografi & angka
+- **IBM Plex Sans** (400/500/600/700) untuk UI dan angka, **IBM Plex Mono** (500) untuk kode mata uang kecil (`EUR`, `IDR`).
+  Font di-embed lewat config plugin `expo-font` (paket `@expo-google-fonts/ibm-plex-sans` dan `/ibm-plex-mono`), jadi tidak ada loading/flash saat start.
+  Di Android, `fontWeight` tidak andal untuk font custom, jadi komponen `<Txt>` memetakan bobot ke nama file font.
+- **`<Money>`**: render `formatMoneyParts()` (tanda, simbol, angka) dengan `fontVariant: ['tabular-nums']`, ukuran display/title/body/caption, warna otomatis
+  (income/expense/netral) atau warna mata uang. Fitur `tnum` **wajib diuji di perangkat** (lihat kriteria).
+
+### Komposisi
+- Daftar transaksi berupa **baris bergaris ala buku kas** (garis tipis, tanpa kartu), dikelompokkan per tanggal dengan subtotal harian per mata uang.
+- Kartu hanya untuk 1–2 elemen utama (kartu saldo). Radius 4 px (input, chip) dan 8 px (kartu, sheet). Tanpa bayangan/elevation, gradien, glow, emoji,
+  atau lingkaran huruf awal. Grid kartu kategori di Dashboard menjadi daftar baris.
+- `app.json`: `userInterfaceStyle: "automatic"` (+ `expo-system-ui`), splash dan latar adaptive icon versi light/dark.
+
+### File
+- **Baru:** `src/theme/{tokens,typography}.ts`, `src/theme/ThemeProvider.tsx` (`useTheme()` via `useColorScheme`), `src/theme/__tests__/contrast.test.ts`,
+  `src/components/{Txt,Money,LedgerSection,LedgerRow}.tsx`.
+- **Diubah:** `App.tsx` (provider, tema navigasi dari token, `StatusBar style="auto"`), `src/domain/money.ts` (`formatMoneyParts`), semua komponen di `src/components/`,
+  semua screen, `app.json`, `package.json`.
+- **Dihapus:** `src/theme/colors.ts`.
+
+### Langkah
+1. `feat(theme): add light/dark semantic tokens with contrast test`.
+2. `feat(theme): follow system color scheme` (ThemeProvider, tema navigasi, status bar, `expo-system-ui`, `userInterfaceStyle: automatic`).
+3. `chore: embed IBM Plex Sans and Plex Mono` + `feat(ui): add Txt typography component`.
+4. `feat(domain): add formatMoneyParts` + test, lalu `feat(ui): add Money component with tabular figures`.
+5. `feat(ui): add ledger section and row components`.
+6. `refactor(ui): restyle primitives` (Button, Input, MoneyInput, AccountPicker, Card, MonthSummaryCard).
+7. `refactor(ui): restyle screens` (Dashboard: daftar kategori; CategoryDetail: ledger; form; Pengaturan).
+8. `chore(app): light/dark splash and adaptive icon background`.
+9. `refactor: remove legacy colors module`.
+
+**Kriteria selesai**
+- `contrast.test.ts` lolos: setiap token teks di atas `bg` dan `surface` ≥ 4.5:1 di kedua mode, `lineStrong` ≥ 3:1.
+- `grep -rn "colors\.\|#121212\|shadow\|elevation\|LinearGradient" src` kosong.
+- Manual (perangkat):
+  - Ganti tema sistem light↔dark: app ikut berubah tanpa restart, termasuk header navigasi dan status bar.
+  - Teks memakai IBM Plex (bukan Roboto). Kode `EUR`/`IDR` memakai Plex Mono.
+  - **Tabular nums:** kolom nominal di daftar transaksi rata per digit (mis. "€ 1.111,11" dan "€ 8.888,88" sama lebar). Jika tidak, `tnum` tidak aktif dan harus diperbaiki sebelum lanjut.
+  - Tidak ada bayangan, gradien, atau emoji. Daftar transaksi bergaris tanpa kartu.
+  - Splash tidak "berkedip putih" di mode gelap.
+
+---
+
 ## Fase 2: Fitur inti
 
-### Skema v2 (migrasi `002_transfers.ts`)
+### Skema v2 (migrasi `002_transfers_fx.ts`)
 
 ```sql
 CREATE TABLE transfers (
@@ -204,7 +280,8 @@ CREATE TABLE transfers (
   from_account_id   INTEGER NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
   to_account_id     INTEGER NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
   from_amount_minor INTEGER NOT NULL CHECK (from_amount_minor > 0),
-  to_amount_minor   INTEGER NOT NULL CHECK (to_amount_minor > 0),  -- kurs aktual = rasio keduanya, tanpa float tersimpan
+  to_amount_minor   INTEGER NOT NULL CHECK (to_amount_minor > 0),     -- kurs aktual = rasio keduanya, tanpa float tersimpan
+  fee_minor         INTEGER NOT NULL DEFAULT 0 CHECK (fee_minor >= 0), -- dalam currency akun asal, di luar from_amount
   date              TEXT    NOT NULL,
   month             TEXT    GENERATED ALWAYS AS (substr(date, 1, 7)) STORED,
   note              TEXT    NOT NULL DEFAULT '',
@@ -214,29 +291,70 @@ CREATE TABLE transfers (
 CREATE INDEX idx_transfer_from ON transfers(from_account_id, date);
 CREATE INDEX idx_transfer_to   ON transfers(to_account_id, date);
 
+-- kurs referensi ECB (via Frankfurter), hanya EUR→IDR, satu baris per tanggal kurs.
+-- Kurs IDR→EUR tidak disimpan; diturunkan saat dihitung (invertRate).
+CREATE TABLE fx_rates (
+  date       TEXT    NOT NULL,                                   -- tanggal kurs ECB, bukan tanggal fetch
+  base       TEXT    NOT NULL DEFAULT 'EUR' CHECK (base = 'EUR'),
+  quote      TEXT    NOT NULL DEFAULT 'IDR' CHECK (quote = 'IDR'),
+  rate_micro INTEGER NOT NULL CHECK (rate_micro > 0),            -- 1 EUR = rate_micro / 1.000.000 IDR (tanpa float)
+  source     TEXT    NOT NULL DEFAULT 'ecb-frankfurter',
+  fetched_at TEXT    NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (date, base, quote)
+);
+
 -- buku besar terpadu untuk saldo & daftar transaksi
 CREATE VIEW ledger AS
   SELECT 'tx' AS kind, id, account_id, category_id, date, month,
          CASE type WHEN 'income' THEN amount_minor ELSE -amount_minor END AS signed_minor, note
     FROM transactions
   UNION ALL SELECT 'transfer_out', id, from_account_id, NULL, date, month, -from_amount_minor, note FROM transfers
-  UNION ALL SELECT 'transfer_in',  id, to_account_id,   NULL, date, month,  to_amount_minor,  note FROM transfers;
+  UNION ALL SELECT 'transfer_in',  id, to_account_id,   NULL, date, month,  to_amount_minor,  note FROM transfers
+  UNION ALL SELECT 'transfer_fee', id, from_account_id, NULL, date, month, -fee_minor,         note FROM transfers WHERE fee_minor > 0;
 ```
 
-Transfer **bukan** income/expense, sehingga tidak ikut ringkasan pemasukan/pengeluaran, tapi memengaruhi saldo akun.
+- Jumlah transfer **bukan** income/expense, sehingga tidak ikut ringkasan pemasukan/pengeluaran, tapi memengaruhi saldo akun.
+- **Fee transfer dihitung sebagai pengeluaran** berlabel "Biaya transfer" di ringkasan bulanan (uangnya memang hilang), tapi tidak masuk budget kategori.
+- Setting baru (tabel `settings`): `last_account_id` (default quick-add), `base_currency` (mata uang total gabungan, default `EUR`).
+
+**Konversi tanpa overflow dan tanpa kehilangan presisi** (`src/domain/fx.ts` + `money.ts`):
+- Baris `fx_rates` diubah menjadi `ExchangeRate { from: 'EUR', to: 'IDR', fromMinor: 100 × 1.000.000, toMinor: rate_micro }` (keduanya integer).
+  IDR→EUR = `invertRate()` dari kurs yang sama, tidak pernah disimpan.
+- Semua perkalian/pembagian konversi memakai **BigInt** (`convertMinor`), dengan **satu** pembulatan half-up di akhir.
+  Hasil akhir harus aman sebagai `number` (`Number.isSafeInteger`); jika tidak, lempar `RangeError` alih-alih mengembalikan angka yang salah.
+- Test wajib (kurs ECB 30 Okt 2026: 1 EUR = 20.275,17 IDR, `rate_micro = 20275170000`):
+  - €100.000,00 → **Rp 2.027.517.000** (hasil antara 2,0 × 10¹⁷ > `MAX_SAFE_INTEGER`).
+  - Rp 10.000.000.000 → **€ 493.214,11** (hasil antara 10¹⁸).
+  - Presisi: €9.007.199.261,76 → **Rp 182.622.496.256.058** (aritmetika float memberi …059).
+  - Batas pembulatan half-up tepat di ,5, nilai negatif simetris, dan hasil di luar rentang aman ditolak.
+  - Kurs turunan IDR→EUR konsisten: konversi bolak-balik selisih paling banyak 1 minor unit dari pembulatan.
 
 ### Fitur & file
-- **Saldo per akun:** Dashboard menampilkan kartu akun (saldo = `opening_balance_minor + SUM(ledger.signed_minor)`), ringkasan income/expense bulan terpilih **per currency**, dan grid kategori berisi total pengeluaran bulan ini.
-- **Total gabungan "≈ perkiraan":** semua saldo dikonversi ke IDR memakai kurs implisit dari **transfer EUR↔IDR terakhir**, dengan label "≈ perkiraan, kurs dd/mm".
-  Total ini disembunyikan jika belum ada transfer lintas currency.
-  File: `DashboardScreen.tsx`, `components/{BalanceCard,AccountCard,MonthSelector}.tsx`, `repos/reports.ts`, `hooks/useMonthSummary.ts`.
+- **Saldo per akun:** Dashboard menampilkan dua saldo besar per mata uang (jumlah akun EUR, jumlah akun IDR) dengan `<Money>`, daftar akun, dan ringkasan income/expense
+  bulan terpilih per currency. Daftar kategori menampilkan total pengeluaran bulan ini.
+  File: `DashboardScreen.tsx`, `components/{BalanceHeader,AccountRow,MonthSelector}.tsx`, `repos/reports.ts`, `hooks/useMonthSummary.ts`.
+- **Kurs ECB (`fx_rates`):** `src/fx/frankfurter.ts` mengambil kurs EUR→IDR terbaru (endpoint Frankfurter diverifikasi saat implementasi, timeout 5 detik).
+  `src/fx/sync.ts` mengambil paling banyak sekali sehari saat app start/foreground jika kurs tersimpan lebih lama dari hari ini. Saat offline, gagal diam-diam dan memakai kurs terakhir.
+  `repos/fxRates.ts` (simpan/ambil terbaru per tanggal), `domain/fx.ts` (ubah `rate_micro` ke `ExchangeRate`, turunkan IDR→EUR).
+- **Total gabungan "≈":** semua saldo dikonversi ke `base_currency` (default EUR) memakai kurs ECB terbaru, ditampilkan sebagai baris kecil
+  "≈ € 2.957,57 total · kurs ECB 30 Okt" (data contoh). Total ini disembunyikan jika belum pernah ada kurs tersimpan.
+- **Quick-add bottom sheet** (menggantikan `TransactionFormScreen` untuk tambah **dan** edit):
+  - `@gorhom/bottom-sheet` v5 dengan `react-native-reanimated` 4 + `react-native-worklets` (plugin `react-native-worklets/plugin` di `babel.config.js` jika preset belum memasangnya),
+    `react-native-gesture-handler` (`GestureHandlerRootView` + `BottomSheetModalProvider` di `App.tsx`). Semua dipasang via `npx expo install`; perlu build native baru.
+  - **Keypad custom** (`components/Keypad.tsx`): angka, `000`, pemisah desimal hanya untuk EUR, hapus, dan operator `+ − × ÷`.
+    **Kalkulator** di `src/domain/calc.ts`: evaluasi ekspresi langsung ke minor unit dengan aritmetika integer (× dan ÷ dibulatkan half-up), plus test.
+  - **Kategori 1 tap:** 8 kategori paling sering dipakai 90 hari terakhir sebagai chip, plus "Semua…". **Akun terakhir** (`last_account_id`) jadi default.
+  - **Haptics** (`expo-haptics`): `selectionAsync` per tombol keypad, `notificationAsync(Success)` saat simpan.
+  - **Pratinjau konversi:** saat mengetik EUR tampil "≈ Rp 253.440", dan sebaliknya, memakai kurs ECB terbaru beserta tanggalnya (disembunyikan jika belum ada kurs).
+  - Chip tanggal (default "Hari ini", membuka `@react-native-community/datetimepicker`) dan catatan opsional. Mode edit memuat transaksi yang sama ke sheet, plus tombol Hapus.
+  - File: `components/{QuickAddSheet,Keypad,CategoryChips}.tsx`, `hooks/useQuickAdd.ts`, `repos/transactions.ts` (update/delete, kategori terpopuler).
 - **Kelola akun:** `AccountsScreen.tsx` dan `AccountFormScreen.tsx` (tambah, ganti nama, arsip; currency terkunci jika akun sudah punya transaksi).
-- **List transaksi:** `TransactionListScreen.tsx` memakai `FlatList` yang dikelompokkan per tanggal, dengan filter bulan/akun/kategori/tipe dan pagination (`LIMIT/OFFSET`). Transfer ikut tampil.
-- **Edit/hapus:** `TransactionFormScreen.tsx` mendukung mode edit (`transactionId`) dan tombol Hapus dengan konfirmasi. Picker kategori memakai `CategoryPicker` (tanpa teks bebas, tersedia "+ Kategori baru").
-- **Date picker:** `@react-native-community/datetimepicker` (`npx expo install`), default hari ini, disimpan sebagai tanggal lokal.
-- **Transfer:** `TransferFormScreen.tsx`. Pengguna memilih akun asal dan tujuan, mengisi nominal kirim dan nominal terima, dan kurs live tampil (mis. "1 EUR = Rp 17.100").
-  Jika currency sama, nominal terima otomatis sama dengan nominal kirim. Transfer bisa diedit dan dihapus. Repo: `repos/transfers.ts`.
-- **Navigasi:** `src/navigation/{types,RootNavigator}.tsx` dengan params bertipe dan tanpa `any`.
+- **List transaksi:** `TransactionListScreen.tsx` memakai `FlatList` + komponen ledger dari Fase 1.5, dikelompokkan per tanggal, dengan filter bulan/akun/kategori/tipe
+  dan pagination (`LIMIT/OFFSET`). Transfer dan fee ikut tampil. Tap baris membuka quick-add sheet dalam mode edit.
+- **Transfer:** `TransferFormScreen.tsx`. Pengguna memilih akun asal dan tujuan, mengisi nominal kirim, nominal terima, dan fee (opsional, currency akun asal).
+  Tampil kurs aktual (mis. "1 EUR = Rp 17.100") dan selisihnya dengan kurs ECB hari itu. Jika currency sama, nominal terima otomatis = nominal kirim.
+  Transfer bisa diedit dan dihapus. Repo: `repos/transfers.ts`.
+- **Navigasi:** `src/navigation/{types,RootNavigator}.tsx` dengan params bertipe.
   - Edit kategori: `goBack()`. Detail hanya menerima `categoryId` dan membaca nama dari DB saat fokus.
   - Hapus kategori/akun: `popTo('Dashboard')`.
   - Judul header dinamis (Tambah/Edit).
@@ -244,29 +362,36 @@ Transfer **bukan** income/expense, sehingga tidak ikut ringkasan pemasukan/penge
 - **Hapus kategori:** ditolak jika masih dipakai (FK RESTRICT). UI menawarkan "pindahkan transaksi ke kategori lain" atau "arsipkan".
 
 ### Langkah
-1. `feat(db): add transfers table and ledger view (v2)` + test saldo dengan transfer lintas currency.
-2. `feat(db): add transfer repo` + test (kurs implisit, larangan akun sama).
-3. `refactor(nav): typed root navigator, remove any`.
-4. `fix(nav): use goBack/popTo after category edit/delete` dan `fix(nav): dynamic header titles`.
-5. `feat: accounts list and form`.
-6. `feat: per-account balances on dashboard`.
-7. `feat: transaction list with filters and pagination`.
-8. `feat: edit and delete transactions` dan `feat: date picker in transaction form`.
-9. `feat: transfer between accounts with actual rate`.
-10. `feat: reassign or archive category on delete`.
+1. `feat(db): add transfers with fee, fx_rates and ledger view (v2)` + test saldo dengan transfer lintas currency dan fee.
+2. `feat(db): add transfer and fx rate repos` + test (kurs implisit, larangan akun sama, kurs terbaru per tanggal, hanya EUR→IDR yang diterima).
+   Lalu `feat(domain): derive EUR/IDR rates with BigInt conversion` + test overflow/presisi di atas.
+3. `feat(fx): fetch ECB rates from Frankfurter with daily cache` + test (fetch di-mock: sukses, offline, respons rusak, tidak fetch dua kali sehari).
+4. `feat(domain): calculator expressions in minor units` + test.
+5. `refactor(nav): typed root navigator`, `fix(nav): use goBack/popTo after category edit/delete`, dan `fix(nav): dynamic header titles`.
+6. `chore: add bottom sheet, reanimated, gesture handler, haptics and date picker`.
+7. `feat: quick-add sheet with keypad, calculator and category chips`.
+8. `feat: conversion preview in quick-add` dan `feat: remember last account`.
+9. `feat: edit and delete transactions in the sheet` + `refactor: remove TransactionFormScreen`.
+10. `feat: accounts list and form`.
+11. `feat: per-currency balances with ≈ combined total on dashboard`.
+12. `feat: transaction list with filters and pagination`.
+13. `feat: transfer between accounts with actual rate and fee`.
+14. `feat: reassign or archive category on delete`.
 
 **Kriteria selesai**
-- Test: saldo akun benar setelah income, expense, transfer EUR→IDR, edit, dan hapus. Transfer tidak memengaruhi total income/expense.
+- Test: saldo akun benar setelah income, expense, transfer EUR→IDR dengan fee, edit, dan hapus. Jumlah transfer tidak memengaruhi total income/expense, fee masuk sebagai pengeluaran.
+  Kalkulator: `12,5+3,2` = 1570 (EUR), `10000×3` = 30000 (IDR), pembagian dibulatkan half-up, ekspresi tidak valid ditolak.
+  Konversi: semua test BigInt di atas lolos (€100.000 dan Rp 10.000.000.000 tanpa overflow, kasus presisi float).
 - Manual:
-  - Transfer €200,00 → Rp 3.420.000 membuat saldo EUR turun €200, saldo IDR naik Rp 3.420.000, dan kurs tampil "1 EUR = Rp 17.100".
-  - Edit dan hapus transaksi dari list berfungsi.
-  - Tanggal bisa diatur mundur, dan transaksinya muncul di bulan yang benar.
+  - **Tambah transaksi < 5 detik:** buka sheet, ketik `12,5+3,2`, tap kategori, simpan. Tersimpan €15,70 di akun terakhir, dengan haptic terasa.
+  - Pratinjau konversi menampilkan "≈ Rp …" dengan tanggal kurs ECB. Dalam mode pesawat, kurs terakhir tetap dipakai. Install baru tanpa internet: total "≈" dan pratinjau tersembunyi.
+  - Transfer €200,00 → Rp 3.420.000 dengan fee €1,50: saldo EUR turun €201,50, saldo IDR naik Rp 3.420.000, kurs tampil "1 EUR = Rp 17.100", dan pengeluaran bulan ini bertambah €1,50 "Biaya transfer".
+  - Edit dan hapus transaksi dari list berfungsi. Tanggal bisa diatur mundur, dan transaksinya muncul di bulan yang benar.
   - Setelah rename/hapus kategori, tombol back tidak membuka layar usang atau form.
-- `grep -rn "useRoute<any>\|useNavigation<any>" src` kosong.
 
 ---
 
-## Fase 3: Budget per kategori/bulan + recurring rules
+## Fase 3: Budget per kategori/bulan, recurring rules, langganan
 
 ### Skema v3 (migrasi `003_budgets_recurring.ts`)
 
@@ -302,12 +427,15 @@ CREATE UNIQUE INDEX idx_tx_rule_date ON transactions(recurring_rule_id, date) WH
 ### Fitur & file
 - **Budget:** `BudgetScreen.tsx` (per bulan) menampilkan daftar kategori dengan progress bar (terpakai / limit, per currency), tombol "Salin dari bulan lalu", dan peringatan ≥ 80% / > 100%.
   Progress juga tampil di `CategoryDetailScreen.tsx`, dan ringkasan kategori yang over-budget tampil di Dashboard.
-  Domain: `src/domain/budget.ts` (status, persentase). Repo: `repos/budgets.ts`.
+  Domain: `src/domain/budget.ts` (status, persentase, sisa budget per currency). Repo: `repos/budgets.ts`.
 - **Recurring:**
   - `src/domain/recurrence.ts` berisi `occurrences(rule, fromDate, toDate)`. Tanggal 29–31 dijepit ke akhir bulan, dan aturan `paused`/`end_date` dihormati.
   - `repos/recurring.ts` berisi `materializeDue(today)`: membuat transaksi yang jatuh tempo sampai **hari ini** (bukan masa depan). Fungsi ini idempoten berkat unique index, dan dipanggil saat app start, saat app kembali ke foreground (`AppState`), dan dari widget.
-  - `RecurringListScreen.tsx` (daftar aturan; pause/lanjut/stop/hapus) dan `RecurringFormScreen.tsx`. Di TransactionForm ada toggle "Ulangi" yang membuat aturan beserta kemunculan pertamanya.
+  - `RecurringListScreen.tsx` (daftar aturan; pause/lanjut/stop/hapus) dan `RecurringFormScreen.tsx`. Di quick-add sheet ada toggle "Ulangi" yang membuat aturan beserta kemunculan pertamanya.
   - Mengedit aturan hanya berlaku untuk kemunculan berikutnya. Transaksi yang sudah dibuat tetap ada dan bisa diedit satu per satu.
+- **Langganan:** `SubscriptionsScreen.tsx` menampilkan recurring rules pengeluaran yang aktif (mis. Spotify, Free Mobile, asuransi):
+  nominal, frekuensi, tanggal jatuh tempo berikutnya, dan **total per bulan per mata uang** (mingguan ×52/12, tahunan ÷12, dibulatkan per minor unit).
+  Domain: `monthlyEquivalent(rule)` dan `nextDueDate(rule, today)` di `recurrence.ts`.
 
 ### Langkah
 1. `feat(db): add budgets and recurring_rules (v3)` + test migrasi v2→v3.
@@ -316,13 +444,15 @@ CREATE UNIQUE INDEX idx_tx_rule_date ON transactions(recurring_rule_id, date) WH
 4. `feat(domain): budget status with tests`.
 5. `feat: budget screen with copy-from-previous-month`.
 6. `feat: budget progress on dashboard and category detail`.
-7. `feat: recurring rules list and form` dan `feat: repeat toggle in transaction form`.
+7. `feat: recurring rules list and form` dan `feat: repeat toggle in quick-add`.
 8. `feat: materialize recurring on start and foreground`.
+9. `feat(domain): monthly equivalent and next due date` + test, lalu `feat: subscriptions view`.
 
 **Kriteria selesai**
 - Test: aturan bulanan tanggal 31 menghasilkan 28/29 Feb, 30 Apr, dst. Materialisasi ganda tidak membuat duplikat. Aturan yang di-stop tidak menghasilkan transaksi baru.
+  Ekuivalen bulanan: €9,99/minggu → €43,29/bulan, Rp 1.200.000/tahun → Rp 100.000/bulan.
 - Manual: set budget Makanan €300 lalu catat €250, progress tampil 83% dengan warna peringatan. "Salin dari bulan lalu" berfungsi.
-  Aturan sewa bulanan muncul sekali per bulan dan berhenti setelah di-stop.
+  Aturan sewa bulanan muncul sekali per bulan dan berhenti setelah di-stop. Layar langganan menampilkan total EUR dan IDR terpisah.
 - Total widget/Dashboard/list konsisten (recurring sekarang berupa transaksi nyata, bukan hitungan semu).
 
 ---
@@ -331,30 +461,35 @@ CREATE UNIQUE INDEX idx_tx_rule_date ON transactions(recurring_rule_id, date) WH
 
 ### File & fitur
 - **Widget** (`src/widget/*`, `src/db/events.ts`, `app.json`):
-  - Widget menampilkan saldo per akun (maksimal 3) dan pengeluaran bulan ini per currency, diformat via `money.ts`. Warna diambil dari `theme/colors.ts`.
+  - Widget menampilkan **sisa budget bulan ini per mata uang** (total limit − terpakai untuk kategori ber-budget; jika belum ada budget, saldo per mata uang), diformat via `money.ts`
+    dan berwarna sesuai token Buku Kas.
+  - **Quick-add via deep link:** tombol "+ EUR" dan "+ IDR" membuka `budgetapp://add?account=<id>` (opsional `&category=<id>`), yang langsung membuka quick-add sheet terisi.
+    `scheme` di `app.json`, `linking` di navigator, dan parameter divalidasi (id tak dikenal diabaikan).
   - Handler membuka DB lewat `initDb` yang sama (PRAGMA, migrasi) dan menjalankan `materializeDue`.
-  - `notifyDataChanged()` dipanggil di setiap mutasi repo, lalu memicu `requestWidgetUpdate`.
-  - `clickAction`: tap widget membuka app, tombol "+" membuka deep link `budgetapp://transaction/new` (`scheme` di `app.json`, `linking` di navigator).
-- **Chart** (`DashboardScreen.tsx` atau `InsightsScreen.tsx` baru, `repos/reports.ts`):
-  - Donut pengeluaran per kategori untuk bulan terpilih (per currency).
-  - Bar income vs expense selama 6 bulan terakhir (per currency).
-  - Memakai `react-native-gifted-charts` yang sudah terpasang. `pieData` lama yang mati dihapus.
+  - `notifyDataChanged()` dipanggil di setiap mutasi repo, lalu memicu `requestWidgetUpdate`. Tap area lain membuka app.
+- **Chart** (`DashboardScreen.tsx` atau `InsightsScreen.tsx` baru, `repos/reports.ts`), gaya Buku Kas:
+  - Donut tipis pengeluaran per kategori untuk bulan terpilih (per currency), tanpa label di dalam, dengan legenda tabel di bawahnya.
+  - Tren pengeluaran 6 bulan sebagai bar sederhana: satu grafik EUR (indigo) dan satu IDR (kunyit), tanpa gradien.
+  - Memakai `react-native-gifted-charts` yang sudah terpasang.
 - **Backup** (`src/db/backup.ts`, `SettingsScreen.tsx`):
-  - Export JSON (`{ schemaVersion, exportedAt, accounts, categories, transactions, transfers, budgets, recurring_rules }`) dan export CSV transaksi, dibagikan via `expo-file-system` + `expo-sharing`.
+  - Export JSON (`{ schemaVersion, exportedAt, accounts, categories, transactions, transfers, fx_rates, budgets, recurring_rules }`) dan export CSV transaksi, dibagikan via `expo-file-system` + `expo-sharing`.
   - Import JSON: validasi versi dan bentuk data, konfirmasi, lalu ganti seluruh isi dalam satu transaksi DB.
 
 ### Langkah
 1. `feat(db): central data-change event`.
-2. `fix(widget): per-account balances with correct currency`.
+2. `feat(widget): remaining budget per currency`.
 3. `feat(widget): refresh on data change`.
-4. `feat(widget): open app and quick-add deep link`.
-5. `feat(reports): category breakdown and monthly trend queries` + test.
-6. `feat: category donut and 6-month trend charts`.
-7. `feat(backup): JSON export/import with validation` + test round-trip (export → import → isi identik).
-8. `feat(backup): CSV export of transactions`.
+4. `feat(nav): budgetapp://add deep link opens quick-add` + test parsing parameter.
+5. `feat(widget): quick-add buttons per currency`.
+6. `feat(reports): category breakdown and monthly trend queries` + test.
+7. `feat: category donut and 6-month trend charts`.
+8. `feat(backup): JSON export/import with validation` + test round-trip (export → import → isi identik).
+9. `feat(backup): CSV export of transactions`.
 
 **Kriteria selesai**
-- Widget menampilkan simbol dan angka yang sama dengan Dashboard, dan berubah dalam hitungan detik setelah transaksi disimpan. Tap "+" membuka form tambah.
+- Widget menampilkan angka yang sama dengan layar Budget/Dashboard, dan berubah dalam hitungan detik setelah transaksi disimpan.
+  Tap "+ EUR" membuka quick-add dengan akun EUR terpilih. Dari app tertutup sampai tersimpan < 5 detik.
+- `adb shell am start -d "budgetapp://add?account=999"` tidak crash (id tak dikenal diabaikan).
 - Chart cocok dengan angka ringkasan untuk bulan yang sama.
 - Test round-trip backup lolos. Secara manual: export → reset → import mengembalikan data utuh. File JSON yang rusak ditolak dengan pesan yang jelas.
 
@@ -362,27 +497,41 @@ CREATE UNIQUE INDEX idx_tx_rule_date ON transactions(recurring_rule_id, date) WH
 
 ## Fase 5: UX & aksesibilitas
 
+Bagian visual (kontras, tema light/dark, splash) sudah dipindah ke Fase 1.5.
+
 ### File & fitur
 - **Bahasa:** UI bahasa Indonesia. Semua string dipusatkan di `src/i18n/id.ts` dengan helper `t()` agar siap multi-bahasa (belum ada bahasa kedua).
-- **Aksesibilitas:** `accessibilityRole`/`accessibilityLabel`/`accessibilityState` di semua `Pressable`/`Button`. Target sentuh minimal 48dp.
-  Pakai `minHeight` alih-alih `height` tetap agar aman untuk font besar. Kontras teks minimal 4.5:1 (ganti `danger`, cek semua pasangan warna di `colors.ts`).
-  Saldo dibacakan lengkap oleh screen reader.
+- **Aksesibilitas:** `accessibilityRole`/`accessibilityLabel`/`accessibilityState` di semua `Pressable`/`Button`, termasuk keypad. Target sentuh minimal 48dp.
+  Pakai `minHeight` alih-alih `height` tetap agar aman untuk font besar. `<Money>` dibacakan lengkap oleh screen reader (mis. "minus 12 euro 50 sen").
 - **Form:** validasi inline via `Input.error` (Alert dihapus). `KeyboardAvoidingView` + `keyboardShouldPersistTaps="handled"`. Tombol Simpan nonaktif saat input belum valid.
 - **State layar:** loading, kosong (dengan ajakan aksi), dan error (dengan tombol coba lagi). `ErrorBoundary` global, serta fallback jika `initDb` gagal.
 - **Feedback:** Alert "Success" diganti toast/snackbar ringan. Hapus transaksi bisa di-undo selama beberapa detik.
-- **Tampilan:** `userInterfaceStyle: "dark"`, splash/adaptive icon berlatar gelap (`app.json`). Grid kategori memakai `useWindowDimensions` (responsif untuk tablet). Ikon/warna kategori opsional.
-- **Bersih-bersih:** hapus teks "for testing purposes". Tombol reset hanya untuk dev.
+- **Layout:** daftar/grid memakai `useWindowDimensions` (responsif untuk tablet).
+- **Bersih-bersih:** tombol reset hanya untuk dev.
 
 ### Langkah
-Satu commit per area: `feat(i18n)`, `feat(a11y): labels and roles`, `fix(a11y): touch targets and font scaling`, `fix(theme): contrast`,
+Satu commit per area: `feat(i18n)`, `feat(a11y): labels and roles`, `fix(a11y): touch targets and font scaling`, `feat(a11y): spoken amounts`,
 `feat(forms): inline validation and keyboard handling`, `feat: loading/empty/error states`, `feat: error boundary and db init fallback`,
-`feat: toast and undo delete`, `chore(app): dark ui style and splash`.
+`feat: toast and undo delete`, `fix(layout): responsive widths`.
 
 **Kriteria selesai**
-- Navigasi seluruh app dengan TalkBack berjalan lancar: setiap kontrol punya label dan peran yang dibacakan.
+- Navigasi seluruh app dengan TalkBack berjalan lancar: setiap kontrol punya label dan peran yang dibacakan, termasuk keypad.
 - Dengan font sistem 200%, tidak ada teks terpotong di layar utama.
-- Semua pasangan warna teks/latar ≥ 4.5:1 (dicek dengan skrip kecil di test).
 - Tidak ada `Alert.alert('Success'...)` dan tidak ada string UI campur bahasa.
+
+---
+
+## Fase 6: Backlog (belum dijadwalkan)
+
+Ide dari riset yang dicatat, **bukan** komitmen. Setiap item dirinci dan disetujui terpisah sebelum dikerjakan (migrasi v4+).
+
+- **Template/favorit + saran judul:** simpan kombinasi akun + kategori + nominal + catatan sebagai template, tampil di quick-add.
+  Saran catatan dari riwayat (mis. "Carrefour", "Crous", "transfer ke orang tua").
+- **Search + filter + tag:** pencarian teks catatan dan tag bebas (`#liburan`, `#kampus`) lewat tabel `tags` + `transaction_tags`.
+- **Review bulanan:** layar ringkas setiap tanggal 1: total per mata uang, 3 kategori terbesar, budget tercapai/tidak, dan
+  **biaya konversi bulan ini** = Σ (kurs ECB tanggal transfer − kurs implisit) × jumlah + fee eksplisit.
+- **Pengingat harian opsional:** `expo-notifications`, jam bisa diatur, "Belum ada catatan hari ini", dengan aksi yang membuka quick-add.
+- **Savings goals:** target per mata uang (mis. tiket pulang Jakarta, deposit apartemen) dengan progress bar.
 
 ---
 
@@ -390,8 +539,15 @@ Satu commit per area: `feat(i18n)`, `feat(a11y): labels and roles`, `fix(a11y): 
 
 1. **Package id Android:** `com.daffarivaldi.budgetapp`, diganti di Fase 0. App akan terpasang sebagai aplikasi baru.
 2. **Bahasa UI:** Indonesia. Struktur i18n disiapkan di Fase 5. Nama akun/kategori di seed berbahasa Indonesia.
-3. **Total gabungan:** ditampilkan sebagai "≈ perkiraan" memakai kurs transfer terakhir, dan disembunyikan jika belum ada transfer (Fase 2).
+3. **Total gabungan:** ditampilkan sebagai "≈" dalam **EUR** (default `base_currency`, bisa diganti di Pengaturan) memakai **kurs ECB dari tabel `fx_rates`**
+   beserta tanggal kursnya, dan disembunyikan jika belum pernah ada kurs (Fase 2). *Menggantikan keputusan awal "kurs transfer terakhir" dalam IDR.*
 4. **Currency:** cukup IDR dan EUR.
+5. **Arah visual:** Opsi A "Buku Kas" dari [docs/RESEARCH.md](docs/RESEARCH.md), ikut light/dark sistem (Fase 1.5).
 
-Revisi saat persetujuan: `DROP TABLE` satu per satu; akun default dibuat oleh migrasi v1 (bukan oleh seed);
+6. **Fee transfer:** dalam currency akun asal, di luar nominal kirim; masuk ringkasan bulanan sebagai "Biaya transfer", tidak masuk budget kategori.
+7. **Kurs:** `fx_rates` hanya menyimpan EUR→IDR (`rate_micro`); IDR→EUR diturunkan saat dihitung. Semua konversi memakai BigInt.
+8. **Widget tanpa budget:** menampilkan saldo per mata uang.
+
+Revisi saat persetujuan pertama: `DROP TABLE` satu per satu; akun default dibuat oleh migrasi v1 (bukan oleh seed);
 checklist Fase 1 mencakup cek `formatMoney` di Hermes.
+Revisi saat persetujuan kedua (Fase 1.5–6): varian warna teks disetujui; `fx_rates` hanya base EUR; `base_currency` default EUR.
