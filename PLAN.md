@@ -4,6 +4,20 @@
 > Kondisi awal (2026-10-31): hanya branch `master`, tanpa remote, Node 22.18, `tsc --noEmit` = 1 error
 > (`DashboardScreen.tsx:114`, tipe `style` di `Card`). Semua kode `src/` belum di-commit.
 
+## Progres
+
+| Fase | Status | Catatan |
+|---|---|---|
+| 0 | ✅ selesai (tag `phase-0-done`) | Build debug Android dengan package id baru berhasil |
+| 1 | ✅ kode selesai, **menunggu uji manual** di perangkat | 95 test lolos, setiap commit lolos typecheck + test, bundle Hermes berhasil. Tag `phase-1-done` dibuat setelah uji manual lolos |
+| 2–5 | belum dimulai | |
+
+Penyimpangan dari rencana (Fase 0–1):
+- Adapter test memakai build **asm.js** dari sql.js. Build WASM gagal di sandbox VM Jest (`sqlite3_open` → "out of memory"), padahal jalan di Node biasa.
+- `expo install -- --save-dev` mengabaikan flag; `eslint-config-expo` dan paket Jest dipindah manual ke `devDependencies`.
+- Aturan `parseAmount`: tepat 3 digit setelah pemisah terakhir dibaca sebagai ribuan, jadi EUR "12,505" = €12.505,00 (konsisten dengan "1.234"). `MoneyInput` memformat ulang saat blur, jadi user langsung melihat tafsirannya.
+- Kriteria Fase 2 "tanpa `useRoute<any>`/`useNavigation<any>`" sudah terpenuhi di Fase 1.
+
 ## Prinsip kerja
 
 - **Commit kecil per langkah**, format Conventional Commits (`feat:`, `fix:`, `refactor:`, `test:`, `chore:`, `docs:`),
