@@ -1,5 +1,6 @@
 import {
   describeFrequency,
+  describeSchedule,
   monthlyEquivalent,
   nextDueDate,
   occurrenceAt,
@@ -132,4 +133,10 @@ it('describes frequencies in Indonesian', () => {
   expect(describeFrequency('daily', 2)).toBe('Tiap 2 hari');
   expect(describeFrequency('weekly', 1)).toBe('Tiap minggu');
   expect(describeFrequency('yearly', 1)).toBe('Tiap tahun');
+});
+
+it('describes the schedule with its state', () => {
+  expect(describeSchedule(rule({ startDate: '2026-01-30' }), '2026-10-31')).toBe('Tiap bulan · berikutnya 30 Nov');
+  expect(describeSchedule(rule({ frequency: 'daily', interval: 2, paused: true }), '2026-10-31')).toBe('Tiap 2 hari · dijeda');
+  expect(describeSchedule(rule({ frequency: 'weekly', endDate: '2026-02-01' }), '2026-10-31')).toBe('Tiap minggu · berhenti');
 });

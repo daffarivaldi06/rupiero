@@ -1,7 +1,7 @@
 // When a recurring rule falls due. Every occurrence is computed from the start date (n × interval),
 // never from the previous one, so a monthly rule on the 31st clamps to 30 Apr / 28 Feb and still
 // returns to the 31st afterwards.
-import { addDays, addMonths, daysBetween, dateInMonth, monthOf, type LocalDate } from './dates';
+import { addDays, addMonths, daysBetween, dateInMonth, formatDayMonth, monthOf, type LocalDate } from './dates';
 
 export type Frequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
 export const FREQUENCIES: Frequency[] = ['daily', 'weekly', 'monthly', 'yearly'];
@@ -91,4 +91,11 @@ const UNIT: Record<Frequency, string> = { daily: 'hari', weekly: 'minggu', month
 /** "Tiap bulan", "Tiap 2 hari". */
 export function describeFrequency(frequency: Frequency, interval: number): string {
   return interval === 1 ? `Tiap ${UNIT[frequency]}` : `Tiap ${interval} ${UNIT[frequency]}`;
+}
+
+/** "Tiap bulan · berikutnya 30 Nov", "Tiap 2 hari · dijeda", "Tiap minggu · berhenti". */
+export function describeSchedule(rule: RecurrenceRule, today: LocalDate): string {
+  const next = nextDueDate(rule, today);
+  const state = rule.paused ? 'dijeda' : next ? `berikutnya ${formatDayMonth(next)}` : 'berhenti';
+  return `${describeFrequency(rule.frequency, rule.interval)} · ${state}`;
 }
