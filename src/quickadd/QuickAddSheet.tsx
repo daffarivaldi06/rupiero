@@ -1,5 +1,5 @@
-import React, { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { Alert, BackHandler, Platform, Pressable, StyleSheet, View } from 'react-native';
 import {
   BottomSheetBackdrop,
   BottomSheetModal,
@@ -70,6 +70,17 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle, QuickAddSheetProps>
   const insets = useSafeAreaInsets();
   const referenceRate = useReferenceRate();
   const sheetRef = useRef<BottomSheetModal>(null);
+  const [open, setOpen] = useState(false);
+
+  // Android back closes the sheet instead of leaving the screen (or the app) underneath.
+  useEffect(() => {
+    if (!open) return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      sheetRef.current?.dismiss();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [open]);
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [type, setType] = useState<TransactionType>('expense');
@@ -214,6 +225,8 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle, QuickAddSheetProps>
   return (
     <BottomSheetModal
       ref={sheetRef}
+      onChange={(index) => setOpen(index >= 0)}
+      onDismiss={() => setOpen(false)}
       backdropComponent={renderBackdrop}
       backgroundStyle={styles.sheet}
       handleIndicatorStyle={{ backgroundColor: color.lineStrong }}
