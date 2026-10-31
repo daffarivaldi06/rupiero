@@ -1,44 +1,47 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, Pressable, Alert } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useFocusEffect, useRoute, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import { getBalance, getTransactions, Transaction, deleteCategory } from '../db/database';
+import { deleteCategoryWithTransactions } from '../db/repos/categories';
+import { getMonthSummary } from '../db/repos/reports';
+import { listTransactions } from '../db/repos/transactions';
+import { currentMonth, formatDateLabel, formatMonthLabel } from '../domain/dates';
+import { formatMoney } from '../domain/money';
+import type { CurrencyTotals, TransactionDetail } from '../domain/types';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { MonthSummaryCard } from '../components/MonthSummaryCard';
 import { colors } from '../theme/colors';
 import { RootStackParamList } from '../../App';
 
 export default function CategoryDetailScreen() {
   const db = useSQLiteContext();
-  const route = useRoute<any>();
+  const route = useRoute<RouteProp<RootStackParamList, 'CategoryDetail'>>();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { category, categoryId } = route.params;
 
-  const [balance, setBalance] = useState({ balance: 0, totalIncome: 0, totalExpense: 0, displayCurrency: 'IDR' });
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [totals, setTotals] = useState<CurrencyTotals[]>([]);
+  const [transactions, setTransactions] = useState<TransactionDetail[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
-  // We'll use current month by default for now, can be expanded to filter by month
-  const now = new Date();
-  const currentMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+  // Current month only for now; Phase 2 passes the month selected on the dashboard.
+  const month = currentMonth();
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      const bal = await getBalance(db, { category, month: currentMonth });
-      setBalance(bal);
-      const txs = await getTransactions(db, { category, month: currentMonth });
-      setTransactions(txs);
+      setTotals(await getMonthSummary(db, month, { categoryId }));
+      setTransactions(await listTransactions(db, { month, categoryId }));
     } catch (e) {
       console.error(e);
     }
-  };
+  }, [db, month, categoryId]);
 
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [category])
+    }, [loadData])
   );
 
   const onRefresh = async () => {
@@ -49,20 +52,20 @@ export default function CategoryDetailScreen() {
 
   const handleDelete = () => {
     Alert.alert(
-      'Delete Category',
-      `Are you sure you want to delete "${category}"? This will also delete all transactions in this category.`,
+      'Hapus Kategori',
+      `Yakin ingin menghapus "${category}"? Semua transaksi di kategori ini juga akan dihapus.`,
       [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Hapus',
           style: 'destructive',
           onPress: async () => {
             try {
-              await deleteCategory(db, categoryId, category);
+              await deleteCategoryWithTransactions(db, categoryId);
               navigation.navigate('Dashboard');
             } catch (e) {
               console.error(e);
-              Alert.alert('Error', 'Failed to delete category');
+              Alert.alert('Gagal', 'Kategori tidak dapat dihapus');
             }
           }
         }
@@ -70,10 +73,8 @@ export default function CategoryDetailScreen() {
     );
   };
 
-  const sym = balance.displayCurrency === 'EUR' ? '€' : 'Rp';
-
   return (
-    <ScrollView 
+    <ScrollView
       style={styles.container}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
     >
@@ -81,83 +82,57 @@ export default function CategoryDetailScreen() {
         <View style={styles.headerTitleRow}>
             <Text style={styles.categoryName}>{category}</Text>
             <View style={{ flexDirection: 'row' }}>
-                <Pressable 
+                <Pressable
                     onPress={() => navigation.navigate('CategoryForm', { categoryId, initialName: category })}
                     style={[styles.headerButton, { marginRight: 8 }]}
+                    accessibilityRole="button"
                 >
-                    <Text style={styles.headerButtonText}>Edit</Text>
+                    <Text style={styles.headerButtonText}>Ubah</Text>
                 </Pressable>
-                <Pressable 
+                <Pressable
                     onPress={handleDelete}
                     style={[styles.headerButton, { borderColor: colors.danger }]}
+                    accessibilityRole="button"
                 >
-                    <Text style={[styles.headerButtonText, { color: colors.danger }]}>Delete</Text>
+                    <Text style={[styles.headerButtonText, { color: colors.danger }]}>Hapus</Text>
                 </Pressable>
             </View>
         </View>
-        <Text style={styles.monthLabel}>Monthly Report - {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</Text>
+        <Text style={styles.monthLabel}>Laporan Bulanan - {formatMonthLabel(month)}</Text>
       </View>
 
-      <Card style={styles.balanceCard}>
-        <Text style={styles.balanceLabel}>Category Balance</Text>
-        <Text style={styles.balanceText}>{sym} {balance.balance.toLocaleString('id-ID')}</Text>
-        
-        <View style={styles.summaryRow}>
-          <View>
-            <Text style={styles.summaryLabel}>Income</Text>
-            <Text style={[styles.summaryAmount, { color: colors.primary }]}>
-              + {sym} {balance.totalIncome.toLocaleString('id-ID')}
-            </Text>
-          </View>
-          <View style={{ alignItems: 'flex-end' }}>
-            <Text style={styles.summaryLabel}>Expense</Text>
-            <Text style={[styles.summaryAmount, { color: colors.danger }]}>
-              - {sym} {balance.totalExpense.toLocaleString('id-ID')}
-            </Text>
-          </View>
-        </View>
-      </Card>
+      <MonthSummaryCard title="Saldo Kategori" totals={totals} />
 
       <View style={styles.actionRow}>
-        <Button 
-          title="+ Income" 
-          onPress={() => navigation.navigate('TransactionForm', { initialCategory: category, initialType: 'income' })} 
+        <Button
+          title="+ Pemasukan"
+          onPress={() => navigation.navigate('TransactionForm', { categoryId, initialType: 'income' })}
           style={{ flex: 1, marginRight: 8 }}
         />
-        <Button 
-          title="- Expense" 
+        <Button
+          title="- Pengeluaran"
           variant="danger"
-          onPress={() => navigation.navigate('TransactionForm', { initialCategory: category, initialType: 'expense' })} 
+          onPress={() => navigation.navigate('TransactionForm', { categoryId, initialType: 'expense' })}
           style={{ flex: 1, marginLeft: 8 }}
         />
       </View>
 
-      <Text style={styles.sectionTitle}>Transactions</Text>
-      
+      <Text style={styles.sectionTitle}>Transaksi</Text>
+
       {transactions.length === 0 ? (
-        <Text style={styles.emptyText}>No transactions for this category yet.</Text>
+        <Text style={styles.emptyText}>Belum ada transaksi di kategori ini bulan ini.</Text>
       ) : (
-        transactions.map((t) => {
-          const txSym = t.currency === 'EUR' ? '€' : 'Rp';
-          return (
-            <Card key={t.id} style={styles.txCard}>
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={styles.txNote}>{t.note || 'No description'}</Text>
-                    {t.isRecurring === 1 && (
-                        <View style={styles.recurringBadge}>
-                            <Text style={styles.recurringText}>Monthly</Text>
-                        </View>
-                    )}
-                </View>
-                <Text style={styles.txDate}>{new Date(t.date).toLocaleDateString()}</Text>
-              </View>
-              <Text style={[styles.txAmount, { color: t.type === 'income' ? colors.primary : colors.danger }]}>
-                {t.type === 'income' ? '+' : '-'} {txSym} {t.amount.toLocaleString('id-ID')}
-              </Text>
-            </Card>
-          );
-        })
+        transactions.map((t) => (
+          <Card key={t.id} style={styles.txCard}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.txNote}>{t.note || 'Tanpa keterangan'}</Text>
+              <Text style={styles.txDate}>{formatDateLabel(t.date)} · {t.accountName}</Text>
+            </View>
+            <Text style={[styles.txAmount, { color: t.type === 'income' ? colors.primary : colors.danger }]}>
+              {formatMoney(t.type === 'income' ? t.amountMinor : -t.amountMinor, t.currency, { sign: true })}
+            </Text>
+          </Card>
+        ))
       )}
 
       <View style={{ height: 40 }} />
@@ -203,39 +178,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 4,
   },
-  balanceCard: {
-    alignItems: 'center',
-    paddingVertical: 24,
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-  },
-  balanceLabel: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  balanceText: {
-    color: colors.text,
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    paddingHorizontal: 20,
-  },
-  summaryLabel: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  summaryAmount: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -272,16 +214,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
   },
-  recurringBadge: {
-    backgroundColor: colors.primaryDark,
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginLeft: 8,
-  },
-  recurringText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: 'bold',
-  }
 });

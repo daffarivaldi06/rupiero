@@ -1,71 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, Text, Alert, ScrollView } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import { getSettings, updateSettings, AppSettings, resetTransactions } from '../db/database';
+import { SHOW_DEV_TOOLS } from '../config/dev';
+import { getUserVersion } from '../db/client';
+import { resetDatabase } from '../db/init';
+import { listAccountsWithBalance } from '../db/repos/accounts';
+import { formatMoney } from '../domain/money';
+import type { AccountWithBalance } from '../domain/types';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
-import { Input } from '../components/Input';
 import { colors } from '../theme/colors';
+import { RootStackParamList } from '../../App';
 
 export default function SettingsScreen() {
   const db = useSQLiteContext();
-  const [settings, setSettings] = useState<AppSettings | null>(null);
-  const [tempRate, setTempRate] = useState('');
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const [accounts, setAccounts] = useState<AccountWithBalance[]>([]);
+  const [schemaVersion, setSchemaVersion] = useState<number>();
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        setAccounts(await listAccountsWithBalance(db));
+        setSchemaVersion(await getUserVersion(db));
+      })().catch(console.error);
+    }, [db])
+  );
 
-  const loadSettings = async () => {
-    const s = await getSettings(db);
-    setSettings(s);
-    setTempRate(s.eurToIdrRate.toString());
-  };
-
-  const handleToggleCurrency = async (currency: 'IDR' | 'EUR') => {
-    if (!settings) return;
-    try {
-      await updateSettings(db, currency, settings.eurToIdrRate);
-      setSettings({ ...settings, displayCurrency: currency });
-      Alert.alert('Success', `Display currency changed to ${currency}`);
-    } catch (e) {
-      Alert.alert('Error', 'Failed to update settings');
-    }
-  };
-
-  const handleUpdateRate = async () => {
-    if (!settings || !tempRate) return;
-    const newRate = parseFloat(tempRate);
-    if (isNaN(newRate) || newRate <= 0) {
-      Alert.alert('Error', 'Please enter a valid rate');
-      return;
-    }
-
-    try {
-      await updateSettings(db, settings.displayCurrency, newRate);
-      setSettings({ ...settings, eurToIdrRate: newRate });
-      Alert.alert('Success', 'Exchange rate updated');
-    } catch (e) {
-      Alert.alert('Error', 'Failed to update rate');
-    }
-  };
-
-  const handleReset = () => {
+  const handleReset = (seed: boolean) => {
     Alert.alert(
-      'Reset All Transactions',
-      'Are you sure you want to delete all transactions? This action cannot be undone.',
+      seed ? 'Reset & isi data contoh' : 'Reset ke kosong',
+      'Semua data akan dihapus dan database dibuat ulang. Lanjutkan?',
       [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete Everything', 
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Reset',
           style: 'destructive',
           onPress: async () => {
             try {
-              await resetTransactions(db);
-              Alert.alert('Success', 'All transactions have been deleted');
+              await resetDatabase(db, { seed });
+              navigation.popToTop();
             } catch (e) {
-              Alert.alert('Error', 'Failed to reset transactions');
+              console.error(e);
+              Alert.alert('Gagal', 'Database tidak dapat di-reset');
             }
           }
         }
@@ -73,63 +53,35 @@ export default function SettingsScreen() {
     );
   };
 
-  if (!settings) return null;
-
   return (
     <ScrollView style={styles.container}>
       <Card>
-        <Text style={styles.sectionTitle}>Global Display Currency</Text>
+        <Text style={styles.sectionTitle}>Akun</Text>
         <Text style={styles.description}>
-          Choose the default currency for your dashboard.
+          Setiap akun memakai satu mata uang. Saldo tidak dikonversi antar mata uang.
         </Text>
-        <View style={styles.row}>
-          <Button 
-            title="IDR" 
-            variant={settings.displayCurrency === 'IDR' ? 'primary' : 'outline'}
-            onPress={() => handleToggleCurrency('IDR')}
-            style={{ flex: 1, marginRight: 5 }}
-          />
-          <Button 
-            title="EUR" 
-            variant={settings.displayCurrency === 'EUR' ? 'primary' : 'outline'}
-            onPress={() => handleToggleCurrency('EUR')}
-            style={{ flex: 1, marginLeft: 5 }}
-          />
-        </View>
+        {accounts.map((account) => (
+          <View key={account.id} style={styles.accountRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.accountName}>{account.name}</Text>
+              <Text style={styles.accountCurrency}>{account.currency}</Text>
+            </View>
+            <Text style={styles.accountBalance}>{formatMoney(account.balanceMinor, account.currency)}</Text>
+          </View>
+        ))}
       </Card>
 
-      <Card style={{ marginTop: 16 }}>
-        <Text style={styles.sectionTitle}>Exchange Rate (EUR to IDR)</Text>
-        <Text style={styles.description}>
-          Set manual exchange rate. Example: 1 EUR = Rp. 20.000
-        </Text>
-        <Input
-          label="Rate (Rp)"
-          placeholder="e.g. 17000"
-          value={tempRate}
-          onChangeText={setTempRate}
-          keyboardType="numeric"
-          isCurrency={true}
-        />
-        <Button 
-          title="Update Rate" 
-          onPress={handleUpdateRate}
-          style={{ marginTop: 10 }}
-        />
-      </Card>
+      {SHOW_DEV_TOOLS && (
+        <Card style={{ marginTop: 16, borderColor: colors.danger, borderWidth: 1 }}>
+          <Text style={[styles.sectionTitle, { color: colors.danger }]}>Alat Pengembang</Text>
+          <Text style={styles.description}>
+            Hanya tampil di build development. Skema database: v{schemaVersion ?? '?'}
+          </Text>
+          <Button title="Reset & isi data contoh" variant="danger" onPress={() => handleReset(true)} />
+          <Button title="Reset ke kosong" variant="outline" onPress={() => handleReset(false)} />
+        </Card>
+      )}
 
-      <Card style={{ marginTop: 16, borderColor: colors.danger, borderWidth: 1 }}>
-        <Text style={[styles.sectionTitle, { color: colors.danger }]}>Danger Zone</Text>
-        <Text style={styles.description}>
-          Clear all transaction data for testing purposes.
-        </Text>
-        <Button 
-          title="Reset All Transactions" 
-          variant="danger"
-          onPress={handleReset}
-        />
-      </Card>
-      
       <View style={{ height: 40 }} />
     </ScrollView>
   );
@@ -152,7 +104,26 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     lineHeight: 20,
   },
-  row: {
+  accountRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  accountName: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  accountCurrency: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  accountBalance: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

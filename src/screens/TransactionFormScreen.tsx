@@ -1,161 +1,159 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Text, Switch, Pressable } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Text, Pressable } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 
-import { addTransaction, getCategories, Category } from '../db/database';
+import { listAccounts } from '../db/repos/accounts';
+import { listCategories } from '../db/repos/categories';
+import { createTransaction } from '../db/repos/transactions';
+import { todayLocal } from '../domain/dates';
+import { parseAmount } from '../domain/money';
+import type { Account, Category, TransactionType } from '../domain/types';
 import { Input } from '../components/Input';
+import { MoneyInput } from '../components/MoneyInput';
+import { AccountPicker } from '../components/AccountPicker';
 import { Button } from '../components/Button';
 import { colors } from '../theme/colors';
+import { RootStackParamList } from '../../App';
 
 export default function TransactionFormScreen() {
   const db = useSQLiteContext();
   const navigation = useNavigation();
-  const route = useRoute<any>();
-  
-  const initialCategory = route.params?.initialCategory;
+  const route = useRoute<RouteProp<RootStackParamList, 'TransactionForm'>>();
+
+  const lockedCategoryId = route.params?.categoryId;
   const initialType = route.params?.initialType;
 
-  const [amount, setAmount] = useState('');
-  const [type, setType] = useState<'income' | 'expense'>(initialType || 'expense');
-  const [currency, setCurrency] = useState<'IDR' | 'EUR'>('IDR');
-  const [category, setCategory] = useState(initialCategory || '');
+  const [type, setType] = useState<TransactionType>(initialType ?? 'expense');
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [account, setAccount] = useState<Account | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryId, setCategoryId] = useState<number | undefined>(lockedCategoryId);
+  const [amountText, setAmountText] = useState('');
   const [note, setNote] = useState('');
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
+  const [amountError, setAmountError] = useState<string>();
 
   useEffect(() => {
-    const loadCategories = async () => {
-      const cats = await getCategories(db);
-      setAvailableCategories(cats);
-    };
-    loadCategories();
-  }, []);
+    (async () => {
+      const [accs, cats] = await Promise.all([listAccounts(db), listCategories(db)]);
+      setAccounts(accs);
+      setAccount((current) => current ?? accs[0] ?? null);
+      setCategories(cats);
+    })().catch(console.error);
+  }, [db]);
+
+  const lockedCategory = categories.find((c) => c.id === lockedCategoryId);
 
   const handleSave = async () => {
-    if (!amount || isNaN(Number(amount))) {
-      Alert.alert('Error', 'Please enter a valid amount');
+    if (!account) {
+      Alert.alert('Pilih akun', 'Pilih akun untuk transaksi ini');
       return;
     }
-    if (!category) {
-      Alert.alert('Error', 'Please enter or select a category');
+    const amountMinor = parseAmount(amountText, account.currency);
+    if (amountMinor === null || amountMinor <= 0) {
+      setAmountError('Masukkan nominal yang valid, mis. 12,50');
+      return;
+    }
+    if (categoryId === undefined) {
+      Alert.alert('Pilih kategori', 'Pilih kategori untuk transaksi ini');
       return;
     }
 
     try {
-      await addTransaction(db, {
-        amount: Number(amount),
+      await createTransaction(db, {
+        accountId: account.id,
+        categoryId,
         type,
-        category,
+        amountMinor,
+        date: todayLocal(),
         note,
-        date: new Date().toISOString(),
-        currency,
-        isRecurring: isRecurring ? 1 : 0,
       });
       navigation.goBack();
     } catch (e) {
       console.error(e);
-      Alert.alert('Error', 'Failed to save transaction');
+      Alert.alert('Gagal', 'Transaksi tidak dapat disimpan');
     }
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.sectionLabel}>Transaction Type</Text>
+    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+      <Text style={styles.sectionLabel}>Jenis Transaksi</Text>
       <View style={styles.typeSelector}>
-        <Button 
-          title="Expense" 
+        <Button
+          title="Pengeluaran"
           variant={type === 'expense' ? 'danger' : 'outline'}
           onPress={() => !initialType && setType('expense')}
           style={{ flex: 1, marginRight: 5, opacity: initialType && type !== 'expense' ? 0.3 : 1 }}
         />
-        <Button 
-          title="Income" 
+        <Button
+          title="Pemasukan"
           variant={type === 'income' ? 'primary' : 'outline'}
           onPress={() => !initialType && setType('income')}
           style={{ flex: 1, marginLeft: 5, opacity: initialType && type !== 'income' ? 0.3 : 1 }}
         />
       </View>
 
-      <Text style={styles.sectionLabel}>Currency</Text>
-      <View style={{ flexDirection: 'row', marginBottom: 20 }}>
-        <Button 
-          title="IDR" 
-          variant={currency === 'IDR' ? 'primary' : 'outline'}
-          onPress={() => setCurrency('IDR')}
-          style={{ flex: 1, marginRight: 5 }}
-        />
-        <Button 
-          title="EUR" 
-          variant={currency === 'EUR' ? 'primary' : 'outline'}
-          onPress={() => setCurrency('EUR')}
-          style={{ flex: 1, marginLeft: 5 }}
-        />
-      </View>
-
-      <Input 
-        label={`Amount (${currency === 'IDR' ? 'Rp' : '€'})`} 
-        placeholder="0" 
-        keyboardType="numeric"
-        isCurrency={true}
-        value={amount}
-        onChangeText={setAmount}
+      <Text style={styles.sectionLabel}>Akun</Text>
+      <AccountPicker
+        accounts={accounts}
+        selectedId={account?.id ?? null}
+        onSelect={(next) => {
+          setAccount(next);
+          setAmountError(undefined);
+        }}
       />
 
-      {initialCategory ? (
+      {account && (
+        <MoneyInput
+          label={`Nominal (${account.currency})`}
+          currency={account.currency}
+          value={amountText}
+          onChangeText={(text) => {
+            setAmountText(text);
+            setAmountError(undefined);
+          }}
+          error={amountError}
+        />
+      )}
+
+      {lockedCategoryId !== undefined ? (
         <View style={styles.scopedCategoryRow}>
-            <Text style={styles.scopedLabel}>Category</Text>
+            <Text style={styles.scopedLabel}>Kategori</Text>
             <View style={styles.scopedBadge}>
-                <Text style={styles.scopedText}>{initialCategory}</Text>
+                <Text style={styles.scopedText}>{lockedCategory?.name ?? '…'}</Text>
             </View>
         </View>
       ) : (
         <View style={{ marginBottom: 16 }}>
-             <Text style={styles.sectionLabel}>Category</Text>
-             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll}>
-                {availableCategories.map(cat => (
-                    <Pressable 
-                        key={cat.id} 
-                        onPress={() => setCategory(cat.name)}
+             <Text style={styles.sectionLabel}>Kategori</Text>
+             <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={styles.catScroll}>
+                {categories.map(cat => (
+                    <Pressable
+                        key={cat.id}
+                        onPress={() => setCategoryId(cat.id)}
                         style={[
-                            styles.catBadge, 
-                            category === cat.name && { backgroundColor: colors.primary, borderColor: colors.primary }
+                            styles.catBadge,
+                            categoryId === cat.id && { backgroundColor: colors.primary, borderColor: colors.primary }
                         ]}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected: categoryId === cat.id }}
                     >
-                        <Text style={[styles.catBadgeText, category === cat.name && { color: '#000' }]}>{cat.name}</Text>
+                        <Text style={[styles.catBadgeText, categoryId === cat.id && { color: '#000' }]}>{cat.name}</Text>
                     </Pressable>
                 ))}
              </ScrollView>
-             <Input 
-                placeholder="Or type custom category" 
-                value={category}
-                onChangeText={setCategory}
-            />
         </View>
       )}
 
-      <Input 
-        label="Note (Optional)" 
-        placeholder="Additional details" 
+      <Input
+        label="Catatan (opsional)"
+        placeholder="Keterangan tambahan"
         value={note}
         onChangeText={setNote}
         multiline
       />
 
-      <View style={styles.recurringRow}>
-        <View>
-            <Text style={styles.recurringTitle}>Recurring Monthly?</Text>
-            <Text style={styles.recurringSubtitle}>Repeat this transaction every month</Text>
-        </View>
-        <Switch
-            value={isRecurring}
-            onValueChange={setIsRecurring}
-            trackColor={{ false: colors.border, true: colors.primaryDark }}
-            thumbColor={isRecurring ? colors.primary : colors.textSecondary}
-        />
-      </View>
-
-      <Button title="Save Transaction" onPress={handleSave} style={styles.saveButton} />
+      <Button title="Simpan Transaksi" onPress={handleSave} style={styles.saveButton} />
       <View style={{ height: 40 }} />
     </ScrollView>
   );
@@ -183,7 +181,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   scopedCategoryRow: {
-    marginBottom: 20,
+    marginVertical: 20,
     padding: 12,
     backgroundColor: colors.surface,
     borderRadius: 8,
@@ -221,23 +219,4 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 13,
   },
-  recurringRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.surface,
-    padding: 16,
-    borderRadius: 12,
-    marginTop: 10,
-    marginBottom: 10,
-  },
-  recurringTitle: {
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  recurringSubtitle: {
-    color: colors.textSecondary,
-    fontSize: 12,
-  }
 });

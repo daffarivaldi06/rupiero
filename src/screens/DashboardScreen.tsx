@@ -3,8 +3,12 @@ import { View, Text, StyleSheet, ScrollView, RefreshControl, Pressable, Dimensio
 import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
-import { getBalance, getCategories, Category } from '../db/database';
+import { listCategories } from '../db/repos/categories';
+import { getMonthSummary } from '../db/repos/reports';
+import { addMonths, currentMonth, formatMonthLabel } from '../domain/dates';
+import type { Category, CurrencyTotals } from '../domain/types';
 import { Card } from '../components/Card';
+import { MonthSummaryCard } from '../components/MonthSummaryCard';
 import { colors } from '../theme/colors';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../App';
@@ -15,27 +19,25 @@ const CARD_WIDTH = (width - 48) / 2;
 export default function DashboardScreen() {
   const db = useSQLiteContext();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  
-  const [balance, setBalance] = useState({ balance: 0, totalIncome: 0, totalExpense: 0, displayCurrency: 'IDR' });
+
+  const [totals, setTotals] = useState<CurrencyTotals[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth());
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      const bal = await getBalance(db, { month: selectedMonth });
-      setBalance(bal);
-      const cats = await getCategories(db);
-      setCategories(cats);
+      setTotals(await getMonthSummary(db, selectedMonth));
+      setCategories(await listCategories(db));
     } catch (e) {
       console.error(e);
     }
-  };
+  }, [db, selectedMonth]);
 
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [selectedMonth])
+    }, [loadData])
   );
 
   const onRefresh = async () => {
@@ -44,55 +46,43 @@ export default function DashboardScreen() {
     setRefreshing(false);
   };
 
-  const changeMonth = (offset: number) => {
-    const [year, month] = selectedMonth.split('-').map(Number);
-    const date = new Date(year, month - 1 + offset, 1);
-    const newYear = date.getFullYear();
-    const newMonth = (date.getMonth() + 1).toString().padStart(2, '0');
-    setSelectedMonth(`${newYear}-${newMonth}`);
-  };
-
-  const sym = balance.displayCurrency === 'EUR' ? '€' : 'Rp';
-
   return (
-    <ScrollView 
+    <ScrollView
       style={styles.container}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
     >
       <View style={styles.monthSelector}>
-        <Pressable onPress={() => changeMonth(-1)} style={styles.monthButton}>
+        <Pressable
+          onPress={() => setSelectedMonth(addMonths(selectedMonth, -1))}
+          style={styles.monthButton}
+          accessibilityRole="button"
+          accessibilityLabel="Bulan sebelumnya"
+          hitSlop={8}
+        >
           <Text style={styles.monthButtonText}>{'<'}</Text>
         </Pressable>
-        <Text style={styles.monthText}>
-          {new Date(selectedMonth + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-        </Text>
-        <Pressable onPress={() => changeMonth(1)} style={styles.monthButton}>
+        <Text style={styles.monthText}>{formatMonthLabel(selectedMonth)}</Text>
+        <Pressable
+          onPress={() => setSelectedMonth(addMonths(selectedMonth, 1))}
+          style={styles.monthButton}
+          accessibilityRole="button"
+          accessibilityLabel="Bulan berikutnya"
+          hitSlop={8}
+        >
           <Text style={styles.monthButtonText}>{'>'}</Text>
         </Pressable>
       </View>
 
-      <Card style={styles.globalBalanceCard}>
-        <Text style={styles.balanceLabel}>Sisa Uang</Text>
-        <Text style={styles.balanceValue}>{sym} {balance.balance.toLocaleString('id-ID')}</Text>
-        <View style={styles.summaryRowSmall}>
-            <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabelSmall}>Income</Text>
-                <Text style={[styles.summaryValueSmall, { color: colors.primary }]}>+ {sym} {balance.totalIncome.toLocaleString('id-ID')}</Text>
-            </View>
-            <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabelSmall}>Expense</Text>
-                <Text style={[styles.summaryValueSmall, { color: colors.danger }]}>- {sym} {balance.totalExpense.toLocaleString('id-ID')}</Text>
-            </View>
-        </View>
-      </Card>
+      <MonthSummaryCard title="Sisa Uang Bulan Ini" totals={totals} />
 
-      <Text style={styles.sectionTitle}>Categories</Text>
-      
+      <Text style={styles.sectionTitle}>Kategori</Text>
+
       <View style={styles.categoryGrid}>
         {categories.map((cat) => (
-          <Pressable 
-            key={cat.id} 
+          <Pressable
+            key={cat.id}
             onPress={() => navigation.navigate('CategoryDetail', { category: cat.name, categoryId: cat.id })}
+            accessibilityRole="button"
           >
             <Card style={styles.categoryCard}>
               <View style={styles.categoryIconCircle}>
@@ -102,11 +92,11 @@ export default function DashboardScreen() {
             </Card>
           </Pressable>
         ))}
-        
-        <Pressable onPress={() => navigation.navigate('CategoryForm')}>
+
+        <Pressable onPress={() => navigation.navigate('CategoryForm')} accessibilityRole="button">
           <Card style={[styles.categoryCard, styles.addCategoryCard]}>
             <Text style={styles.addIcon}>+</Text>
-            <Text style={styles.addText}>Add Category</Text>
+            <Text style={styles.addText}>Tambah Kategori</Text>
           </Card>
         </Pressable>
       </View>
@@ -144,47 +134,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginHorizontal: 20,
-  },
-  globalBalanceCard: {
-    alignItems: 'center',
-    paddingVertical: 24,
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-  },
-  balanceLabel: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  balanceValue: {
-    color: colors.text,
-    fontSize: 32,
-    fontWeight: 'bold',
-  },
-  summaryRowSmall: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginTop: 20,
-    paddingHorizontal: 20,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: 16,
-  },
-  summaryItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  summaryLabelSmall: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    marginBottom: 4,
-    textTransform: 'uppercase',
-  },
-  summaryValueSmall: {
-    fontSize: 13,
-    fontWeight: '700',
   },
   sectionTitle: {
     color: colors.text,

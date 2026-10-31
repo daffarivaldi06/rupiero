@@ -1,42 +1,29 @@
 import React from 'react';
 import type { WidgetTaskHandlerProps } from 'react-native-android-widget';
-import { BudgetWidget } from './Widget';
+import { BudgetWidget, type WidgetAccountLine } from './Widget';
 import * as SQLite from 'expo-sqlite';
-import { getBalance } from '../db/database';
+import { DATABASE_NAME } from '../db/init';
+import { listAccountsWithBalance } from '../db/repos/accounts';
+import { formatMoney } from '../domain/money';
 
-// A helper to safely get balance from SQLite without React Context
-async function fetchBalance() {
+// Reads balances without React context. If the app has never been opened the schema does not
+// exist yet and the widget asks the user to open it (Phase 4 initialises the DB from here).
+async function fetchAccounts(): Promise<WidgetAccountLine[]> {
   try {
-    const db = await SQLite.openDatabaseAsync('budget.db');
-    const balance = await getBalance(db);
-    return balance;
-  } catch (e) {
-    return { balance: 0, totalIncome: 0, totalExpense: 0 };
+    const db = await SQLite.openDatabaseAsync(DATABASE_NAME);
+    const accounts = await listAccountsWithBalance(db);
+    return accounts.map((a) => ({ name: a.name, balance: formatMoney(a.balanceMinor, a.currency) }));
+  } catch {
+    return [];
   }
 }
 
 export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
-  const data = await fetchBalance();
-
   switch (props.widgetAction) {
     case 'WIDGET_ADDED':
     case 'WIDGET_UPDATE':
     case 'WIDGET_RESIZED':
-      props.renderWidget(
-        <BudgetWidget
-          balance={data.balance}
-          income={data.totalIncome}
-          expense={data.totalExpense}
-        />
-      );
-      break;
-
-    case 'WIDGET_DELETED':
-      // Not needed for now
-      break;
-
-    case 'WIDGET_CLICK':
-      // Handle clicks
+      props.renderWidget(<BudgetWidget accounts={await fetchAccounts()} />);
       break;
 
     default:
