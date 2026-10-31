@@ -26,6 +26,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "./plugins/with-latest-intent.js",
       [
         "./plugins/with-night-window-background.js",
         {
