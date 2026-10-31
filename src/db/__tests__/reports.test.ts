@@ -14,7 +14,7 @@ let rent: number;
 
 beforeEach(async () => {
   db = await createTestDb();
-  await initDb(db, { seed: false });
+  await initDb(db, { seed: false, locale: 'id', defaultCategories: false });
   [eur, idr] = (await listAccounts(db)).map((a) => a.id);
   food = await createCategory(db, 'Makanan');
   rent = await createCategory(db, 'Sewa');

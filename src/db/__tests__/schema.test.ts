@@ -7,7 +7,7 @@ let categoryId: number;
 
 beforeEach(async () => {
   db = await createTestDb();
-  await initDb(db, { seed: false });
+  await initDb(db, { seed: false, locale: 'id', defaultCategories: false });
   eurId = (await db.getFirstAsync<{ id: number }>("SELECT id FROM accounts WHERE currency = 'EUR'"))!.id;
   categoryId = (await db.runAsync("INSERT INTO categories (name) VALUES ('Sewa')")).lastInsertRowId;
 });

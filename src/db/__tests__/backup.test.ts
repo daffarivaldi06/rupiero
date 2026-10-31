@@ -14,7 +14,7 @@ let target: TestDb;
 
 beforeEach(async () => {
   source = await createTestDb();
-  await initDb(source, { seed: true });
+  await initDb(source, { seed: true, locale: 'id' });
   const [eur, idr] = await listAccounts(source);
   const [food] = await listCategories(source);
   await createTransfer(source, { fromAccountId: eur.id, toAccountId: idr.id, fromAmountMinor: 20000, toAmountMinor: 3_420_000, feeMinor: 150, date: '2026-10-30', note: 'Kirim' });
@@ -24,7 +24,7 @@ beforeEach(async () => {
   await saveReferenceRate(source, { date: '2026-10-30', rateMicro: 20_275_170_000 });
 
   target = await createTestDb();
-  await initDb(target, { seed: false });
+  await initDb(target, { seed: false, locale: 'id', defaultCategories: false });
 });
 afterEach(() => {
   source.close();

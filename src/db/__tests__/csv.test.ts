@@ -9,7 +9,7 @@ import { createTransfer } from '../repos/transfers';
 let db: TestDb;
 beforeEach(async () => {
   db = await createTestDb();
-  await initDb(db, { seed: false });
+  await initDb(db, { seed: false, locale: 'id', defaultCategories: false });
 });
 afterEach(() => db.close());
 

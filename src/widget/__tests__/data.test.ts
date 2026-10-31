@@ -17,7 +17,7 @@ let food: number;
 
 beforeEach(async () => {
   db = await createTestDb();
-  await initDb(db, { seed: false });
+  await initDb(db, { seed: false, locale: 'id', defaultCategories: false });
   [eur, idr] = (await listAccounts(db)).map((a) => a.id);
   food = await createCategory(db, 'Makanan');
   const salary = await createCategory(db, 'Gaji');
@@ -31,8 +31,8 @@ describe('widgetData', () => {
     expect(await widgetData(db, TODAY)).toEqual({
       monthLabel: 'Oktober 2026',
       lines: [
-        { currency: 'EUR', label: 'Saldo', amount: `€${NBSP}1.671,30`, negative: false },
-        { currency: 'IDR', label: 'Saldo', amount: `Rp${NBSP}0`, negative: false },
+        { currency: 'EUR', kind: 'balance', amount: `€${NBSP}1.671,30`, negative: false },
+        { currency: 'IDR', kind: 'balance', amount: `Rp${NBSP}0`, negative: false },
       ],
       quickAdd: [
         { currency: 'EUR', accountId: eur },
@@ -47,20 +47,20 @@ describe('widgetData', () => {
     const { lines } = await widgetData(db, TODAY);
     expect(lines[0]).toEqual({
       currency: 'EUR',
-      label: 'Sisa budget',
+      kind: 'budget',
       amount: `€${NBSP}21,30`,
       negative: false,
       budget: { limit: `dari €${NBSP}200,00`, percent: 89, level: 'warning' },
     });
     expect(lines[1]).not.toHaveProperty('budget');
-    expect(lines[1].label).toBe('Saldo');
+    expect(lines[1].kind).toBe('balance');
   });
 
   it('flags an overspent budget', async () => {
     await setBudget(db, { categoryId: food, month: '2026-10', currency: 'EUR', limitMinor: 10000 });
     expect((await widgetData(db, TODAY)).lines[0]).toEqual({
       currency: 'EUR',
-      label: 'Sisa budget',
+      kind: 'budget',
       amount: `-€${NBSP}78,70`,
       negative: true,
       budget: { limit: `dari €${NBSP}100,00`, percent: 179, level: 'over' },

@@ -1,11 +1,6 @@
 import type { Db } from '../client';
 import type { Migration } from './index';
 
-export const DEFAULT_ACCOUNTS = [
-  { name: 'Rekening EUR', currency: 'EUR' },
-  { name: 'Rekening IDR', currency: 'IDR' },
-] as const;
-
 export const migration001: Migration = {
   version: 1,
   async up(db: Db) {
@@ -47,17 +42,6 @@ export const migration001: Migration = {
         value TEXT NOT NULL
       );
     `);
-
-    const existing = await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM accounts');
-    if (!existing?.n) {
-      for (const [index, account] of DEFAULT_ACCOUNTS.entries()) {
-        await db.runAsync(
-          'INSERT INTO accounts (name, currency, sort_order) VALUES (?, ?, ?)',
-          account.name,
-          account.currency,
-          index,
-        );
-      }
-    }
+    // Default accounts are added by ensureDefaults (db/defaults.ts), in the install's language.
   },
 };

@@ -22,7 +22,7 @@ let rentRule: NewRecurringRule;
 
 beforeEach(async () => {
   db = await createTestDb();
-  await initDb(db, { seed: false });
+  await initDb(db, { seed: false, locale: 'id', defaultCategories: false });
   eur = (await listAccounts(db))[0].id;
   rent = await createCategory(db, 'Sewa');
   rentRule = { accountId: eur, categoryId: rent, type: 'expense', amountMinor: 65000, note: 'Sewa', frequency: 'monthly', startDate: '2026-01-31' };

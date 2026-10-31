@@ -15,7 +15,7 @@ let unsubscribe: () => void;
 
 beforeEach(async () => {
   db = await createTestDb();
-  await initDb(db, { seed: false });
+  await initDb(db, { seed: false, locale: 'id', defaultCategories: false });
   changes = 0;
   unsubscribe = onDataChanged(() => changes++);
 });

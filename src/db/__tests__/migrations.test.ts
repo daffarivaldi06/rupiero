@@ -38,12 +38,9 @@ describe('migrate', () => {
     );
   });
 
-  it('creates the two default accounts', async () => {
+  it('creates no accounts itself (defaults come from initDb, in the install language)', async () => {
     await migrate(db);
-    expect(await accounts()).toEqual([
-      { name: 'Rekening EUR', currency: 'EUR' },
-      { name: 'Rekening IDR', currency: 'IDR' },
-    ]);
+    expect(await accounts()).toEqual([]);
   });
 
   it('drops a legacy unversioned schema and recreates it', async () => {
@@ -67,7 +64,7 @@ describe('migrate', () => {
     expect(await columnNames('settings')).toEqual(['key', 'value']);
     expect(await db.getFirstAsync('SELECT COUNT(*) AS n FROM transactions')).toEqual({ n: 0 });
     expect(await db.getFirstAsync('SELECT COUNT(*) AS n FROM categories')).toEqual({ n: 0 });
-    expect(await accounts()).toHaveLength(2);
+    expect(await accounts()).toHaveLength(0);
   });
 
   it('refuses a schema newer than the app and leaves it untouched', async () => {
@@ -86,7 +83,7 @@ describe('migrate', () => {
     await migrate(db);
 
     expect(await db.getFirstAsync('SELECT COUNT(*) AS n FROM categories')).toEqual({ n: 1 });
-    expect(await accounts()).toHaveLength(2);
+    expect(await accounts()).toHaveLength(0);
   });
 
   it('rolls everything back when a step fails', async () => {
@@ -110,7 +107,7 @@ describe('v2 → v3', () => {
   it('keeps existing data and adds budgets, recurring rules and the rule link', async () => {
     await migrate(db, MIGRATIONS.slice(0, 2));
     expect(await getUserVersion(db)).toBe(2);
-    const eur = (await db.getFirstAsync<{ id: number }>("SELECT id FROM accounts WHERE currency = 'EUR'"))!.id;
+    const eur = (await db.runAsync("INSERT INTO accounts (name, currency) VALUES ('Rekening EUR', 'EUR')")).lastInsertRowId;
     const cat = (await db.runAsync("INSERT INTO categories (name) VALUES ('Sewa')")).lastInsertRowId;
     await db.runAsync(
       "INSERT INTO transactions (account_id, category_id, type, amount_minor, date) VALUES (?, ?, 'expense', 65000, '2026-10-03')",
@@ -143,7 +140,7 @@ describe('v2 → v3', () => {
 
   it('enforces the new constraints', async () => {
     await migrate(db);
-    const eur = (await db.getFirstAsync<{ id: number }>("SELECT id FROM accounts WHERE currency = 'EUR'"))!.id;
+    const eur = (await db.runAsync("INSERT INTO accounts (name, currency) VALUES ('Rekening EUR', 'EUR')")).lastInsertRowId;
     const cat = (await db.runAsync("INSERT INTO categories (name) VALUES ('Sewa')")).lastInsertRowId;
     const rule = (frequency: string, end: string | null = null) =>
       db.runAsync(
@@ -165,7 +162,7 @@ describe('v2 → v3', () => {
 
   it('unlinks generated transactions when their rule is deleted', async () => {
     await migrate(db);
-    const eur = (await db.getFirstAsync<{ id: number }>("SELECT id FROM accounts WHERE currency = 'EUR'"))!.id;
+    const eur = (await db.runAsync("INSERT INTO accounts (name, currency) VALUES ('Rekening EUR', 'EUR')")).lastInsertRowId;
     const cat = (await db.runAsync("INSERT INTO categories (name) VALUES ('Sewa')")).lastInsertRowId;
     const rule = await db.runAsync(
       "INSERT INTO recurring_rules (account_id, category_id, type, amount_minor, frequency, start_date) VALUES (?, ?, 'expense', 100, 'monthly', '2026-10-01')",
@@ -183,14 +180,61 @@ describe('v2 → v3', () => {
   });
 });
 
+describe('default accounts and categories', () => {
+  const categoryNames = async () => (await db.getAllAsync<{ name: string }>('SELECT name FROM categories ORDER BY sort_order')).map((c) => c.name);
+
+  it('creates two accounts and eight categories in Indonesian', async () => {
+    await initDb(db, { seed: false, locale: 'id' });
+    expect(await accounts()).toEqual([
+      { name: 'Rekening EUR', currency: 'EUR' },
+      { name: 'Rekening IDR', currency: 'IDR' },
+    ]);
+    expect(await categoryNames()).toEqual(['Gaji', 'Sewa', 'Makanan & Belanja', 'Transportasi', 'Tagihan', 'Hiburan', 'Kesehatan', 'Lainnya']);
+  });
+
+  it('creates them in English when that is the install language', async () => {
+    await initDb(db, { seed: false, locale: 'en' });
+    expect(await accounts()).toEqual([
+      { name: 'EUR account', currency: 'EUR' },
+      { name: 'IDR account', currency: 'IDR' },
+    ]);
+    expect(await categoryNames()).toEqual(['Salary', 'Rent', 'Food & Groceries', 'Transport', 'Bills', 'Entertainment', 'Health', 'Other']);
+  });
+
+  it('runs once: deleted defaults stay deleted, and names are never translated later', async () => {
+    await initDb(db, { seed: false, locale: 'id' });
+    await db.runAsync('DELETE FROM categories');
+    await initDb(db, { seed: false, locale: 'en' });
+    expect(await categoryNames()).toEqual([]);
+    expect((await accounts()).map((a) => a.name)).toEqual(['Rekening EUR', 'Rekening IDR']);
+  });
+
+  it('leaves an existing database with its own accounts and categories alone', async () => {
+    await migrate(db);
+    await db.runAsync("INSERT INTO accounts (name, currency) VALUES ('Giro', 'EUR')");
+    await db.runAsync("INSERT INTO categories (name) VALUES ('Kopi')");
+    await initDb(db, { seed: false, locale: 'en' });
+    expect(await accounts()).toEqual([{ name: 'Giro', currency: 'EUR' }]);
+    expect(await categoryNames()).toEqual(['Kopi']);
+  });
+
+  it('adds categories to an existing database that has accounts but none', async () => {
+    await migrate(db);
+    await db.runAsync("INSERT INTO accounts (name, currency) VALUES ('Giro', 'EUR')");
+    await initDb(db, { seed: false, locale: 'id' });
+    expect(await accounts()).toEqual([{ name: 'Giro', currency: 'EUR' }]);
+    expect(await categoryNames()).toHaveLength(8);
+  });
+});
+
 describe('resetDatabase', () => {
   it('rebuilds from scratch without sample data when asked', async () => {
-    await initDb(db, { seed: false });
+    await initDb(db, { seed: false, locale: 'id', defaultCategories: false });
     await db.runAsync("INSERT INTO accounts (name, currency) VALUES ('Dompet', 'IDR')");
     await db.runAsync("INSERT INTO categories (name) VALUES ('Sewa')");
     await db.runAsync("INSERT INTO transactions (account_id, category_id, type, amount_minor, date) VALUES (3, 1, 'expense', 100, '2026-10-01')");
 
-    await resetDatabase(db, { seed: false });
+    await resetDatabase(db, { seed: false, locale: 'id' });
 
     expect(await getUserVersion(db)).toBe(LATEST);
     expect(await accounts()).toHaveLength(2);

@@ -1,5 +1,8 @@
 import { SEED_SAMPLE_DATA } from '../config/dev';
+import type { Locale } from '../i18n/locale';
+import { loadLocale } from '../i18n/system';
 import { setUserVersion, type Db } from './client';
+import { ensureDefaults } from './defaults';
 import { notifyDataChanged } from './events';
 import { migrate } from './migrations';
 import { seedSampleData } from './seed';
@@ -18,13 +21,22 @@ export async function configureConnection(db: Db): Promise<void> {
 
 export interface InitOptions {
   seed?: boolean;
+  /** Language for default names; by default the stored choice or the phone's language (also applied to the UI). */
+  locale?: Locale;
+  /** Create the default categories in an empty database (tests that build their own turn this off). */
+  defaultCategories?: boolean;
 }
 
-/** Opens the schema for use: pragmas, migrations, dev seed. Called once per connection (DatabaseProvider). */
+/**
+ * Opens the schema for use: pragmas, migrations, the UI language, default accounts and categories,
+ * dev seed. Called once per connection (DatabaseProvider).
+ */
 export async function initDb(db: Db, options: InitOptions = {}): Promise<void> {
   await configureConnection(db);
   await migrate(db);
-  if (options.seed ?? SEED_SAMPLE_DATA) await seedSampleData(db);
+  const locale = options.locale ?? (await loadLocale(db));
+  await ensureDefaults(db, locale, { categories: options.defaultCategories });
+  if (options.seed ?? SEED_SAMPLE_DATA) await seedSampleData(db, { locale });
 }
 
 /** Development only: drops every table and view, then initialises again with sample data. */
