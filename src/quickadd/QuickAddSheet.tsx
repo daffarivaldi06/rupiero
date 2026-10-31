@@ -13,6 +13,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { listAccounts } from '../db/repos/accounts';
+import { createRecurringRule, materializeDue } from '../db/repos/recurring';
 import { getLastAccountId, setLastAccountId } from '../db/repos/settings';
 import {
   createTransaction,
@@ -31,6 +32,7 @@ import {
 } from '../domain/calc';
 import { addDays, formatDateLabel, formatDayMonth, fromLocalDate, toLocalDate, todayLocal, type LocalDate } from '../domain/dates';
 import { convertWithReference } from '../domain/fx';
+import { FREQUENCIES, type Frequency } from '../domain/recurrence';
 import type { Account, Category, TransactionType } from '../domain/types';
 import { AccountPicker } from '../components/AccountPicker';
 import { Button } from '../components/Button';
@@ -41,6 +43,8 @@ import { Txt } from '../components/Txt';
 import { useReferenceRate } from '../fx/FxProvider';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { fontFamily } from '../theme/typography';
+
+const REPEAT_LABEL: Record<Frequency, string> = { daily: 'Harian', weekly: 'Mingguan', monthly: 'Bulanan', yearly: 'Tahunan' };
 
 export interface QuickAddOptions {
   type?: TransactionType;
@@ -76,6 +80,8 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle, QuickAddSheetProps>
   const [expression, setExpression] = useState('');
   const [date, setDate] = useState<LocalDate>(todayLocal());
   const [note, setNote] = useState('');
+  /** New transactions only: also create a recurring rule starting on `date`. */
+  const [repeat, setRepeat] = useState<Frequency | null>(null);
   const [showIosPicker, setShowIosPicker] = useState(false);
 
   const account = accounts.find((a) => a.id === accountId) ?? null;
@@ -94,6 +100,7 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle, QuickAddSheetProps>
       setAccounts(nextAccounts);
       setCategories(nextCategories);
       setShowIosPicker(false);
+      setRepeat(null);
       if (editing) {
         setEditingId(editing.id);
         setType(editing.type);
@@ -157,7 +164,11 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle, QuickAddSheetProps>
     const tx = { accountId: account.id, categoryId, type, amountMinor: amount, date, note };
     try {
       if (editingId !== null) await updateTransaction(db, editingId, tx);
-      else await createTransaction(db, tx);
+      else if (repeat !== null) {
+        // The rule's first occurrence is this transaction; materializing creates it (if not in the future).
+        await createRecurringRule(db, { ...tx, frequency: repeat, interval: 1, startDate: date });
+        await materializeDue(db, todayLocal());
+      } else await createTransaction(db, tx);
       await setLastAccountId(db, account.id);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       sheetRef.current?.dismiss();
@@ -268,6 +279,25 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle, QuickAddSheetProps>
             returnKeyType="done"
           />
         </View>
+        {editingId === null && (
+          <View style={styles.repeatRow}>
+            <Txt variant="label" tone="inkMuted">Ulangi</Txt>
+            {([null, ...FREQUENCIES] as const).map((value) => {
+              const selected = repeat === value;
+              return (
+                <Pressable
+                  key={value ?? 'none'}
+                  onPress={() => setRepeat(value)}
+                  style={[styles.repeatChip, selected && styles.repeatSelected]}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                >
+                  <Txt variant="caption" tone={selected ? 'onInk' : 'ink'}>{value === null ? 'Tidak' : REPEAT_LABEL[value]}</Txt>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
         {showIosPicker && (
           <DateTimePicker value={fromLocalDate(date)} mode="date" display="inline" onChange={(_, picked) => picked && setDate(toLocalDate(picked))} />
         )}
@@ -353,6 +383,24 @@ const makeStyles = ({ color, radius, space }: Theme) =>
       color: color.ink,
       fontFamily: fontFamily.regular,
       fontSize: 15,
+    },
+    repeatRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: space.xs,
+    },
+    repeatChip: {
+      minHeight: 40,
+      justifyContent: 'center',
+      paddingHorizontal: space.sm,
+      borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: color.lineStrong,
+    },
+    repeatSelected: {
+      backgroundColor: color.ink,
+      borderColor: color.ink,
     },
     actions: {
       flexDirection: 'row',
