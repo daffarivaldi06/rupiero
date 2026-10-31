@@ -16,6 +16,7 @@
         "monochromeImage": "./assets/adaptive-icon-monochrome.png",
         "backgroundColor": "#F4F1EA"
       },
+      "backgroundColor": "#F4F1EA",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.daffarivaldi.budgetapp"
@@ -24,6 +25,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      ["./plugins/with-night-window-background.js", { "color": "#16181D" }],
       "expo-sqlite",
       "expo-asset",
       [
