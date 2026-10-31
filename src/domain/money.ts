@@ -59,6 +59,36 @@ export function formatMoneyParts(minor: number, currency: CurrencyCode, options:
   };
 }
 
+/** What hidden amounts show instead of digits. */
+export const MASK = '••••';
+export const HIDDEN_LABEL = 'Saldo disembunyikan';
+
+export interface MoneyDisplay extends MoneyParts {
+  /** For screen readers; set only when the amount is hidden. */
+  accessibilityLabel?: string;
+}
+
+/**
+ * How an amount is shown: formatted, or — with `hidden` — as "€ ••••" with no sign, so neither the
+ * value nor its direction leaks, and a spoken "Saldo disembunyikan".
+ */
+export function moneyDisplay(
+  minor: number,
+  currency: CurrencyCode,
+  options: FormatMoneyOptions & { hidden?: boolean } = {},
+): MoneyDisplay {
+  if (options.hidden) {
+    return { sign: '', symbol: CURRENCIES[currency].symbol, amount: MASK, accessibilityLabel: HIDDEN_LABEL };
+  }
+  return formatMoneyParts(minor, currency, options);
+}
+
+/** moneyDisplay as one string, e.g. for the widget. */
+export function formatMoneyDisplay(minor: number, currency: CurrencyCode, options: FormatMoneyOptions & { hidden?: boolean } = {}): string {
+  const { sign, symbol, amount } = moneyDisplay(minor, currency, options);
+  return `${sign}${symbol}${NBSP}${amount}`;
+}
+
 /** 123456 EUR → "€ 1.234,56", -12500 IDR → "-Rp 12.500". */
 export function formatMoney(minor: number, currency: CurrencyCode, options: FormatMoneyOptions = {}): string {
   const { sign, symbol, amount } = formatMoneyParts(minor, currency, options);

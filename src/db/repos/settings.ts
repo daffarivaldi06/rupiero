@@ -33,3 +33,22 @@ export async function getBaseCurrency(db: Db): Promise<CurrencyCode> {
   const value = await getSetting(db, BASE_CURRENCY_KEY);
   return value !== null && isCurrencyCode(value) ? value : 'EUR';
 }
+
+export const HIDE_BALANCES_KEY = 'hide_balances';
+export const HIDE_BALANCES_WIDGET_KEY = 'hide_balances_widget';
+
+async function getFlag(db: Db, key: string): Promise<boolean> {
+  return (await getSetting(db, key)) === '1';
+}
+
+async function setFlag(db: Db, key: string, value: boolean): Promise<void> {
+  await setSetting(db, key, value ? '1' : '0');
+}
+
+/** Show amounts as "€ ••••" everywhere in the app. */
+export const getHideBalances = (db: Db) => getFlag(db, HIDE_BALANCES_KEY);
+export const setHideBalances = (db: Db, value: boolean) => setFlag(db, HIDE_BALANCES_KEY, value);
+
+/** Also hide them in the home-screen widget (only while hide_balances is on). */
+export const getHideBalancesInWidget = (db: Db) => getFlag(db, HIDE_BALANCES_WIDGET_KEY);
+export const setHideBalancesInWidget = (db: Db, value: boolean) => setFlag(db, HIDE_BALANCES_WIDGET_KEY, value);

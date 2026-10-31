@@ -22,7 +22,17 @@ import {
   renameCategory,
 } from '../repos/categories';
 import { getCategoryMonthTotals, getMonthSummary } from '../repos/reports';
-import { getBaseCurrency, getLastAccountId, getSetting, setLastAccountId, setSetting } from '../repos/settings';
+import {
+  getBaseCurrency,
+  getHideBalances,
+  getHideBalancesInWidget,
+  getLastAccountId,
+  getSetting,
+  setHideBalances,
+  setHideBalancesInWidget,
+  setLastAccountId,
+  setSetting,
+} from '../repos/settings';
 import {
   createTransaction,
   deleteTransaction,
@@ -349,4 +359,15 @@ it('defaults the base currency to EUR', async () => {
   expect(await getBaseCurrency(db)).toBe('IDR');
   await setSetting(db, 'base_currency', 'USD');
   expect(await getBaseCurrency(db)).toBe('EUR');
+});
+
+it('stores the hide-balance switches, off by default', async () => {
+  expect(await getHideBalances(db)).toBe(false);
+  expect(await getHideBalancesInWidget(db)).toBe(false);
+  await setHideBalances(db, true);
+  await setHideBalancesInWidget(db, true);
+  expect(await getHideBalances(db)).toBe(true);
+  expect(await getHideBalancesInWidget(db)).toBe(true);
+  await setHideBalances(db, false);
+  expect(await getHideBalances(db)).toBe(false);
 });

@@ -7,6 +7,10 @@ import {
   invertRate,
   isCurrencyCode,
   parseAmount,
+  formatMoneyDisplay,
+  HIDDEN_LABEL,
+  MASK,
+  moneyDisplay,
 } from '../money';
 
 const NBSP = ' ';
@@ -143,4 +147,28 @@ it('recognises supported currency codes', () => {
   expect(isCurrencyCode('EUR')).toBe(true);
   expect(isCurrencyCode('USD')).toBe(false);
   expect(isCurrencyCode('toString')).toBe(false);
+});
+
+describe('moneyDisplay', () => {
+  it('formats normally when not hidden', () => {
+    expect(moneyDisplay(-12500, 'IDR')).toEqual({ sign: '-', symbol: 'Rp', amount: '12.500' });
+    expect(moneyDisplay(1250, 'EUR', { sign: true })).toEqual({ sign: '+', symbol: '€', amount: '12,50' });
+  });
+
+  it('masks digits and sign and gives screen readers a label when hidden', () => {
+    for (const minor of [0, 1250, -1250, 9_007_199_254_740_991]) {
+      expect(moneyDisplay(minor, 'EUR', { hidden: true, sign: true })).toEqual({
+        sign: '',
+        symbol: '€',
+        amount: MASK,
+        accessibilityLabel: HIDDEN_LABEL,
+      });
+    }
+    expect(HIDDEN_LABEL).toBe('Saldo disembunyikan');
+  });
+
+  it('joins into one string for plain text', () => {
+    expect(formatMoneyDisplay(6_127_030, 'IDR', { hidden: true })).toBe('Rp\u00a0••••');
+    expect(formatMoneyDisplay(6_127_030, 'IDR')).toBe('Rp\u00a06.127.030');
+  });
 });
