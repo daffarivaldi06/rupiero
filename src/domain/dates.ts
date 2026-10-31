@@ -53,6 +53,12 @@ export function todayLocal(now: Date = new Date()): LocalDate {
   return toLocalDate(now);
 }
 
+/** `date` shifted by `days` calendar days (negative goes back), across months and years. */
+export function addDays(date: LocalDate, days: number): LocalDate {
+  const d = fromLocalDate(date);
+  return toLocalDate(new Date(d.getFullYear(), d.getMonth(), d.getDate() + days));
+}
+
 export function monthOf(date: LocalDate): Month {
   if (!isValidLocalDate(date)) throw new RangeError(`Invalid date: ${date}`);
   return date.slice(0, 7);
@@ -101,6 +107,12 @@ export function formatMonthShort(month: Month): string {
 export function formatDateLabel(date: LocalDate): string {
   if (!isValidLocalDate(date)) throw new RangeError(`Invalid date: ${date}`);
   return `${Number(date.slice(8, 10))} ${MONTH_SHORT[Number(date.slice(5, 7)) - 1]} ${date.slice(0, 4)}`;
+}
+
+/** "2026-10-30" → "30 Okt" (rate dates, date chips). */
+export function formatDayMonth(date: LocalDate): string {
+  if (!isValidLocalDate(date)) throw new RangeError(`Invalid date: ${date}`);
+  return `${Number(date.slice(8, 10))} ${MONTH_SHORT[Number(date.slice(5, 7)) - 1]}`;
 }
 
 /** "2026-10-31" → "Sab, 31 Okt" (ledger day headers). */

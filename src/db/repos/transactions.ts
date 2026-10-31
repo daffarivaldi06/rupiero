@@ -1,6 +1,7 @@
 import type { LocalDate, Month } from '../../domain/dates';
 import type { CurrencyCode } from '../../domain/money';
-import type { TransactionDetail, TransactionType } from '../../domain/types';
+import { addDays } from '../../domain/dates';
+import type { Category, TransactionDetail, TransactionType } from '../../domain/types';
 import type { Db, SQLParam } from '../client';
 
 interface TransactionDetailRow {
@@ -88,4 +89,57 @@ export async function listTransactions(db: Db, filter: TransactionFilter = {}): 
     ...params,
   );
   return rows.map(toDetail);
+}
+
+export async function getTransaction(db: Db, id: number): Promise<TransactionDetail | null> {
+  const row = await db.getFirstAsync<TransactionDetailRow>(
+    `SELECT t.id, t.account_id, t.category_id, t.type, t.amount_minor, t.date, t.month, t.note,
+            a.name AS account_name, a.currency, c.name AS category_name
+     FROM transactions t
+     JOIN accounts a   ON a.id = t.account_id
+     JOIN categories c ON c.id = t.category_id
+     WHERE t.id = ?`,
+    id,
+  );
+  return row ? toDetail(row) : null;
+}
+
+export async function updateTransaction(db: Db, id: number, tx: NewTransaction): Promise<void> {
+  await db.runAsync(
+    `UPDATE transactions
+     SET account_id = ?, category_id = ?, type = ?, amount_minor = ?, date = ?, note = ?, updated_at = datetime('now')
+     WHERE id = ?`,
+    tx.accountId,
+    tx.categoryId,
+    tx.type,
+    tx.amountMinor,
+    tx.date,
+    tx.note?.trim() ?? '',
+    id,
+  );
+}
+
+export async function deleteTransaction(db: Db, id: number): Promise<void> {
+  await db.runAsync('DELETE FROM transactions WHERE id = ?', id);
+}
+
+/**
+ * Active categories ordered by how often they were used in the `days` up to `today` (inclusive),
+ * then by their usual order, so a new user still gets a sensible list.
+ */
+export async function listCategoriesByUse(
+  db: Db,
+  { today, days = 90 }: { today: LocalDate; days?: number },
+): Promise<Category[]> {
+  const rows = await db.getAllAsync<{ id: number; name: string; archived: number; sort_order: number }>(
+    `SELECT c.id, c.name, c.archived, c.sort_order
+     FROM categories c
+     LEFT JOIN transactions t ON t.category_id = c.id AND t.date > ? AND t.date <= ?
+     WHERE c.archived = 0
+     GROUP BY c.id
+     ORDER BY COUNT(t.id) DESC, c.sort_order, c.name`,
+    addDays(today, -days),
+    today,
+  );
+  return rows.map((row) => ({ id: row.id, name: row.name, archived: row.archived === 1, sortOrder: row.sort_order }));
 }

@@ -9,8 +9,15 @@ import {
   renameCategory,
 } from '../repos/categories';
 import { getCategoryMonthTotals, getMonthSummary } from '../repos/reports';
-import { getSetting, setSetting } from '../repos/settings';
-import { createTransaction, listTransactions } from '../repos/transactions';
+import { getLastAccountId, getSetting, setLastAccountId, setSetting } from '../repos/settings';
+import {
+  createTransaction,
+  deleteTransaction,
+  getTransaction,
+  listCategoriesByUse,
+  listTransactions,
+  updateTransaction,
+} from '../repos/transactions';
 
 let db: TestDb;
 let eur: number;
@@ -122,6 +129,37 @@ describe('transactions', () => {
     expect(await amounts({ month: '2026-10', categoryId: food })).toEqual([2]);
     expect(await amounts({ accountId: eur })).toEqual([2, 1]);
   });
+
+  it('updates and deletes a transaction', async () => {
+    const id = await createTransaction(db, { accountId: eur, categoryId: food, type: 'expense', amountMinor: 1250, date: '2026-10-05' });
+    await updateTransaction(db, id, { accountId: idr, categoryId: salary, type: 'income', amountMinor: 50_000, date: '2026-09-30', note: ' Bonus ' });
+    expect(await getTransaction(db, id)).toMatchObject({
+      accountName: 'Rekening IDR',
+      categoryName: 'Gaji',
+      type: 'income',
+      amountMinor: 50_000,
+      month: '2026-09',
+      note: 'Bonus',
+    });
+    const balances = Object.fromEntries((await listAccountsWithBalance(db)).map((a) => [a.currency, a.balanceMinor]));
+    expect(balances).toEqual({ EUR: 0, IDR: 50_000 });
+
+    await deleteTransaction(db, id);
+    expect(await getTransaction(db, id)).toBeNull();
+  });
+
+  it('orders categories by use in the last 90 days', async () => {
+    const rent = await createCategory(db, 'Sewa');
+    for (const date of ['2026-10-01', '2026-10-02', '2026-10-03']) {
+      await createTransaction(db, { accountId: eur, categoryId: rent, type: 'expense', amountMinor: 1, date });
+    }
+    await createTransaction(db, { accountId: eur, categoryId: salary, type: 'income', amountMinor: 1, date: '2026-10-04' });
+    // Older than 90 days or in the future: ignored.
+    for (const date of ['2026-08-01', '2026-08-02', '2026-11-01', '2026-11-02']) {
+      await createTransaction(db, { accountId: eur, categoryId: food, type: 'expense', amountMinor: 1, date });
+    }
+    expect((await listCategoriesByUse(db, { today: '2026-10-31' })).map((c) => c.name)).toEqual(['Sewa', 'Gaji', 'Makanan']);
+  });
 });
 
 describe('getMonthSummary', () => {
@@ -223,4 +261,10 @@ it('stores settings as key-value pairs', async () => {
   await setSetting(db, 'k', '1');
   await setSetting(db, 'k', '2');
   expect(await getSetting(db, 'k')).toBe('2');
+});
+
+it('remembers the last account', async () => {
+  expect(await getLastAccountId(db)).toBeNull();
+  await setLastAccountId(db, idr);
+  expect(await getLastAccountId(db)).toBe(idr);
 });

@@ -12,3 +12,15 @@ export async function setSetting(db: Db, key: string, value: string): Promise<vo
     value,
   );
 }
+
+export const LAST_ACCOUNT_KEY = 'last_account_id';
+
+/** The account of the last saved transaction: the quick-add default. */
+export async function getLastAccountId(db: Db): Promise<number | null> {
+  const value = await getSetting(db, LAST_ACCOUNT_KEY);
+  return value === null ? null : Number(value);
+}
+
+export async function setLastAccountId(db: Db, accountId: number): Promise<void> {
+  await setSetting(db, LAST_ACCOUNT_KEY, String(accountId));
+}

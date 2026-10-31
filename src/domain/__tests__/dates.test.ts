@@ -1,4 +1,6 @@
 import {
+  addDays,
+  formatDayMonth,
   addMonths,
   currentMonth,
   dateInMonth,
@@ -91,5 +93,19 @@ describe('labels', () => {
     expect(formatDayHeader('2026-10-31')).toBe('Sab, 31 Okt');
     expect(formatDayHeader('2026-11-01')).toBe('Min, 1 Nov');
     expect(formatDayHeader('2028-02-29')).toBe('Sel, 29 Feb');
+  });
+});
+
+describe('addDays and formatDayMonth', () => {
+  it('moves across month, year and leap-day boundaries', () => {
+    expect(addDays('2026-10-31', 1)).toBe('2026-11-01');
+    expect(addDays('2026-01-01', -1)).toBe('2025-12-31');
+    expect(addDays('2028-02-28', 1)).toBe('2028-02-29');
+    expect(addDays('2026-10-31', -90)).toBe('2026-08-02');
+  });
+
+  it('formats day and short month', () => {
+    expect(formatDayMonth('2026-10-30')).toBe('30 Okt');
+    expect(formatDayMonth('2026-05-01')).toBe('1 Mei');
   });
 });
