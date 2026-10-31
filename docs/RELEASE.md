@@ -57,6 +57,13 @@ Debug harus di-uninstall dulu, dan ini **menghapus data di HP** (saat ini data u
 5. Buka app. Jika versi baru membawa perubahan skema, migrasi database berjalan otomatis sekali saat dibuka (`PRAGMA user_version`),
    tanpa menghapus data.
 
+## Riwayat versi
+
+| Versi | versionCode | Isi |
+|---|---|---|
+| 1.0.0 | 1 | Fase 0–4 |
+| 1.0.1 | 2 | Fase 5: bahasa Indonesia/Inggris, tema, a11y, validasi inline, toast + undo. Tanpa perubahan skema (tetap v3) |
+
 ## Jangan pernah
 
 - Uninstall app atau "Hapus data" tanpa backup terbaru.

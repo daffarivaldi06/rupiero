@@ -16,7 +16,7 @@
 | 2.1 | ✅ selesai (tag `phase-2.1-done`) | Uji di HP lolos (2026-10-31) |
 | 3 | ✅ selesai (tag `phase-3-done`) | Uji di HP lolos (2026-10-31) |
 | 4 | ✅ selesai (tag `phase-4-done`) | Uji di HP lolos (2026-10-31), plus revisi widget (bar budget, warna peringatan, ukuran 3×2). Build release pertama 1.0.0 (versionCode 1), lihat [docs/RELEASE.md](docs/RELEASE.md) |
-| 5 | 🚧 dikerjakan | Termasuk bahasa Inggris, kategori default, date picker bertema |
+| 5 | ✅ selesai, menunggu uji di HP | Bahasa id/en, tema terang/gelap, kategori default, date picker bertema, a11y, validasi inline, toast + undo. Rilis 1.0.1 (versionCode 2) |
 | 6 | backlog | Belum dijadwalkan; tiap item butuh persetujuan sendiri |
 
 Penyimpangan dari rencana (Fase 0–1):
@@ -647,6 +647,20 @@ CREATE UNIQUE INDEX idx_tx_rule_date ON transactions(recurring_rule_id, date) WH
 - Test round-trip backup lolos. Secara manual: export → reset → import mengembalikan data utuh. File JSON yang rusak ditolak dengan pesan yang jelas.
 
 ---
+
+Penyimpangan dari rencana (Fase 5):
+- **Tema** (tambahan 2026-10-31): Pengaturan → Tema (Ikuti sistem / Terang / Gelap) lewat `Appearance.setColorScheme`; widget memakai
+  pilihan yang sama (satu tampilan, bukan light+dark) kecuali "Ikuti sistem".
+- Date picker Android diberi warna token lewat config plugin datetimepicker (`app.json`, dicek test `date-picker-theme.test.ts`).
+  Nama bulan/tombolnya mengikuti bahasa pilihan lewat modul lokal `modules/app-locale` (`AppCompatDelegate.setApplicationLocales`).
+- Akun default dipindah dari migrasi 001 ke `ensureDefaults` (`src/db/defaults.ts`, sekali per database, flag `defaults_created`).
+  Database lama: tidak ada yang ditambahkan selama tabel akun/kategori sudah berisi.
+- "Ikuti sistem" membaca bahasa **utama** HP (`id`/`in` → Indonesia, lainnya → Inggris).
+- Test string hardcoded berbasis AST TypeScript (`src/i18n/__tests__/hardcoded-strings.test.ts`), plus test kunci & placeholder id/en sama.
+- Konfirmasi tindakan destruktif (hapus kategori/transfer/aturan, pulihkan backup, reset) tetap dialog; hapus transaksi tanpa dialog, bisa di-undo.
+- Ditemukan saat uji: transaksi bertumpuk pada koneksi bersama (app + task widget menjalankan `materializeDue` bersamaan saat start)
+  → `serializeTransactions` (`src/db/serialize.ts`). Deskripsi widget di pemilih widget kini Inggris + terjemahan `values-in`.
+- Showcase Inggris: `docs/showcase/en/` (screens, carousel 10 slide + PDF, video 15,8 s). Link GitHub di slide terakhir masih placeholder.
 
 ## Fase 5: UX & aksesibilitas
 
