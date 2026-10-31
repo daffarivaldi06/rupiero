@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useLayoutEffect } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Pressable, Alert } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect, useRoute, useNavigation, RouteProp } from '@react-navigation/native';
@@ -7,13 +7,13 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { deleteCategoryWithTransactions } from '../db/repos/categories';
 import { getMonthSummary } from '../db/repos/reports';
 import { listTransactions } from '../db/repos/transactions';
-import { currentMonth, formatMonthLabel } from '../domain/dates';
+import { currentMonth } from '../domain/dates';
 import { groupByDate } from '../domain/ledger';
 import type { CurrencyTotals, TransactionDetail } from '../domain/types';
 import { Button } from '../components/Button';
 import { LedgerRow } from '../components/LedgerRow';
 import { LedgerSection } from '../components/LedgerSection';
-import { MonthSummaryCard } from '../components/MonthSummaryCard';
+import { CategoryMonthSummary } from '../components/CategoryMonthSummary';
 import { Txt } from '../components/Txt';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { RootStackParamList } from '../../App';
@@ -79,6 +79,25 @@ export default function CategoryDetailScreen() {
     );
   };
 
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={styles.headerActions}>
+          <Pressable
+            onPress={() => navigation.navigate('CategoryForm', { categoryId, initialName: category })}
+            style={styles.headerButton}
+            accessibilityRole="button"
+          >
+            <Txt variant="bodyStrong">Ubah</Txt>
+          </Pressable>
+          <Pressable onPress={handleDelete} style={styles.headerButton} accessibilityRole="button">
+            <Txt variant="bodyStrong" tone="expense">Hapus</Txt>
+          </Pressable>
+        </View>
+      ),
+    });
+  });
+
   const days = groupByDate(transactions, (t) => ({ date: t.date, currency: t.currency, signedMinor: signed(t) }));
 
   return (
@@ -86,22 +105,7 @@ export default function CategoryDetailScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={color.ink} />}
     >
-      <View style={styles.headerRow}>
-        <Txt variant="title" style={styles.categoryName}>{category}</Txt>
-        <Pressable
-          onPress={() => navigation.navigate('CategoryForm', { categoryId, initialName: category })}
-          style={styles.headerButton}
-          accessibilityRole="button"
-        >
-          <Txt variant="bodyStrong">Ubah</Txt>
-        </Pressable>
-        <Pressable onPress={handleDelete} style={styles.headerButton} accessibilityRole="button">
-          <Txt variant="bodyStrong" tone="expense">Hapus</Txt>
-        </Pressable>
-      </View>
-      <Txt variant="caption" tone="inkMuted">Laporan bulanan · {formatMonthLabel(month)}</Txt>
-
-      <MonthSummaryCard title="Saldo kategori" totals={totals} />
+      <CategoryMonthSummary month={month} totals={totals} />
 
       <View style={styles.actionRow}>
         <Button
@@ -123,7 +127,7 @@ export default function CategoryDetailScreen() {
         <Txt tone="inkMuted" style={styles.emptyText}>Belum ada transaksi di kategori ini bulan ini.</Txt>
       ) : (
         days.map((day) => (
-          <LedgerSection key={day.date} date={day.date} totals={day.totals}>
+          <LedgerSection key={day.date} date={day.date} totals={day.items.length > 1 ? day.totals : undefined}>
             {day.items.map((t) => (
               <LedgerRow
                 key={t.id}
@@ -146,12 +150,8 @@ const makeStyles = ({ space }: Theme) =>
       padding: space.lg,
       paddingBottom: space.xxl,
     },
-    headerRow: {
+    headerActions: {
       flexDirection: 'row',
-      alignItems: 'center',
-    },
-    categoryName: {
-      flex: 1,
     },
     headerButton: {
       minHeight: 48,
@@ -161,7 +161,7 @@ const makeStyles = ({ space }: Theme) =>
     actionRow: {
       flexDirection: 'row',
       gap: space.md,
-      marginTop: space.sm,
+      marginTop: space.lg,
     },
     actionButton: {
       flex: 1,

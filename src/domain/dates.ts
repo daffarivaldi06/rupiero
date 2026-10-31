@@ -86,6 +86,11 @@ export function formatMonthLabel(month: Month): string {
   return `${MONTH_NAMES[m - 1]} ${year}`;
 }
 
+/** "2026-10" → "Oktober". */
+export function formatMonthName(month: Month): string {
+  return MONTH_NAMES[parseMonth(month)[1] - 1];
+}
+
 /** "2026-10" → "Okt 2026" (compact headers). */
 export function formatMonthShort(month: Month): string {
   const [year, m] = parseMonth(month);

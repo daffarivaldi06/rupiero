@@ -8,12 +8,13 @@ import { Money } from './Money';
 
 interface LedgerSectionProps {
   date: LocalDate;
-  totals: DayTotal[];
+  /** The day's net per currency; omit when a subtotal would only repeat a single row. */
+  totals?: DayTotal[];
   children: React.ReactNode;
 }
 
-/** One day of the ledger: a dated header with the day's net per currency, then its rows. */
-export const LedgerSection: React.FC<LedgerSectionProps> = ({ date, totals, children }) => {
+/** One day of the ledger: a dated header (with the day's net per currency if given), then its rows. */
+export const LedgerSection: React.FC<LedgerSectionProps> = ({ date, totals = [], children }) => {
   const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.section}>

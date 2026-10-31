@@ -63,7 +63,7 @@ function RootNavigator() {
         <Stack.Screen
           name="CategoryDetail"
           component={CategoryDetailScreen}
-          options={{ title: 'Detail Kategori' }}
+          options={({ route }) => ({ title: route.params.category })}
         />
         <Stack.Screen
           name="CategoryForm"
