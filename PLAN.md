@@ -11,6 +11,7 @@
 | 0 | ✅ selesai (tag `phase-0-done`) | Build debug Android dengan package id baru berhasil |
 | 1 | ✅ selesai (tag `phase-1-done`) | Uji manual di perangkat lolos (2026-10-31) |
 | 1.5 | ✅ kode selesai, **menunggu cek visual** di perangkat | 139 test lolos (termasuk kontras), setiap commit lolos typecheck + test, font ter-embed, bundle Hermes berhasil. Tag `phase-1.5-done` setelah cek visual |
+| 1.6 | 🔄 sedang dikerjakan | Identitas "Rupiero": nama, logo, header custom, saldo besar, animasi buka |
 | 2–5 | belum dimulai | |
 | 6 | backlog | Belum dijadwalkan; tiap item butuh persetujuan sendiri |
 
@@ -274,6 +275,67 @@ Garis `line` sengaja tipis (dekoratif, sekitar 1.3–1.5:1). Batas komponen inte
   - **Tabular nums:** kolom nominal di daftar transaksi rata per digit (mis. "€ 1.111,11" dan "€ 8.888,88" sama lebar). Jika tidak, `tnum` tidak aktif dan harus diperbaiki sebelum lanjut.
   - Tidak ada bayangan, gradien, atau emoji. Daftar transaksi bergaris tanpa kartu.
   - Splash tidak "berkedip putih" di mode gelap.
+
+---
+
+## Fase 1.6: Identitas "Rupiero"
+
+Tujuan: app punya nama, logo, dan layar pembuka sendiri sebelum fitur Fase 2 ditumpuk di atasnya. Tetap gaya Buku Kas: tinta di atas kertas,
+warna hanya untuk makna.
+
+### Nama
+- Nama tampilan **Rupiero**: `app.json` `name` (menjadi `app_name`/label launcher Android) dan label widget.
+- `slug`, package id `com.daffarivaldi.budgetapp`, dan nama file `budget.db` **tidak** diganti (mengganti package id = app baru di perangkat).
+
+### Logo
+- Monogram **"R"** dengan dua garis horizontal seperti pada tanda €, bergaya stempel/cap di atas garis ledger.
+  Garis atas memakai token `eur`, garis bawah `idrText`, huruf dan bingkai memakai `ink`. Dibangun dari bentuk geometris (bukan font),
+  jadi tajam di semua ukuran.
+- Satu sumber: `src/brand/mark.ts` (`buildMarkSvg(colors)`). Dipakai oleh `<RupieroMark>` (react-native-svg) dan oleh
+  `scripts/render-brand-assets.ts` (resvg) yang membuat PNG: `icon.png`, `adaptive-icon.png` (+ `adaptive-icon-monochrome.png` untuk
+  ikon bertema Android 13), `splash-icon.png`, `splash-icon-dark.png`, `favicon.png`. SVG kanonik disimpan di `assets/brand/`.
+- Wordmark di header = logo + "Rupiero" (IBM Plex Sans Bold).
+
+### Header & Dashboard
+- Dashboard memakai **header custom** (header bawaan disembunyikan): wordmark di kiri, pemilih bulan, ikon pengaturan (SVG, bukan teks).
+  Layar lain tetap memakai header bawaan dengan tombol kembali.
+- **Saldo EUR dan IDR** sebagai angka besar (varian `hero`, 52 pt, mengecil otomatis sampai muat) dan menjadi elemen paling dominan.
+  Langsung di atas latar, tanpa kartu berbingkai, dipisah garis ledger.
+  Saldo = saldo awal + transaksi sampai akhir bulan yang dipilih (bulan berjalan = saldo saat ini). Repo: `getBalancesByCurrency(db, { asOf })`.
+- Ringkasan bulan (pemasukan/pengeluaran per mata uang) turun menjadi baris kecil di bawah saldo.
+- Daftar kategori menampilkan total bulan ini per mata uang di kanan (bertanda, warna income/expense). Repo: `getCategoryMonthTotals(db, month)`.
+- Detail kategori: tombol Pemasukan/Pengeluaran menjadi outline. Transaksi tanpa catatan tidak menampilkan teks pengganti.
+
+### Animasi buka
+- Splash native statis (logo) → logo **"dicap"** (Reanimated 4: angkat, tekan, jejak tinta, ±600 ms) → **angka saldo bergulir**
+  (digit berputar lalu berhenti kiri ke kanan; panjang teks tetap, jadi tata letak tidak bergeser). Total < 1 detik.
+- Splash native disembunyikan setelah data Dashboard pertama siap (dengan batas waktu cadangan), jadi tidak ada layar kosong.
+- **"Kurangi animasi"** sistem aktif → tanpa cap dan tanpa gulir; splash langsung hilang dan angka tampil final.
+- Hanya saat cold start; ganti bulan tidak memutar animasi.
+
+### File
+- **Baru:** `src/brand/{mark.ts,RupieroMark.tsx,Wordmark.tsx}`, `src/brand/__tests__/mark.test.ts`, `src/components/{SettingsIcon,BalanceHero,AppHeader}.tsx`,
+  `src/components/rolling.ts` (+ test), `src/intro/IntroProvider.tsx`, `scripts/render-brand-assets.ts`, `assets/brand/*.svg`.
+- **Diubah:** `app.json`, `package.json` (react-native-reanimated, react-native-worklets, @resvg/resvg-js dev), `App.tsx`, `src/theme/typography.ts` (`hero`),
+  `src/db/repos/{accounts,reports}.ts` (+ test), `src/screens/{DashboardScreen,CategoryDetailScreen}.tsx`, aset ikon/splash.
+
+### Langkah
+1. `chore(app): rename display name to Rupiero`.
+2. `chore: add react-native-reanimated and worklets`.
+3. `feat(brand): add Rupiero stamp mark` + `chore(brand): generate icon and splash assets from the mark`.
+4. `feat(db): balances by currency as of a date` + `feat(db): category totals per month`.
+5. `feat(ui): custom dashboard header with wordmark, month picker and settings icon`.
+6. `feat(dashboard): hero balances on the page and category totals`.
+7. `refactor(ui): outline actions and no placeholder note in category detail`.
+8. `feat(app): stamp intro and rolling balances`.
+
+**Kriteria selesai**
+- Typecheck, lint, dan semua test lolos (termasuk test baru untuk saldo per tanggal, total kategori, `rolling`, dan `buildMarkSvg`).
+- Manual (perangkat/emulator):
+  - Label launcher "Rupiero"; ikon adaptif dan ikon bertema terlihat benar; splash light/dark memakai logo.
+  - Saldo EUR/IDR adalah elemen terbesar di Dashboard, di kedua mode.
+  - Cold start: splash → cap → angka bergulir, terasa < 1 detik. Dengan "Hapus animasi" aktif: tanpa animasi.
+- Screenshot light + dark dikirim untuk review.
 
 ---
 
