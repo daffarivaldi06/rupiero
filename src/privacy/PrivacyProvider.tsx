@@ -6,7 +6,6 @@ import {
   setHideBalances,
   setHideBalancesInWidget,
 } from '../db/repos/settings';
-import { refreshWidgets } from '../widget/refresh';
 
 interface PrivacyContextValue {
   /** Amounts show as "€ ••••" in every <Money>. */
@@ -46,17 +45,10 @@ export function PrivacyProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setLoaded(true));
   }, [db]);
 
-  const persist = useCallback(
-    async (write: Promise<void>) => {
-      try {
-        await write;
-        await refreshWidgets(db);
-      } catch (e) {
-        console.error(e);
-      }
-    },
-    [db],
-  );
+  // The settings writes notify db/events, which also redraws the widget.
+  const persist = useCallback((write: Promise<void>) => {
+    write.catch(console.error);
+  }, []);
 
   const toggleHidden = useCallback(() => {
     const next = !hidden;
