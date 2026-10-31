@@ -43,7 +43,10 @@
               "name": "BudgetWidget",
               "label": "Rupiero",
               "minWidth": "250dp",
-              "minHeight": "150dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
               "description": "Sisa budget per mata uang dan catat cepat",
               "previewImage": "./assets/icon.png"
             }

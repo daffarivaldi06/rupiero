@@ -2,6 +2,7 @@ import type { Db } from '../db/client';
 import { getBalancesByCurrency, listAccounts } from '../db/repos/accounts';
 import { listBudgets } from '../db/repos/budgets';
 import { getHideBalances, getHideBalancesInWidget } from '../db/repos/settings';
+import { budgetStatus, type BudgetLevel } from '../domain/budget';
 import { formatMonthLabel, monthOf, type LocalDate } from '../domain/dates';
 import { formatMoneyDisplay, type CurrencyCode } from '../domain/money';
 
@@ -12,6 +13,14 @@ export interface WidgetLine {
   /** Formatted, or masked while balances are hidden. */
   amount: string;
   negative: boolean;
+  /** Only for "Sisa budget": spent against the summed limits, as in the budget screen. */
+  budget?: {
+    /** "dari € 300,00" (masked while balances are hidden). */
+    limit: string;
+    /** Whole percent spent; may exceed 100. */
+    percent: number;
+    level: BudgetLevel;
+  };
 }
 
 export interface WidgetData {
@@ -38,13 +47,28 @@ export async function widgetData(db: Db, today: LocalDate): Promise<WidgetData> 
 
   const lines = balances.map(({ currency, balanceMinor }): WidgetLine => {
     const ofCurrency = budgets.filter((b) => b.currency === currency);
-    const value =
-      ofCurrency.length > 0 ? ofCurrency.reduce((sum, b) => sum + b.limitMinor - b.spentMinor, 0) : balanceMinor;
+    if (ofCurrency.length === 0) {
+      return {
+        currency,
+        label: 'Saldo',
+        amount: formatMoneyDisplay(balanceMinor, currency, { hidden }),
+        negative: !hidden && balanceMinor < 0,
+      };
+    }
+    const limitMinor = ofCurrency.reduce((sum, b) => sum + b.limitMinor, 0);
+    const spentMinor = ofCurrency.reduce((sum, b) => sum + b.spentMinor, 0);
+    const status = budgetStatus(spentMinor, limitMinor);
     return {
       currency,
-      label: ofCurrency.length > 0 ? 'Sisa budget' : 'Saldo',
-      amount: formatMoneyDisplay(value, currency, { hidden }),
-      negative: !hidden && value < 0,
+      label: 'Sisa budget',
+      amount: formatMoneyDisplay(status.remainingMinor, currency, { hidden }),
+      negative: !hidden && status.remainingMinor < 0,
+      // Like the app's budget bars, the proportion stays visible when amounts are hidden.
+      budget: {
+        limit: `dari ${formatMoneyDisplay(limitMinor, currency, { hidden })}`,
+        percent: status.percent,
+        level: status.level,
+      },
     };
   });
 

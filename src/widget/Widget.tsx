@@ -3,7 +3,7 @@ import { FlexWidget, SvgWidget, TextWidget } from 'react-native-android-widget';
 import { buildMarkSvg, markColors } from '../brand/mark';
 import { palettes, type ColorScheme, type Palette } from '../theme/tokens';
 import { fontFamily } from '../theme/typography';
-import type { WidgetData } from './data';
+import type { WidgetData, WidgetLine } from './data';
 
 /** Deep link that opens quick-add for an account (see linking/quickAddLink.ts). */
 export const quickAddUri = (accountId: number) => `rupiero://add?account=${accountId}`;
@@ -55,24 +55,26 @@ export function BudgetWidget({ data, scheme }: BudgetWidgetProps) {
           <FlexWidget
             key={line.currency}
             style={{
-              flexDirection: 'row',
-              alignItems: 'center',
+              flexDirection: 'column',
               width: 'match_parent',
               paddingVertical: 4,
               borderBottomWidth: 1,
               borderBottomColor: hex(color.line),
             }}
           >
-            <TextWidget text={line.currency} style={{ fontSize: 11, fontFamily: fontFamily.mono, color: codeColor(line.currency) }} />
-            <TextWidget
-              text={line.label}
-              style={{ fontSize: 11, fontFamily: fontFamily.regular, color: hex(color.inkMuted), marginLeft: 6 }}
-            />
-            <FlexWidget style={{ flex: 1 }} />
-            <TextWidget
-              text={line.amount}
-              style={{ fontSize: 18, fontFamily: fontFamily.bold, color: hex(line.negative ? color.expense : color.ink) }}
-            />
+            <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', width: 'match_parent' }}>
+              <TextWidget text={line.currency} style={{ fontSize: 11, fontFamily: fontFamily.mono, color: codeColor(line.currency) }} />
+              <TextWidget
+                text={line.label}
+                style={{ fontSize: 11, fontFamily: fontFamily.regular, color: hex(color.inkMuted), marginLeft: 6 }}
+              />
+              <FlexWidget style={{ flex: 1 }} />
+              <TextWidget
+                text={line.amount}
+                style={{ fontSize: 18, fontFamily: fontFamily.bold, color: hex(line.negative ? color.expense : color.ink) }}
+              />
+            </FlexWidget>
+            {line.budget && <BudgetRow budget={line.budget} color={color} />}
           </FlexWidget>
         ))
       )}
@@ -99,12 +101,34 @@ export function BudgetWidget({ data, scheme }: BudgetWidgetProps) {
             >
               <TextWidget
                 text={`+ ${button.currency}`}
-                style={{ fontSize: 13, fontFamily: fontFamily.medium, color: hex(color.ink) }}
+                style={{ fontSize: 13, fontFamily: fontFamily.medium, color: codeColor(button.currency) }}
               />
             </FlexWidget>
           ))}
         </FlexWidget>
       )}
+    </FlexWidget>
+  );
+}
+
+/** Same colours as the app's BudgetBar: ink while fine, IDR text colour from 80 %, expense once over. */
+const levelColor = (level: NonNullable<WidgetLine['budget']>['level'], color: Palette) =>
+  hex(level === 'over' ? color.expense : level === 'warning' ? color.idrText : color.ink);
+
+/** A thin ledger bar of what is spent, then "dari € 300,00". Widgets have no percentage widths, so flex weights split the track. */
+function BudgetRow({ budget, color }: { budget: NonNullable<WidgetLine['budget']>; color: Palette }) {
+  const filled = Math.min(Math.max(budget.percent, 0), 100);
+  const tint = levelColor(budget.level, color);
+  return (
+    <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', width: 'match_parent', marginTop: 3 }}>
+      <FlexWidget style={{ flex: 1, flexDirection: 'row', height: 4, borderRadius: 2, backgroundColor: hex(color.line) }}>
+        {filled > 0 && <FlexWidget style={{ flex: filled, height: 4, borderRadius: 2, backgroundColor: tint }} />}
+        {filled < 100 && <FlexWidget style={{ flex: 100 - filled, height: 4 }} />}
+      </FlexWidget>
+      <TextWidget
+        text={budget.level === 'ok' ? budget.limit : `${budget.limit} · ${budget.percent}%`}
+        style={{ fontSize: 11, fontFamily: fontFamily.regular, color: budget.level === 'ok' ? hex(color.inkMuted) : tint, marginLeft: 8 }}
+      />
     </FlexWidget>
   );
 }

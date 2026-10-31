@@ -45,7 +45,14 @@ describe('widgetData', () => {
     await setBudget(db, { categoryId: food, month: '2026-10', currency: 'EUR', limitMinor: 20000 });
     await setBudget(db, { categoryId: food, month: '2026-09', currency: 'IDR', limitMinor: 50_000 }); // other month
     const { lines } = await widgetData(db, TODAY);
-    expect(lines[0]).toEqual({ currency: 'EUR', label: 'Sisa budget', amount: `€${NBSP}21,30`, negative: false });
+    expect(lines[0]).toEqual({
+      currency: 'EUR',
+      label: 'Sisa budget',
+      amount: `€${NBSP}21,30`,
+      negative: false,
+      budget: { limit: `dari €${NBSP}200,00`, percent: 89, level: 'warning' },
+    });
+    expect(lines[1]).not.toHaveProperty('budget');
     expect(lines[1].label).toBe('Saldo');
   });
 
@@ -56,7 +63,25 @@ describe('widgetData', () => {
       label: 'Sisa budget',
       amount: `-€${NBSP}78,70`,
       negative: true,
+      budget: { limit: `dari €${NBSP}100,00`, percent: 179, level: 'over' },
     });
+  });
+
+  it('sums several budgets in one currency', async () => {
+    const fun = await createCategory(db, 'Hiburan');
+    await setBudget(db, { categoryId: food, month: '2026-10', currency: 'EUR', limitMinor: 20000 });
+    await setBudget(db, { categoryId: fun, month: '2026-10', currency: 'EUR', limitMinor: 10000 });
+    expect((await widgetData(db, TODAY)).lines[0]).toMatchObject({
+      amount: `€${NBSP}121,30`,
+      budget: { limit: `dari €${NBSP}300,00`, percent: 60, level: 'ok' },
+    });
+  });
+
+  it('keeps the bar but masks the limit when hidden', async () => {
+    await setBudget(db, { categoryId: food, month: '2026-10', currency: 'EUR', limitMinor: 20000 });
+    await setHideBalances(db, true);
+    await setHideBalancesInWidget(db, true);
+    expect((await widgetData(db, TODAY)).lines[0].budget).toEqual({ limit: `dari €${NBSP}••••`, percent: 89, level: 'warning' });
   });
 
   it('masks amounts only when the widget follows hidden balances', async () => {
