@@ -15,7 +15,7 @@ import { AccountPicker } from '../components/AccountPicker';
 import { Button } from '../components/Button';
 import { Txt } from '../components/Txt';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
-import { RootStackParamList } from '../../App';
+import type { RootStackParamList } from '../navigation/types';
 
 export default function TransactionFormScreen() {
   const db = useSQLiteContext();

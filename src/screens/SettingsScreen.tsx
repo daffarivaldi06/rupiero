@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { SHOW_DEV_TOOLS } from '../config/dev';
 import { getUserVersion } from '../db/client';
@@ -14,11 +13,11 @@ import { Button } from '../components/Button';
 import { Money } from '../components/Money';
 import { Txt } from '../components/Txt';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
-import { RootStackParamList } from '../../App';
+import type { RootNavigation } from '../navigation/types';
 
 export default function SettingsScreen() {
   const db = useSQLiteContext();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<RootNavigation>();
   const styles = useThemedStyles(makeStyles);
   const [accounts, setAccounts] = useState<AccountWithBalance[]>([]);
   const [schemaVersion, setSchemaVersion] = useState<number>();

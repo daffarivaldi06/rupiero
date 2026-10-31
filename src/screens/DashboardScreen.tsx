@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Pressable } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { getBalancesByCurrency } from '../db/repos/accounts';
 import { listCategories } from '../db/repos/categories';
@@ -16,11 +15,11 @@ import { MonthFlow } from '../components/MonthFlow';
 import { Txt } from '../components/Txt';
 import { useIntro } from '../intro/IntroProvider';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
-import { RootStackParamList } from '../../App';
+import type { RootNavigation } from '../navigation/types';
 
 export default function DashboardScreen() {
   const db = useSQLiteContext();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<RootNavigation>();
   const { color } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const { ready: introReady, roll } = useIntro();
@@ -91,7 +90,7 @@ export default function DashboardScreen() {
             return (
               <Pressable
                 key={cat.id}
-                onPress={() => navigation.navigate('CategoryDetail', { category: cat.name, categoryId: cat.id })}
+                onPress={() => navigation.navigate('CategoryDetail', { categoryId: cat.id, month: selectedMonth })}
                 style={styles.row}
                 accessibilityRole="button"
               >
