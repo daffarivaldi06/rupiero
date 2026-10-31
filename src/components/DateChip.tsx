@@ -67,7 +67,7 @@ export const DateChip: React.FC<DateChipProps> = ({ value, onChange, placeholder
 const makeStyles = ({ color, radius, space }: Theme) =>
   StyleSheet.create({
     chip: {
-      minHeight: 44,
+      minHeight: 48,
       alignSelf: 'flex-start',
       justifyContent: 'center',
       paddingHorizontal: space.md,

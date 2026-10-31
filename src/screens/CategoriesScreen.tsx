@@ -9,6 +9,8 @@ import type { Category } from '../domain/types';
 import { Txt } from '../components/Txt';
 import type { RootNavigation } from '../navigation/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useReadableInset } from '../theme/layout';
+import { space } from '../theme/tokens';
 import { useI18n } from '../i18n/I18nProvider';
 import { useToast } from '../feedback/ToastProvider';
 
@@ -17,6 +19,7 @@ export default function CategoriesScreen() {
   const db = useSQLiteContext();
   const navigation = useNavigation<RootNavigation>();
   const styles = useThemedStyles(makeStyles);
+  const inset = useReadableInset(space.lg);
   const { t } = useI18n();
   const toast = useToast();
   const [active, setActive] = useState<Category[]>([]);
@@ -49,7 +52,7 @@ export default function CategoriesScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView contentContainerStyle={[styles.content, { paddingHorizontal: inset }]}>
       <View style={styles.list}>
         {active.map((category) => (
           <Pressable
@@ -117,7 +120,7 @@ const makeStyles = ({ color, space }: Theme) =>
       marginRight: space.md,
     },
     restore: {
-      minHeight: 44,
+      minHeight: 48,
       justifyContent: 'center',
       paddingLeft: space.md,
     },

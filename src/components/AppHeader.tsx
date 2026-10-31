@@ -34,6 +34,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ month, onChangeMonth, onPr
         <Pressable
           onPress={() => onChangeMonth(addMonths(month, -1))}
           style={styles.monthButton}
+          hitSlop={{ left: 4, right: 4 }}
           accessibilityRole="button"
           accessibilityLabel={t('common.previousMonth')}
         >
@@ -51,6 +52,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ month, onChangeMonth, onPr
         <Pressable
           onPress={() => onChangeMonth(addMonths(month, 1))}
           style={styles.monthButton}
+          hitSlop={{ left: 4, right: 4 }}
           accessibilityRole="button"
           accessibilityLabel={t('common.nextMonth')}
         >
@@ -102,7 +104,7 @@ const makeStyles = ({ color, space }: Theme) =>
       justifyContent: 'center',
     },
     iconButton: {
-      minWidth: 44,
+      minWidth: 48,
       minHeight: 48,
       alignItems: 'center',
       justifyContent: 'center',

@@ -293,7 +293,7 @@ const makeStyles = ({ color, radius, space }: Theme) =>
       marginVertical: space.sm,
     },
     dateChip: {
-      minHeight: 44,
+      minHeight: 48,
       justifyContent: 'center',
       paddingHorizontal: space.md,
       borderRadius: radius.sm,

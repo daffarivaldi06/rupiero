@@ -1,7 +1,8 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { BudgetStatus } from '../domain/budget';
-import type { CurrencyCode } from '../domain/money';
+import { moneyDisplay, type CurrencyCode } from '../domain/money';
+import { usePrivacy } from '../privacy/PrivacyProvider';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { Money } from './Money';
 import { Txt } from './Txt';
@@ -24,9 +25,25 @@ export const BudgetBar: React.FC<BudgetBarProps> = ({ status, currency }) => {
   const { t, locale } = useI18n();
   const fill = status.level === 'over' ? styles.over : status.level === 'warning' ? styles.warning : styles.ok;
   const levelText = LEVEL_TEXT[status.level];
+  const { hidden } = usePrivacy();
+  const spoken = (minor: number) => moneyDisplay(minor, currency, { hidden, locale }).accessibilityLabel;
+  // Read as one sentence: "12 euro of 300 euro, 4%. 288 euro left." (the parts alone mean little).
+  const label = [
+    `${t('budgetBar.of', { spent: spoken(status.spentMinor), limit: spoken(status.limitMinor) })}, ${status.percent}%`,
+    t(status.remainingMinor >= 0 ? 'budgetBar.left' : 'budgetBar.over', { amount: spoken(Math.abs(status.remainingMinor)) }),
+    levelText !== null ? t(levelText) : null,
+  ]
+    .filter(Boolean)
+    .join('. ');
 
   return (
-    <View style={styles.wrap}>
+    <View
+      style={styles.wrap}
+      accessible
+      accessibilityLabel={label}
+      accessibilityRole="progressbar"
+      accessibilityValue={{ min: 0, max: 100, now: Math.min(status.percent, 100) }}
+    >
       <View style={styles.line}>
         <Txt variant="label" style={styles.amounts} numberOfLines={1}>
           {renderMessage(
@@ -42,12 +59,7 @@ export const BudgetBar: React.FC<BudgetBarProps> = ({ status, currency }) => {
           {status.percent}%
         </Txt>
       </View>
-      <View
-        style={styles.track}
-        accessible
-        accessibilityRole="progressbar"
-        accessibilityValue={{ min: 0, max: 100, now: Math.min(status.percent, 100) }}
-      >
+      <View style={styles.track}>
         <View style={[styles.fill, fill, { width: `${Math.min(status.percent, 100)}%` }]} />
       </View>
       <View style={styles.line}>

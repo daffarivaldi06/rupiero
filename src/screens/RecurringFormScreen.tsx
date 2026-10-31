@@ -175,6 +175,7 @@ export default function RecurringFormScreen() {
               key={value}
               onPress={() => setFrequency(value)}
               style={[styles.chip, selected && styles.chipSelected]}
+              hitSlop={4}
               accessibilityRole="radio"
               accessibilityState={{ selected }}
             >
@@ -252,7 +253,7 @@ const makeStyles = ({ color, radius, space }: Theme) =>
     },
     typeButton: {
       flex: 1,
-      minHeight: 44,
+      minHeight: 48,
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: radius.sm,
@@ -292,8 +293,8 @@ const makeStyles = ({ color, radius, space }: Theme) =>
       alignItems: 'center',
     },
     clear: {
-      minWidth: 44,
-      minHeight: 44,
+      minWidth: 48,
+      minHeight: 48,
       alignItems: 'center',
       justifyContent: 'center',
     },

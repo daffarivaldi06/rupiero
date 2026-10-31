@@ -10,6 +10,8 @@ import { Money } from '../components/Money';
 import { Txt } from '../components/Txt';
 import type { RootNavigation } from '../navigation/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useReadableInset } from '../theme/layout';
+import { space } from '../theme/tokens';
 import { useI18n } from '../i18n/I18nProvider';
 import { renderMessage } from '../i18n/rich';
 
@@ -18,6 +20,7 @@ export default function SubscriptionsScreen() {
   const db = useSQLiteContext();
   const navigation = useNavigation<RootNavigation>();
   const styles = useThemedStyles(makeStyles);
+  const inset = useReadableInset(space.lg);
   const { t } = useI18n();
   const [rules, setRules] = useState<RecurringRuleDetail[]>([]);
 
@@ -34,7 +37,7 @@ export default function SubscriptionsScreen() {
   const totals = subscriptionTotals(rules, today);
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView contentContainerStyle={[styles.content, { paddingHorizontal: inset }]}>
       <Txt variant="label" tone="inkMuted" style={styles.label}>{t('subscriptions.monthlyTotal')}</Txt>
       <View style={styles.topRule} />
       {totals.length === 0 && <Txt tone="inkMuted" style={styles.empty}>{t('subscriptions.empty')}</Txt>}

@@ -14,6 +14,8 @@ import { Txt } from '../components/Txt';
 import { useDataRevision } from '../data/DataProvider';
 import type { RootStackParamList } from '../navigation/types';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useReadableInset } from '../theme/layout';
+import { space } from '../theme/tokens';
 import { useI18n } from '../i18n/I18nProvider';
 
 // Shades of the currency colour, largest share first; neighbours are also split by a gap.
@@ -25,6 +27,7 @@ export default function InsightsScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'Insights'>>();
   const { color } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const inset = useReadableInset(space.lg);
   const { t } = useI18n();
   const { revision } = useDataRevision();
 
@@ -63,7 +66,7 @@ export default function InsightsScreen() {
   const currencies = CURRENCY_CODES.filter((c) => trend.some((point) => point.currency === c)).sort();
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView contentContainerStyle={[styles.content, { paddingHorizontal: inset }]}>
       <View style={styles.monthRow}>
         <Pressable onPress={() => changeMonth(addMonths(month, -1))} style={styles.monthButton} accessibilityRole="button" accessibilityLabel={t('common.previousMonth')}>
           <Txt variant="title">‹</Txt>

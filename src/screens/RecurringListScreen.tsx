@@ -10,12 +10,15 @@ import { LedgerRow } from '../components/LedgerRow';
 import { Txt } from '../components/Txt';
 import type { RootNavigation } from '../navigation/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useReadableInset } from '../theme/layout';
+import { space } from '../theme/tokens';
 import { useI18n } from '../i18n/I18nProvider';
 
 export default function RecurringListScreen() {
   const db = useSQLiteContext();
   const navigation = useNavigation<RootNavigation>();
   const styles = useThemedStyles(makeStyles);
+  const inset = useReadableInset(space.lg);
   const { t } = useI18n();
   const [rules, setRules] = useState<RecurringRuleDetail[]>([]);
 
@@ -27,7 +30,7 @@ export default function RecurringListScreen() {
 
   const today = todayLocal();
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView contentContainerStyle={[styles.content, { paddingHorizontal: inset }]}>
       <Txt tone="inkMuted" style={styles.description}>
         {t('recurringList.description')}
       </Txt>

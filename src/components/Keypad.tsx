@@ -83,7 +83,7 @@ const makeStyles = ({ color }: Theme) =>
     },
     key: {
       flex: 1,
-      height: 54,
+      minHeight: 54,
       alignItems: 'center',
       justifyContent: 'center',
       borderBottomWidth: StyleSheet.hairlineWidth,

@@ -9,12 +9,15 @@ import { Money } from '../components/Money';
 import { Txt } from '../components/Txt';
 import type { RootNavigation } from '../navigation/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useReadableInset } from '../theme/layout';
+import { space } from '../theme/tokens';
 import { useI18n } from '../i18n/I18nProvider';
 
 export default function AccountsScreen() {
   const db = useSQLiteContext();
   const navigation = useNavigation<RootNavigation>();
   const styles = useThemedStyles(makeStyles);
+  const inset = useReadableInset(space.lg);
   const { t } = useI18n();
   const [accounts, setAccounts] = useState<AccountWithBalance[]>([]);
 
@@ -48,7 +51,7 @@ export default function AccountsScreen() {
   );
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView contentContainerStyle={[styles.content, { paddingHorizontal: inset }]}>
       <Txt tone="inkMuted" style={styles.description}>
         {t('accounts.description')}
       </Txt>

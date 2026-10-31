@@ -17,6 +17,8 @@ import type { RootNavigation, RootStackParamList } from '../navigation/types';
 import { useDataRevision } from '../data/DataProvider';
 import { useQuickAdd } from '../quickadd/QuickAddProvider';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useReadableInset } from '../theme/layout';
+import { space } from '../theme/tokens';
 import { useI18n } from '../i18n/I18nProvider';
 import { t as translate, type MessageKey } from '../i18n';
 
@@ -53,6 +55,7 @@ export default function TransactionListScreen() {
   const navigation = useNavigation<RootNavigation>();
   const route = useRoute<RouteProp<RootStackParamList, 'Transactions'>>();
   const styles = useThemedStyles(makeStyles);
+  const inset = useReadableInset(space.lg);
   const { t } = useI18n();
   const quickAdd = useQuickAdd();
   const { revision } = useDataRevision();
@@ -130,6 +133,7 @@ export default function TransactionListScreen() {
       key={key}
       onPress={onPress}
       style={[styles.chip, selected && styles.chipSelected]}
+      hitSlop={4}
       accessibilityRole="radio"
       accessibilityState={{ selected }}
     >
@@ -168,7 +172,7 @@ export default function TransactionListScreen() {
       data={data}
       keyExtractor={(entry) => entry.key}
       ListHeaderComponent={header}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingHorizontal: inset }]}
       onEndReached={loadMore}
       onEndReachedThreshold={0.5}
       ListEmptyComponent={<Txt tone="inkMuted" style={styles.empty}>{t('transactions.empty')}</Txt>}

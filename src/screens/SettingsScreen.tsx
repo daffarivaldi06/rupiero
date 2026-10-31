@@ -12,6 +12,8 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Txt } from '../components/Txt';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useReadableInset } from '../theme/layout';
+import { space } from '../theme/tokens';
 import type { RootNavigation } from '../navigation/types';
 import { usePrivacy } from '../privacy/PrivacyProvider';
 import { getThemePreference, setThemePreference } from '../db/repos/settings';
@@ -47,6 +49,7 @@ export default function SettingsScreen() {
   const db = useSQLiteContext();
   const navigation = useNavigation<RootNavigation>();
   const styles = useThemedStyles(makeStyles);
+  const inset = useReadableInset(space.lg);
   const { color } = useTheme();
   const privacy = usePrivacy();
   const { t, preference, setPreference } = useI18n();
@@ -145,7 +148,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView contentContainerStyle={[styles.content, { paddingHorizontal: inset }]}>
       <View style={styles.list}>
         {LINKS.map((link) => (
           <Pressable key={link.route} onPress={() => navigation.navigate(link.route)} style={styles.row} accessibilityRole="button">

@@ -8,6 +8,8 @@ import type { Category } from '../domain/types';
 import { Txt } from '../components/Txt';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useReadableInset } from '../theme/layout';
+import { space } from '../theme/tokens';
 import { useI18n } from '../i18n/I18nProvider';
 import { useToast } from '../feedback/ToastProvider';
 
@@ -17,6 +19,7 @@ export default function CategoryReassignScreen() {
   const navigation = useNavigation<RootNavigation>();
   const route = useRoute<RouteProp<RootStackParamList, 'CategoryReassign'>>();
   const styles = useThemedStyles(makeStyles);
+  const inset = useReadableInset(space.lg);
   const { t } = useI18n();
   const toast = useToast();
   const { categoryId } = route.params;
@@ -51,7 +54,7 @@ export default function CategoryReassignScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView contentContainerStyle={[styles.content, { paddingHorizontal: inset }]}>
       <Txt tone="inkMuted" style={styles.description}>{t('reassign.description', { name })}</Txt>
       <View style={styles.list}>
         {targets.map((target) => (

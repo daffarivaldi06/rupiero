@@ -37,6 +37,7 @@ export const CategoryChips: React.FC<CategoryChipsProps> = ({ categories, select
               onSelect(category.id);
             }}
             style={[styles.chip, selected && styles.chipSelected]}
+            hitSlop={4}
             accessibilityRole="radio"
             accessibilityState={{ selected }}
           >
@@ -45,7 +46,7 @@ export const CategoryChips: React.FC<CategoryChipsProps> = ({ categories, select
         );
       })}
       {!showAll && categories.length > TOP && (
-        <Pressable onPress={() => setExpanded(true)} style={[styles.chip, styles.more]} accessibilityRole="button">
+        <Pressable onPress={() => setExpanded(true)} style={[styles.chip, styles.more]} hitSlop={4} accessibilityRole="button">
           <Txt variant="label" tone="inkMuted">{t('common.allMore')}</Txt>
         </Pressable>
       )}

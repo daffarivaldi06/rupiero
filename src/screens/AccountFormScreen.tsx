@@ -172,7 +172,7 @@ const makeStyles = ({ color, radius, space }: Theme) =>
     },
     currencyChip: {
       minWidth: 72,
-      minHeight: 44,
+      minHeight: 48,
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: radius.sm,

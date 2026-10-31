@@ -13,6 +13,8 @@ import { Button } from '../components/Button';
 import { Txt } from '../components/Txt';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useReadableInset } from '../theme/layout';
+import { space } from '../theme/tokens';
 import { useI18n } from '../i18n/I18nProvider';
 import { useToast } from '../feedback/ToastProvider';
 
@@ -21,6 +23,7 @@ export default function BudgetScreen() {
   const navigation = useNavigation<RootNavigation>();
   const route = useRoute<RouteProp<RootStackParamList, 'Budget'>>();
   const styles = useThemedStyles(makeStyles);
+  const inset = useReadableInset(space.lg);
   const { t } = useI18n();
   const toast = useToast();
 
@@ -60,7 +63,7 @@ export default function BudgetScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView contentContainerStyle={[styles.content, { paddingHorizontal: inset }]}>
       <View style={styles.monthRow}>
         <Pressable onPress={() => setMonth(addMonths(month, -1))} style={styles.monthButton} accessibilityRole="button" accessibilityLabel={t('common.previousMonth')}>
           <Txt variant="title">‹</Txt>

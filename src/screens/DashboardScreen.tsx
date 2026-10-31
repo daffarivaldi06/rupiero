@@ -25,6 +25,8 @@ import { useIntro } from '../intro/IntroProvider';
 import { useDataRevision } from '../data/DataProvider';
 import { useQuickAdd } from '../quickadd/QuickAddProvider';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useReadableInset } from '../theme/layout';
+import { space } from '../theme/tokens';
 import { useI18n } from '../i18n/I18nProvider';
 import { renderMessage } from '../i18n/rich';
 import type { RootNavigation } from '../navigation/types';
@@ -34,6 +36,7 @@ export default function DashboardScreen() {
   const navigation = useNavigation<RootNavigation>();
   const { color } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const inset = useReadableInset(space.lg);
   const { t } = useI18n();
   const { ready: introReady, roll } = useIntro();
   const quickAdd = useQuickAdd();
@@ -114,7 +117,7 @@ export default function DashboardScreen() {
         onPressSettings={() => navigation.navigate('Settings')}
       />
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingHorizontal: inset }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={color.ink} />}
       >
         <BalanceHero label={isCurrentMonth ? t('dashboard.balanceNow') : t('dashboard.balanceEnd', { month: monthLabel })} balances={balances} roll={roll} />
@@ -302,7 +305,7 @@ const makeStyles = ({ color, radius, space }: Theme) =>
       marginBottom: space.xs,
     },
     headerLink: {
-      minHeight: 44,
+      minHeight: 48,
       justifyContent: 'center',
       paddingLeft: space.md,
     },

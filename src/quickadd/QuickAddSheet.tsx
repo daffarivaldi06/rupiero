@@ -315,6 +315,7 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
                   key={value ?? 'none'}
                   onPress={() => setRepeat(value)}
                   style={[styles.repeatChip, selected && styles.repeatSelected]}
+                  hitSlop={4}
                   accessibilityRole="radio"
                   accessibilityState={{ selected }}
                 >
@@ -368,7 +369,7 @@ const makeStyles = ({ color, radius, space }: Theme) =>
     },
     typeButton: {
       flex: 1,
-      minHeight: 44,
+      minHeight: 48,
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: radius.sm,
@@ -396,7 +397,7 @@ const makeStyles = ({ color, radius, space }: Theme) =>
       gap: space.sm,
     },
     dateChip: {
-      minHeight: 44,
+      minHeight: 48,
       justifyContent: 'center',
       paddingHorizontal: space.md,
       borderRadius: radius.sm,
@@ -405,7 +406,7 @@ const makeStyles = ({ color, radius, space }: Theme) =>
     },
     note: {
       flex: 1,
-      minHeight: 44,
+      minHeight: 48,
       paddingHorizontal: space.md,
       borderRadius: radius.sm,
       borderWidth: 1,

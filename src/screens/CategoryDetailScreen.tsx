@@ -17,6 +17,8 @@ import { LedgerSection } from '../components/LedgerSection';
 import { CategoryMonthSummary } from '../components/CategoryMonthSummary';
 import { Txt } from '../components/Txt';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useReadableInset } from '../theme/layout';
+import { space } from '../theme/tokens';
 import { useI18n } from '../i18n/I18nProvider';
 import { useToast } from '../feedback/ToastProvider';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
@@ -31,6 +33,7 @@ export default function CategoryDetailScreen() {
   const navigation = useNavigation<RootNavigation>();
   const { color } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const inset = useReadableInset(space.lg);
   const { t } = useI18n();
   const toast = useToast();
   const { categoryId, month } = route.params;
@@ -132,7 +135,7 @@ export default function CategoryDetailScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingHorizontal: inset }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={color.ink} />}
     >
       <CategoryMonthSummary month={month} totals={totals} />
