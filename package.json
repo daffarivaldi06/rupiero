@@ -7,11 +7,13 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "expo lint"
   },
   "dependencies": {
     "@react-navigation/native": "^7.2.2",
     "@react-navigation/native-stack": "^7.14.11",
+    "eslint-config-expo": "~10.0.0",
     "expo": "~54.0.33",
     "expo-asset": "~12.0.12",
     "expo-file-system": "~19.0.21",
@@ -29,6 +31,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
+    "eslint": "^9.39.5",
     "typescript": "~5.9.2"
   },
   "private": true
