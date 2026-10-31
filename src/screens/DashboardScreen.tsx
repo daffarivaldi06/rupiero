@@ -19,6 +19,7 @@ import { MonthFlow } from '../components/MonthFlow';
 import { Txt } from '../components/Txt';
 import { useReferenceRate } from '../fx/FxProvider';
 import { useIntro } from '../intro/IntroProvider';
+import { useDataRevision } from '../data/DataProvider';
 import { useQuickAdd } from '../quickadd/QuickAddProvider';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import type { RootNavigation } from '../navigation/types';
@@ -30,6 +31,7 @@ export default function DashboardScreen() {
   const styles = useThemedStyles(makeStyles);
   const { ready: introReady, roll } = useIntro();
   const quickAdd = useQuickAdd();
+  const { revision } = useDataRevision();
   const insets = useSafeAreaInsets();
   const referenceRate = useReferenceRate();
 
@@ -74,10 +76,11 @@ export default function DashboardScreen() {
     }, [loadData])
   );
 
-  // The quick-add sheet opens over this screen, so focus does not change when it saves or deletes.
+  // The quick-add sheet opens over this screen and recurring transactions appear in the background,
+  // so focus alone does not catch every change.
   useEffect(() => {
-    if (quickAdd.revision > 0) loadData();
-  }, [quickAdd.revision, loadData]);
+    if (revision > 0) loadData();
+  }, [revision, loadData]);
 
   const onRefresh = async () => {
     setRefreshing(true);

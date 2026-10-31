@@ -14,6 +14,7 @@ import { LedgerRow } from '../components/LedgerRow';
 import { LedgerDayHeader } from '../components/LedgerSection';
 import { Txt } from '../components/Txt';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
+import { useDataRevision } from '../data/DataProvider';
 import { useQuickAdd } from '../quickadd/QuickAddProvider';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 
@@ -51,6 +52,7 @@ export default function TransactionListScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'Transactions'>>();
   const styles = useThemedStyles(makeStyles);
   const quickAdd = useQuickAdd();
+  const { revision } = useDataRevision();
 
   const [month, setMonth] = useState(route.params?.month ?? currentMonth());
   const [type, setType] = useState<LedgerTypeFilter>('all');
@@ -99,8 +101,8 @@ export default function TransactionListScreen() {
   );
 
   useEffect(() => {
-    if (quickAdd.revision > 0) reload();
-  }, [quickAdd.revision, reload]);
+    if (revision > 0) reload();
+  }, [revision, reload]);
 
   useEffect(() => {
     if (categoryId === undefined) return;

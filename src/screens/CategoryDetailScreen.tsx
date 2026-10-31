@@ -15,6 +15,7 @@ import { CategoryMonthSummary } from '../components/CategoryMonthSummary';
 import { Txt } from '../components/Txt';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
+import { useDataRevision } from '../data/DataProvider';
 import { useQuickAdd } from '../quickadd/QuickAddProvider';
 
 const signed = (t: TransactionDetail) => (t.type === 'income' ? t.amountMinor : -t.amountMinor);
@@ -27,6 +28,7 @@ export default function CategoryDetailScreen() {
   const styles = useThemedStyles(makeStyles);
   const { categoryId, month } = route.params;
   const quickAdd = useQuickAdd();
+  const { revision } = useDataRevision();
 
   const [category, setCategory] = useState('');
   const [totals, setTotals] = useState<CurrencyTotals[]>([]);
@@ -55,10 +57,11 @@ export default function CategoryDetailScreen() {
     }, [loadData])
   );
 
-  // The quick-add sheet opens over this screen, so focus does not change when it saves or deletes.
+  // The quick-add sheet opens over this screen and recurring transactions appear in the background,
+  // so focus alone does not catch every change.
   useEffect(() => {
-    if (quickAdd.revision > 0) loadData();
-  }, [quickAdd.revision, loadData]);
+    if (revision > 0) loadData();
+  }, [revision, loadData]);
 
   const onRefresh = async () => {
     setRefreshing(true);

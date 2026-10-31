@@ -3,6 +3,8 @@ import type { WidgetTaskHandlerProps } from 'react-native-android-widget';
 import { BudgetWidget, type WidgetAccountLine } from './Widget';
 import * as SQLite from 'expo-sqlite';
 import { DATABASE_NAME } from '../db/init';
+import { materializeDue } from '../db/repos/recurring';
+import { todayLocal } from '../domain/dates';
 import { widgetAccountLines } from './data';
 
 // Reads balances without React context. If the app has never been opened the schema does not
@@ -10,6 +12,8 @@ import { widgetAccountLines } from './data';
 async function fetchAccounts(): Promise<WidgetAccountLine[]> {
   try {
     const db = await SQLite.openDatabaseAsync(DATABASE_NAME);
+    // Recurring transactions due today count even if the app has not been opened.
+    await materializeDue(db, todayLocal());
     return await widgetAccountLines(db);
   } catch {
     return [];
