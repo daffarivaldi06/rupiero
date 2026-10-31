@@ -21,10 +21,30 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.BudgetApp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-sqlite",
+      "expo-asset",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "BudgetWidget",
+              "label": "Budget Summary",
+              "minWidth": "250dp",
+              "minHeight": "150dp",
+              "description": "Displays budget summary",
+              "previewImage": "./assets/icon.png"
+            }
+          ]
+        }
+      ]
+    ]
   }
 }
