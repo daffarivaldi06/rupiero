@@ -179,6 +179,7 @@ export const en: Messages = {
   insights: {
     empty: 'No spending this month.',
     trend: 'Last 6 months',
+    noData: 'No spending to chart yet. Add a transaction first.',
   },
   recurringForm: {
     intervalRange: 'Enter a number from 1 to 365',
@@ -210,6 +211,7 @@ export const en: Messages = {
     description: 'Recurring transactions are recorded automatically when due (never before the day).',
     subtitle: '{schedule} · {account}',
     add: '+ Add recurring transaction',
+    empty: 'No rules yet. For example: monthly salary, rent, subscriptions.',
   },
   settings: {
     links: {

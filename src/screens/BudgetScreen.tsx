@@ -11,6 +11,7 @@ import type { Category } from '../domain/types';
 import { BudgetBar } from '../components/BudgetBar';
 import { Button } from '../components/Button';
 import { Txt } from '../components/Txt';
+import { LoadError } from '../components/LoadError';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { useReadableInset } from '../theme/layout';
@@ -30,14 +31,17 @@ export default function BudgetScreen() {
   const [month, setMonth] = useState(route.params?.month ?? currentMonth());
   const [categories, setCategories] = useState<Category[]>([]);
   const [budgets, setBudgets] = useState<BudgetLine[]>([]);
+  const [failed, setFailed] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const [nextCategories, nextBudgets] = await Promise.all([listCategories(db), listBudgets(db, month)]);
       setCategories(nextCategories);
       setBudgets(nextBudgets);
+      setFailed(false);
     } catch (e) {
       console.error(e);
+      setFailed(true);
     }
   }, [db, month]);
 
@@ -74,6 +78,7 @@ export default function BudgetScreen() {
         </Pressable>
       </View>
 
+      {failed && <LoadError onRetry={load} />}
       <Button title={t('budget.copyFrom', { month: formatMonthName(addMonths(month, -1)) })} variant="outline" onPress={copyPrevious} />
 
       <View style={styles.list}>

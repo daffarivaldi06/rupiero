@@ -19,6 +19,7 @@ import { BalanceHero } from '../components/BalanceHero';
 import { BudgetBar } from '../components/BudgetBar';
 import { Money } from '../components/Money';
 import { MonthFlow } from '../components/MonthFlow';
+import { LoadError } from '../components/LoadError';
 import { Txt } from '../components/Txt';
 import { useReferenceRate } from '../fx/FxProvider';
 import { useIntro } from '../intro/IntroProvider';
@@ -53,6 +54,7 @@ export default function DashboardScreen() {
   const [budgets, setBudgets] = useState<BudgetLine[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth());
   const [refreshing, setRefreshing] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const isCurrentMonth = selectedMonth === currentMonth();
 
@@ -75,8 +77,10 @@ export default function DashboardScreen() {
       setTotals(nextTotals);
       setCategories(nextCategories);
       setCategoryTotals(nextCategoryTotals);
+      setFailed(false);
     } catch (e) {
       console.error(e);
+      setFailed(true);
     } finally {
       introReady();
     }
@@ -120,6 +124,7 @@ export default function DashboardScreen() {
         contentContainerStyle={[styles.content, { paddingHorizontal: inset }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={color.ink} />}
       >
+        {failed && <LoadError onRetry={loadData} />}
         <BalanceHero label={isCurrentMonth ? t('dashboard.balanceNow') : t('dashboard.balanceEnd', { month: monthLabel })} balances={balances} roll={roll} />
         {combined !== null && referenceRate && (
           <Txt variant="caption" tone="inkMuted" style={styles.combined}>

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSQLiteContext } from '../db/DatabaseProvider';
 import { useFocusEffect, useRoute, type RouteProp } from '@react-navigation/native';
 
@@ -11,6 +11,7 @@ import { DonutChart } from '../components/DonutChart';
 import { Money } from '../components/Money';
 import { TrendBars } from '../components/TrendBars';
 import { Txt } from '../components/Txt';
+import { LoadError } from '../components/LoadError';
 import { useDataRevision } from '../data/DataProvider';
 import type { RootStackParamList } from '../navigation/types';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
@@ -35,14 +36,17 @@ export default function InsightsScreen() {
   const [breakdown, setBreakdown] = useState<CategorySpending[]>([]);
   const [trend, setTrend] = useState<MonthSpending[]>([]);
   const [trendEnd, setTrendEnd] = useState<Month>(month);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
 
   const load = useCallback(async () => {
     try {
       const [nextBreakdown, nextTrend] = await Promise.all([getCategoryBreakdown(db, month), getMonthlyTrend(db, trendEnd)]);
       setBreakdown(nextBreakdown);
       setTrend(nextTrend);
+      setStatus('ready');
     } catch (e) {
       console.error(e);
+      setStatus('failed');
     }
   }, [db, month, trendEnd]);
 
@@ -77,6 +81,9 @@ export default function InsightsScreen() {
         </Pressable>
       </View>
 
+      {status === 'loading' && <ActivityIndicator style={styles.empty} accessibilityLabel={t('common.loading')} />}
+      {status === 'failed' && <LoadError onRetry={load} />}
+      {status === 'ready' && currencies.length === 0 && <Txt tone="inkMuted" style={styles.empty}>{t('insights.noData')}</Txt>}
       {currencies.map((currency) => {
         const items = breakdown
           .filter((b) => b.currency === currency)

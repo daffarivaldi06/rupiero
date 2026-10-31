@@ -35,6 +35,7 @@ export default function RecurringListScreen() {
         {t('recurringList.description')}
       </Txt>
       <View style={styles.list}>
+        {rules.length === 0 && <Txt tone="inkMuted" style={styles.empty}>{t('recurringList.empty')}</Txt>}
         {rules.map((rule) => (
           <LedgerRow
             key={rule.id}
@@ -65,6 +66,9 @@ const makeStyles = ({ color, space }: Theme) =>
     list: {
       borderTopWidth: 1,
       borderTopColor: color.ink,
+    },
+    empty: {
+      paddingVertical: space.md,
     },
     row: {
       minHeight: 52,

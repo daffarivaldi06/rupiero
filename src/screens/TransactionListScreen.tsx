@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { useSQLiteContext } from '../db/DatabaseProvider';
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
@@ -13,6 +13,8 @@ import type { Account } from '../domain/types';
 import { LedgerRow } from '../components/LedgerRow';
 import { LedgerDayHeader } from '../components/LedgerSection';
 import { Txt } from '../components/Txt';
+import { Button } from '../components/Button';
+import { LoadError } from '../components/LoadError';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
 import { useDataRevision } from '../data/DataProvider';
 import { useQuickAdd } from '../quickadd/QuickAddProvider';
@@ -69,6 +71,7 @@ export default function TransactionListScreen() {
   const [items, setItems] = useState<LedgerItem[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const loading = useRef(false);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
 
   const filter = useMemo(() => ({ month, type, accountId, categoryId }), [month, type, accountId, categoryId]);
 
@@ -78,8 +81,10 @@ export default function TransactionListScreen() {
       const page = await listLedger(db, { ...filter, limit: PAGE_SIZE, offset: 0 });
       setItems(page);
       setHasMore(page.length === PAGE_SIZE);
+      setStatus('ready');
     } catch (e) {
       console.error(e);
+      setStatus('failed');
     } finally {
       loading.current = false;
     }
@@ -175,7 +180,18 @@ export default function TransactionListScreen() {
       contentContainerStyle={[styles.content, { paddingHorizontal: inset }]}
       onEndReached={loadMore}
       onEndReachedThreshold={0.5}
-      ListEmptyComponent={<Txt tone="inkMuted" style={styles.empty}>{t('transactions.empty')}</Txt>}
+      ListEmptyComponent={
+        status === 'loading' ? (
+          <ActivityIndicator style={styles.empty} accessibilityLabel={t('common.loading')} />
+        ) : status === 'failed' ? (
+          <LoadError onRetry={reload} />
+        ) : (
+          <View style={styles.empty}>
+            <Txt tone="inkMuted">{t('transactions.empty')}</Txt>
+            <Button title={t('dashboard.add')} variant="outline" onPress={() => quickAdd.open()} style={styles.emptyAction} />
+          </View>
+        )
+      }
       renderItem={({ item: entry }) => {
         if (entry.type === 'day') {
           return (
@@ -238,6 +254,9 @@ const makeStyles = ({ color, radius, space }: Theme) =>
     },
     day: {
       marginTop: space.lg,
+    },
+    emptyAction: {
+      alignSelf: 'flex-start',
     },
     empty: {
       marginTop: space.lg,

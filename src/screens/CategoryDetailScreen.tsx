@@ -16,6 +16,7 @@ import { LedgerRow } from '../components/LedgerRow';
 import { LedgerSection } from '../components/LedgerSection';
 import { CategoryMonthSummary } from '../components/CategoryMonthSummary';
 import { Txt } from '../components/Txt';
+import { LoadError } from '../components/LoadError';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { useReadableInset } from '../theme/layout';
 import { space } from '../theme/tokens';
@@ -45,6 +46,7 @@ export default function CategoryDetailScreen() {
   const [budgets, setBudgets] = useState<BudgetLine[]>([]);
   const [transactions, setTransactions] = useState<TransactionDetail[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -58,8 +60,10 @@ export default function CategoryDetailScreen() {
       setBudgets(await listCategoryBudgets(db, categoryId, month));
       setTotals(await getMonthSummary(db, month, { categoryId }));
       setTransactions(await listTransactions(db, { month, categoryId }));
+      setFailed(false);
     } catch (e) {
       console.error(e);
+      setFailed(true);
     }
   }, [db, month, categoryId, navigation]);
 
@@ -138,6 +142,7 @@ export default function CategoryDetailScreen() {
       contentContainerStyle={[styles.content, { paddingHorizontal: inset }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={color.ink} />}
     >
+      {failed && <LoadError onRetry={loadData} />}
       <CategoryMonthSummary month={month} totals={totals} />
 
       <Pressable

@@ -179,6 +179,7 @@ export const id = {
   insights: {
     empty: 'Belum ada pengeluaran bulan ini.',
     trend: '6 bulan terakhir',
+    noData: 'Belum ada pengeluaran yang bisa digambar. Catat transaksi dulu.',
   },
   recurringForm: {
     intervalRange: 'Isi angka 1–365',
@@ -210,6 +211,7 @@ export const id = {
     description: 'Transaksi berulang dicatat otomatis saat jatuh tempo (tidak pernah sebelum harinya).',
     subtitle: '{schedule} · {account}',
     add: '+ Tambah transaksi berulang',
+    empty: 'Belum ada aturan. Contoh: gaji tiap bulan, sewa, langganan.',
   },
   settings: {
     links: {
