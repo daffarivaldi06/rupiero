@@ -22,7 +22,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.BudgetApp"
+      "package": "com.daffarivaldi.budgetapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
