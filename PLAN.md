@@ -16,7 +16,7 @@
 | 2.1 | ✅ selesai (tag `phase-2.1-done`) | Uji di HP lolos (2026-10-31) |
 | 3 | ✅ selesai (tag `phase-3-done`) | Uji di HP lolos (2026-10-31) |
 | 4 | ✅ selesai (tag `phase-4-done`) | Uji di HP lolos (2026-10-31), plus revisi widget (bar budget, warna peringatan, ukuran 3×2). Build release pertama 1.0.0 (versionCode 1), lihat [docs/RELEASE.md](docs/RELEASE.md) |
-| 5 | belum dimulai | |
+| 5 | 🚧 dikerjakan | Termasuk bahasa Inggris, kategori default, date picker bertema |
 | 6 | backlog | Belum dijadwalkan; tiap item butuh persetujuan sendiri |
 
 Penyimpangan dari rencana (Fase 0–1):
@@ -653,7 +653,16 @@ CREATE UNIQUE INDEX idx_tx_rule_date ON transactions(recurring_rule_id, date) WH
 Bagian visual (kontras, tema light/dark, splash) sudah dipindah ke Fase 1.5.
 
 ### File & fitur
-- **Bahasa:** UI bahasa Indonesia. Semua string dipusatkan di `src/i18n/id.ts` dengan helper `t()` agar siap multi-bahasa (belum ada bahasa kedua).
+- **Bahasa (revisi 2026-10-31): Indonesia + Inggris.** Semua string UI, teks widget, pesan error dan label aksesibilitas lewat `src/i18n/` (`t()`).
+  - Pengaturan → Bahasa: "Ikuti sistem" (default), "Bahasa Indonesia", "English". Disimpan di `settings`, langsung berlaku tanpa restart, termasuk widget.
+    "Ikuti sistem" = Indonesia jika bahasa HP `id`, selain itu Inggris.
+  - Nama bulan/hari dan format tanggal mengikuti bahasa. Format angka juga: id "€ 2.655,38", en "€2,655.38". Input nominal menerima kedua format (dengan test).
+  - Kategori default dan data contoh dibuat dalam bahasa yang aktif saat instalasi. Nama buatan pengguna tidak diterjemahkan.
+  - Test otomatis: tidak ada string UI hardcoded di luar `src/i18n` (`src/i18n/__tests__/hardcoded-strings.test.ts`, berbasis AST TypeScript).
+- **Kategori default** untuk instalasi baru (terpisah dari seed): Gaji, Sewa, Makanan & Belanja, Transportasi, Tagihan, Hiburan, Kesehatan, Lainnya
+  (atau padanan Inggris). Dibuat jika tabel `categories` kosong.
+- **Date picker** mengikuti tema Buku Kas (light/dark), bukan teal bawaan.
+- **Rilis:** setelah selesai, versi 1.0.1 (versionCode 2), build release dengan kunci yang sama, checklist uji (termasuk ganti bahasa sistem & pilihan manual).
 - **Aksesibilitas:** `accessibilityRole`/`accessibilityLabel`/`accessibilityState` di semua `Pressable`/`Button`, termasuk keypad. Target sentuh minimal 48dp.
   Pakai `minHeight` alih-alih `height` tetap agar aman untuk font besar. `<Money>` dibacakan lengkap oleh screen reader (mis. "minus 12 euro 50 sen").
 - **Form:** validasi inline via `Input.error` (Alert dihapus). `KeyboardAvoidingView` + `keyboardShouldPersistTaps="handled"`. Tombol Simpan nonaktif saat input belum valid.
@@ -695,7 +704,7 @@ Ide dari riset yang dicatat, **bukan** komitmen. Setiap item dirinci dan disetuj
 ## Keputusan (2026-10-31)
 
 1. **Package id Android:** `com.daffarivaldi.budgetapp`, diganti di Fase 0. App akan terpasang sebagai aplikasi baru.
-2. **Bahasa UI:** Indonesia. Struktur i18n disiapkan di Fase 5. Nama akun/kategori di seed berbahasa Indonesia.
+2. **Bahasa UI:** Indonesia. Struktur i18n disiapkan di Fase 5 (revisi: Fase 5 menambah bahasa Inggris, lihat di sana). Nama akun/kategori di seed berbahasa Indonesia.
 3. **Total gabungan:** ditampilkan sebagai "≈" dalam **EUR** (default `base_currency`, bisa diganti di Pengaturan) memakai **kurs ECB dari tabel `fx_rates`**
    beserta tanggal kursnya, dan disembunyikan jika belum pernah ada kurs (Fase 2). *Menggantikan keputusan awal "kurs transfer terakhir" dalam IDR.*
 4. **Currency:** cukup IDR dan EUR.
