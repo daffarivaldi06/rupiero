@@ -11,7 +11,7 @@
 | 0 | ✅ selesai (tag `phase-0-done`) | Build debug Android dengan package id baru berhasil |
 | 1 | ✅ selesai (tag `phase-1-done`) | Uji manual di perangkat lolos (2026-10-31) |
 | 1.5 | ✅ kode selesai, **menunggu cek visual** di perangkat | 139 test lolos (termasuk kontras), setiap commit lolos typecheck + test, font ter-embed, bundle Hermes berhasil. Tag `phase-1.5-done` setelah cek visual |
-| 1.6 | 🔄 sedang dikerjakan | Identitas "Rupiero": nama, logo, header custom, saldo besar, animasi buka |
+| 1.6 | ✅ kode selesai, **menunggu review screenshot** | 149 test lolos, typecheck + lint bersih, build debug & release (x86_64) jalan di emulator. Tag `phase-1.6-done` setelah review |
 | 2–5 | belum dimulai | |
 | 6 | backlog | Belum dijadwalkan; tiap item butuh persetujuan sendiri |
 
@@ -27,6 +27,15 @@ Penyimpangan dari rencana (Fase 1.5):
 - Token tambahan `onIdr` (teks gelap di atas isian IDR): `ink` mode gelap di atas `#E0A93A` hanya 1.73:1. `lineStrong` = `#857E70` (light) / `#6B7380` (dark).
 - `Button` mendapat varian `income`. `primary` sekarang isian tinta (`ink`), bukan hijau.
 - Widget belum di-restyle (masih warna gelap lama); dijadwalkan bersama perombakan widget di Fase 4.
+
+Penyimpangan dari rencana (Fase 1.6):
+- Splash native disembunyikan begitu overlay (logo yang sama, posisi sama) selesai di-layout, **bukan** setelah data Dashboard siap.
+  Menahan splash lebih lama memblokir frame pertama app, dan jika melewati batas waktu hand-off splash Android, sistem menampilkan jendela hitam
+  (terlihat di build debug yang memuat bundle dari Metro). Cap tetap baru dimulai setelah data siap.
+- Plugin lokal `plugins/with-night-window-background.js`: latar jendela Android mengikuti token `bg` di light **dan** dark (expo-system-ui hanya light).
+- `tsconfig.json`: `allowImportingTsExtensions` + `noEmit`, supaya `scripts/render-brand-assets.ts` bisa dijalankan langsung oleh Node 22.18 dan tetap ikut typecheck.
+- Ringkasan bulan di Dashboard menjadi tabel kecil "Arus {bulan}" (`MonthFlow`); `MonthSummaryCard` tetap dipakai di detail kategori.
+- Tanda minus masih tanda hubung ASCII dari `formatMoneyParts` (belum diubah ke "−").
 
 ## Prinsip kerja
 
