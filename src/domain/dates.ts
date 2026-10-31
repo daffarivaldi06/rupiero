@@ -59,6 +59,12 @@ export function addDays(date: LocalDate, days: number): LocalDate {
   return toLocalDate(new Date(d.getFullYear(), d.getMonth(), d.getDate() + days));
 }
 
+/** Calendar days from `from` to `to` (negative if `to` is earlier). DST-safe: counts in UTC. */
+export function daysBetween(from: LocalDate, to: LocalDate): number {
+  const utc = (d: LocalDate) => Date.UTC(Number(d.slice(0, 4)), Number(d.slice(5, 7)) - 1, Number(d.slice(8, 10)));
+  return Math.round((utc(to) - utc(from)) / 86_400_000);
+}
+
 export function monthOf(date: LocalDate): Month {
   if (!isValidLocalDate(date)) throw new RangeError(`Invalid date: ${date}`);
   return date.slice(0, 7);

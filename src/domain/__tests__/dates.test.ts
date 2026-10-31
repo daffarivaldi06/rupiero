@@ -1,5 +1,6 @@
 import {
   addDays,
+  daysBetween,
   formatDayMonth,
   addMonths,
   currentMonth,
@@ -108,4 +109,11 @@ describe('addDays and formatDayMonth', () => {
     expect(formatDayMonth('2026-10-30')).toBe('30 Okt');
     expect(formatDayMonth('2026-05-01')).toBe('1 Mei');
   });
+});
+
+it('counts calendar days between dates', () => {
+  expect(daysBetween('2026-10-30', '2026-11-01')).toBe(2);
+  expect(daysBetween('2026-11-01', '2026-10-30')).toBe(-2);
+  expect(daysBetween('2026-03-28', '2026-03-30')).toBe(2); // across the EU DST switch
+  expect(daysBetween('2028-01-01', '2029-01-01')).toBe(366);
 });
