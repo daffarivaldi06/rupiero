@@ -1,11 +1,14 @@
 import {
+  activeSubscriptions,
   describeFrequency,
   describeSchedule,
   monthlyEquivalent,
   nextDueDate,
   occurrenceAt,
   occurrences,
+  subscriptionTotals,
   type RecurrenceRule,
+  type SubscriptionLike,
 } from '../recurrence';
 
 const rule = (overrides: Partial<RecurrenceRule>): RecurrenceRule => ({
@@ -139,4 +142,34 @@ it('describes the schedule with its state', () => {
   expect(describeSchedule(rule({ startDate: '2026-01-30' }), '2026-10-31')).toBe('Tiap bulan · berikutnya 30 Nov');
   expect(describeSchedule(rule({ frequency: 'daily', interval: 2, paused: true }), '2026-10-31')).toBe('Tiap 2 hari · dijeda');
   expect(describeSchedule(rule({ frequency: 'weekly', endDate: '2026-02-01' }), '2026-10-31')).toBe('Tiap minggu · berhenti');
+});
+
+describe('subscriptions', () => {
+  const sub = (overrides: Partial<SubscriptionLike>): SubscriptionLike => ({
+    ...rule({ startDate: '2026-01-15' }),
+    type: 'expense',
+    amountMinor: 1099,
+    currency: 'EUR',
+    ...overrides,
+  });
+  const rules = [
+    sub({ amountMinor: 1099 }), // Spotify, monthly
+    sub({ frequency: 'weekly', amountMinor: 999 }), // € 43,29 per month
+    sub({ frequency: 'yearly', currency: 'IDR', amountMinor: 1_200_000 }), // insurance, Rp 100.000 per month
+    sub({ type: 'income', amountMinor: 185000 }), // salary: not a subscription
+    sub({ paused: true, amountMinor: 500 }),
+    sub({ endDate: '2026-03-31', amountMinor: 700 }),
+  ];
+
+  it('keeps only expense rules that still fall due', () => {
+    expect(activeSubscriptions(rules, '2026-10-31').map((r) => r.amountMinor)).toEqual([1099, 999, 1_200_000]);
+  });
+
+  it('totals the monthly cost per currency without mixing them', () => {
+    expect(subscriptionTotals(rules, '2026-10-31')).toEqual([
+      { currency: 'EUR', monthlyMinor: 1099 + 4329 },
+      { currency: 'IDR', monthlyMinor: 100_000 },
+    ]);
+    expect(subscriptionTotals([], '2026-10-31')).toEqual([]);
+  });
 });

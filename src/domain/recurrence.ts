@@ -2,6 +2,7 @@
 // never from the previous one, so a monthly rule on the 31st clamps to 30 Apr / 28 Feb and still
 // returns to the 31st afterwards.
 import { addDays, addMonths, daysBetween, dateInMonth, formatDayMonth, monthOf, type LocalDate } from './dates';
+import type { CurrencyCode } from './money';
 
 export type Frequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
 export const FREQUENCIES: Frequency[] = ['daily', 'weekly', 'monthly', 'yearly'];
@@ -98,4 +99,24 @@ export function describeSchedule(rule: RecurrenceRule, today: LocalDate): string
   const next = nextDueDate(rule, today);
   const state = rule.paused ? 'dijeda' : next ? `berikutnya ${formatDayMonth(next)}` : 'berhenti';
   return `${describeFrequency(rule.frequency, rule.interval)} · ${state}`;
+}
+
+export interface SubscriptionLike extends RecurrenceRule {
+  type: 'income' | 'expense';
+  amountMinor: number;
+  currency: CurrencyCode;
+}
+
+/** Expense rules that will still produce a transaction: the "subscriptions". */
+export function activeSubscriptions<T extends SubscriptionLike>(rules: T[], today: LocalDate): T[] {
+  return rules.filter((r) => r.type === 'expense' && nextDueDate(r, today) !== null);
+}
+
+/** Monthly cost of the active subscriptions per currency (never mixed), in currency order. */
+export function subscriptionTotals(rules: SubscriptionLike[], today: LocalDate): { currency: CurrencyCode; monthlyMinor: number }[] {
+  const totals = new Map<CurrencyCode, number>();
+  for (const rule of activeSubscriptions(rules, today)) {
+    totals.set(rule.currency, (totals.get(rule.currency) ?? 0) + monthlyEquivalent(rule));
+  }
+  return [...totals.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([currency, monthlyMinor]) => ({ currency, monthlyMinor }));
 }
