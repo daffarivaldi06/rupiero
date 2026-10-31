@@ -2,7 +2,8 @@ import React from 'react';
 import { Text, type StyleProp, type TextStyle } from 'react-native';
 import { useTheme } from '../theme/ThemeProvider';
 import { textVariants, type TextVariant } from '../theme/typography';
-import { formatMoneyParts, type CurrencyCode } from '../domain/money';
+import { moneyDisplay, type CurrencyCode } from '../domain/money';
+import { usePrivacy } from '../privacy/PrivacyProvider';
 import { useCountUp, type RollSpec } from './countUp';
 import type { TextTone } from './Txt';
 
@@ -24,6 +25,8 @@ interface MoneyProps {
   style?: StyleProp<TextStyle>;
   /** Count up from 0 to `minor` (opening animation). */
   roll?: RollSpec | null;
+  /** Show the amount even while balances are hidden (e.g. what is being typed in quick-add). */
+  reveal?: boolean;
 }
 
 const NBSP = ' ';
@@ -41,13 +44,19 @@ export const Money: React.FC<MoneyProps> = ({
   showCode = false,
   style,
   roll,
+  reveal = false,
 }) => {
   const { color } = useTheme();
-  const shownMinor = useCountUp(minor, roll);
-  const { sign: signChar, symbol, amount } = formatMoneyParts(shownMinor, currency, { sign });
+  const hidden = usePrivacy().hidden && !reveal;
+  const shownMinor = useCountUp(minor, hidden ? null : roll);
+  const { sign: signChar, symbol, amount, accessibilityLabel } = moneyDisplay(shownMinor, currency, { sign, hidden });
 
+  // Hidden amounts drop income/expense colours too: red or green would still tell the direction.
+  const directional = tone === 'signed' || tone === 'expense' || tone === 'incomeText';
   const textColor =
-    tone === 'neutral'
+    hidden && directional
+      ? color.inkMuted
+      : tone === 'neutral'
       ? color.ink
       : tone === 'signed'
         ? minor > 0
@@ -66,6 +75,7 @@ export const Money: React.FC<MoneyProps> = ({
       style={[textVariants[variant], TABULAR, { color: textColor }, style]}
       numberOfLines={1}
       adjustsFontSizeToFit={variant === 'hero' || variant === 'display' || variant === 'title'}
+      accessibilityLabel={accessibilityLabel}
     >
       {signChar}
       {symbol}

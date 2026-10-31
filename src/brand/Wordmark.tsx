@@ -6,11 +6,11 @@ import { RupieroMark } from './RupieroMark';
 
 export const APP_NAME = 'Rupiero';
 
-/** Mark + name, for the dashboard header. */
-export const Wordmark: React.FC = () => (
+/** Mark + name, for the dashboard header. `compact` drops the name where space is tight. */
+export const Wordmark: React.FC<{ compact?: boolean }> = ({ compact = false }) => (
   <View style={styles.row} accessible accessibilityRole="header" accessibilityLabel={APP_NAME}>
     <RupieroMark size={30} />
-    <Txt style={styles.name}>{APP_NAME}</Txt>
+    {!compact && <Txt style={styles.name}>{APP_NAME}</Txt>}
   </View>
 );
 

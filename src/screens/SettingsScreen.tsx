@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Alert, ScrollView, Pressable } from 'react-native';
+import { View, StyleSheet, Alert, ScrollView, Pressable, Switch } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
@@ -9,13 +9,16 @@ import { resetDatabase } from '../db/init';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Txt } from '../components/Txt';
-import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import type { RootNavigation } from '../navigation/types';
+import { usePrivacy } from '../privacy/PrivacyProvider';
 
 export default function SettingsScreen() {
   const db = useSQLiteContext();
   const navigation = useNavigation<RootNavigation>();
   const styles = useThemedStyles(makeStyles);
+  const { color } = useTheme();
+  const privacy = usePrivacy();
   const [schemaVersion, setSchemaVersion] = useState<number>();
 
   useFocusEffect(
@@ -61,6 +64,36 @@ export default function SettingsScreen() {
         </Pressable>
       </View>
 
+      <Txt variant="label" tone="inkMuted" style={styles.sectionLabel}>Privasi</Txt>
+      <View style={styles.list}>
+        <View style={styles.row}>
+          <View style={styles.rowText}>
+            <Txt variant="bodyStrong">Sembunyikan saldo</Txt>
+            <Txt variant="caption" tone="inkMuted">Nominal tampil sebagai € •••• / Rp ••••. Juga lewat ikon mata di Dashboard.</Txt>
+          </View>
+          <Switch
+            value={privacy.hidden}
+            onValueChange={privacy.toggleHidden}
+            trackColor={{ false: color.line, true: color.ink }}
+            thumbColor={color.surface}
+            accessibilityLabel="Sembunyikan saldo"
+          />
+        </View>
+        <View style={styles.row}>
+          <View style={styles.rowText}>
+            <Txt variant="bodyStrong">Ikut sembunyikan di widget</Txt>
+            <Txt variant="caption" tone="inkMuted">Widget layar utama ikut tersamarkan selama saldo disembunyikan.</Txt>
+          </View>
+          <Switch
+            value={privacy.hideInWidget}
+            onValueChange={privacy.setHideInWidget}
+            trackColor={{ false: color.line, true: color.ink }}
+            thumbColor={color.surface}
+            accessibilityLabel="Ikut sembunyikan di widget"
+          />
+        </View>
+      </View>
+
       {SHOW_DEV_TOOLS && (
         <Card style={styles.devCard}>
           <Txt variant="heading" tone="expense">Alat Pengembang</Txt>
@@ -95,6 +128,11 @@ const makeStyles = ({ color, space }: Theme) =>
     },
     rowText: {
       flex: 1,
+      marginRight: space.md,
+    },
+    sectionLabel: {
+      marginTop: space.xl,
+      marginBottom: space.xs,
     },
     devCard: {
       marginTop: space.xxl,

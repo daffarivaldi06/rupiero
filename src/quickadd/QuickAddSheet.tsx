@@ -239,10 +239,16 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle, QuickAddSheetProps>
           {hasOperator(expression) && (
             <Txt variant="body" tone="inkMuted" numberOfLines={1} style={styles.expression}>{expression}</Txt>
           )}
-          <Money minor={amount !== null && expression ? amount : 0} currency={currency} variant="display" tone={expression ? 'neutral' : 'inkMuted'} />
+          <Money
+            minor={amount !== null && expression ? amount : 0}
+            currency={currency}
+            variant="display"
+            tone={expression ? 'neutral' : 'inkMuted'}
+            reveal
+          />
           {preview !== null && referenceRate && (
             <Txt variant="caption" tone="inkMuted">
-              ≈ <Money minor={preview} currency={otherCurrency} variant="caption" tone="inkMuted" /> · kurs ECB {formatDayMonth(referenceRate.date)}
+              ≈ <Money minor={preview} currency={otherCurrency} variant="caption" tone="inkMuted" reveal /> · kurs ECB {formatDayMonth(referenceRate.date)}
             </Txt>
           )}
         </View>

@@ -8,6 +8,7 @@ import { DATABASE_NAME, initDb } from './src/db/init';
 import { FxProvider } from './src/fx/FxProvider';
 import { IntroProvider } from './src/intro/IntroProvider';
 import { RootNavigator } from './src/navigation/RootNavigator';
+import { PrivacyProvider } from './src/privacy/PrivacyProvider';
 import { QuickAddProvider } from './src/quickadd/QuickAddProvider';
 import { ThemeProvider } from './src/theme/ThemeProvider';
 
@@ -18,11 +19,13 @@ export default function App() {
         <ThemeProvider>
           <IntroProvider>
             <SQLiteProvider databaseName={DATABASE_NAME} onInit={initDb}>
-              <FxProvider>
-                <QuickAddProvider>
-                  <RootNavigator />
-                </QuickAddProvider>
-              </FxProvider>
+              <PrivacyProvider>
+                <FxProvider>
+                  <QuickAddProvider>
+                    <RootNavigator />
+                  </QuickAddProvider>
+                </FxProvider>
+              </PrivacyProvider>
             </SQLiteProvider>
           </IntroProvider>
         </ThemeProvider>

@@ -3,7 +3,7 @@ import { FlexWidget, TextWidget } from 'react-native-android-widget';
 
 export interface WidgetAccountLine {
   name: string;
-  /** Already formatted with formatMoney. */
+  /** Already formatted (or masked) with formatMoneyDisplay. */
   balance: string;
 }
 
