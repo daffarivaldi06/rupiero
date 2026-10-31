@@ -9,10 +9,11 @@ export const DATABASE_NAME = 'budget.db';
 /** Per-connection settings. Must run outside a transaction, so call it before anything else. */
 export async function configureConnection(db: Db): Promise<void> {
   // WAL lets the widget's connection read while the app writes.
+  // First, so even the pragmas below wait for a lock held by the widget's connection (or the app's)
+  // instead of failing with "database is locked".
+  await db.execAsync('PRAGMA busy_timeout = 5000');
   await db.execAsync('PRAGMA journal_mode = WAL');
   await db.execAsync('PRAGMA foreign_keys = ON');
-  // The widget writes through its own connection; wait for a lock instead of failing at once.
-  await db.execAsync('PRAGMA busy_timeout = 3000');
 }
 
 export interface InitOptions {
