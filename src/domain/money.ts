@@ -42,11 +42,27 @@ export interface FormatMoneyOptions {
   sign?: boolean;
 }
 
+export interface MoneyParts {
+  sign: '' | '-' | '+';
+  symbol: string;
+  /** Absolute value with grouping and decimals, e.g. "1.234,56". */
+  amount: string;
+}
+
+/** The pieces of a formatted amount, for UIs that style them separately. */
+export function formatMoneyParts(minor: number, currency: CurrencyCode, options: FormatMoneyOptions = {}): MoneyParts {
+  assertMinor(minor);
+  return {
+    sign: minor < 0 ? '-' : options.sign && minor > 0 ? '+' : '',
+    symbol: CURRENCIES[currency].symbol,
+    amount: formatAbsolute(minor, currency),
+  };
+}
+
 /** 123456 EUR → "€ 1.234,56", -12500 IDR → "-Rp 12.500". */
 export function formatMoney(minor: number, currency: CurrencyCode, options: FormatMoneyOptions = {}): string {
-  assertMinor(minor);
-  const prefix = minor < 0 ? '-' : options.sign && minor > 0 ? '+' : '';
-  return `${prefix}${CURRENCIES[currency].symbol}${NBSP}${formatAbsolute(minor, currency)}`;
+  const { sign, symbol, amount } = formatMoneyParts(minor, currency, options);
+  return `${sign}${symbol}${NBSP}${amount}`;
 }
 
 /** Value to prefill an amount field with, e.g. 1250 EUR → "12,50". Parses back with parseAmount. */

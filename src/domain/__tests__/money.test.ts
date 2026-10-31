@@ -2,6 +2,7 @@ import {
   convertMinor,
   formatInputValue,
   formatMoney,
+  formatMoneyParts,
   impliedRate,
   invertRate,
   isCurrencyCode,
@@ -37,6 +38,21 @@ describe('formatMoney', () => {
   it('rejects non-integer amounts', () => {
     expect(() => formatMoney(12.5, 'EUR')).toThrow(RangeError);
     expect(() => formatMoney(Number.NaN, 'IDR')).toThrow(RangeError);
+  });
+});
+
+describe('formatMoneyParts', () => {
+  it('splits sign, symbol and amount', () => {
+    expect(formatMoneyParts(-123456, 'EUR')).toEqual({ sign: '-', symbol: '€', amount: '1.234,56' });
+    expect(formatMoneyParts(1250000, 'IDR', { sign: true })).toEqual({ sign: '+', symbol: 'Rp', amount: '1.250.000' });
+    expect(formatMoneyParts(0, 'IDR', { sign: true })).toEqual({ sign: '', symbol: 'Rp', amount: '0' });
+  });
+
+  it('agrees with formatMoney', () => {
+    for (const minor of [-99, 0, 5, 123456]) {
+      const { sign, symbol, amount } = formatMoneyParts(minor, 'EUR', { sign: true });
+      expect(`${sign}${symbol}${NBSP}${amount}`).toBe(formatMoney(minor, 'EUR', { sign: true }));
+    }
   });
 });
 
