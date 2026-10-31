@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
-import { useSQLiteContext } from 'expo-sqlite';
+import { useSQLiteContext } from '../db/DatabaseProvider';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 
 import { createCategory, getCategory, renameCategory } from '../db/repos/categories';

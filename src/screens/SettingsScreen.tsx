@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, Alert, ScrollView, Pressable, Switch } from 'react-native';
-import { useSQLiteContext } from 'expo-sqlite';
+import { useSQLiteContext } from '../db/DatabaseProvider';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 import { SHOW_DEV_TOOLS } from '../config/dev';

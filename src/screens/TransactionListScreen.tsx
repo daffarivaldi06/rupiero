@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
-import { useSQLiteContext } from 'expo-sqlite';
+import { useSQLiteContext } from '../db/DatabaseProvider';
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 
 import { listAccounts } from '../db/repos/accounts';

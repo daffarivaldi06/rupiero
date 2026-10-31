@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AppState } from 'react-native';
-import { useSQLiteContext } from 'expo-sqlite';
+import { useSQLiteContext } from '../db/DatabaseProvider';
 import { onDataChanged } from '../db/events';
 import { materializeDue } from '../db/repos/recurring';
 import { todayLocal } from '../domain/dates';

@@ -1,6 +1,6 @@
 // The subset of expo-sqlite's SQLiteDatabase the data layer relies on. Keeping it this small lets
 // tests run the same SQL against sql.js (see test/sqljs-db.ts), and an expo SQLiteDatabase
-// satisfies it structurally, so screens can pass `useSQLiteContext()` straight through.
+// satisfies it structurally, so screens can pass `useSQLiteContext()` (DatabaseProvider) straight through.
 
 export type SQLParam = string | number | null;
 

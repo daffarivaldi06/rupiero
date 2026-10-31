@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { useSQLiteContext } from 'expo-sqlite';
+import { useSQLiteContext } from '../db/DatabaseProvider';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 
 import { listAccounts } from '../db/repos/accounts';

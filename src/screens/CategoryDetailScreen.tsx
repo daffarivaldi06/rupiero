@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useLayoutEffect } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Pressable, Alert } from 'react-native';
-import { useSQLiteContext } from 'expo-sqlite';
+import { useSQLiteContext } from '../db/DatabaseProvider';
 import { useFocusEffect, useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 
 import { countCategoryTransactions, deleteCategory, getCategory, setCategoryArchived } from '../db/repos/categories';

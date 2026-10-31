@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useSQLiteContext } from 'expo-sqlite';
+import { useSQLiteContext } from '../db/DatabaseProvider';
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 
 import { copyBudgetsFromPreviousMonth, listBudgets, type BudgetLine } from '../db/repos/budgets';

@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { AppState } from 'react-native';
-import { useSQLiteContext } from 'expo-sqlite';
+import { useSQLiteContext } from '../db/DatabaseProvider';
 import { getLatestReferenceRate } from '../db/repos/fxRates';
 import type { ReferenceRate } from '../domain/fx';
 import { syncReferenceRate } from './sync';

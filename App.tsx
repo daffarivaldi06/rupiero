@@ -1,11 +1,10 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import { SQLiteProvider } from 'expo-sqlite';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { DataProvider } from './src/data/DataProvider';
-import { DATABASE_NAME, initDb } from './src/db/init';
+import { DatabaseProvider } from './src/db/DatabaseProvider';
 import { FxProvider } from './src/fx/FxProvider';
 import { IntroProvider } from './src/intro/IntroProvider';
 import { RootNavigator } from './src/navigation/RootNavigator';
@@ -19,7 +18,7 @@ export default function App() {
       <SafeAreaProvider>
         <ThemeProvider>
           <IntroProvider>
-            <SQLiteProvider databaseName={DATABASE_NAME} onInit={initDb}>
+            <DatabaseProvider>
               <PrivacyProvider>
                 <DataProvider>
                   <FxProvider>
@@ -29,7 +28,7 @@ export default function App() {
                   </FxProvider>
                 </DataProvider>
               </PrivacyProvider>
-            </SQLiteProvider>
+            </DatabaseProvider>
           </IntroProvider>
         </ThemeProvider>
       </SafeAreaProvider>

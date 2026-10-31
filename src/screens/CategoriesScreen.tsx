@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useSQLiteContext } from 'expo-sqlite';
+import { useSQLiteContext } from '../db/DatabaseProvider';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 import { listArchivedCategories, listCategories, setCategoryArchived } from '../db/repos/categories';

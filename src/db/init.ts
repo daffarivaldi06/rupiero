@@ -20,7 +20,7 @@ export interface InitOptions {
   seed?: boolean;
 }
 
-/** Used as SQLiteProvider's onInit. */
+/** Opens the schema for use: pragmas, migrations, dev seed. Called once per connection (DatabaseProvider). */
 export async function initDb(db: Db, options: InitOptions = {}): Promise<void> {
   await configureConnection(db);
   await migrate(db);

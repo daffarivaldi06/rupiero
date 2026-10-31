@@ -9,7 +9,7 @@ import {
 } from '@gorhom/bottom-sheet';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import * as Haptics from 'expo-haptics';
-import { useSQLiteContext } from 'expo-sqlite';
+import { useSQLiteContext } from '../db/DatabaseProvider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { listAccounts } from '../db/repos/accounts';

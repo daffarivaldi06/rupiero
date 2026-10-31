@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet } from 'react-native';
-import { useSQLiteContext } from 'expo-sqlite';
+import { useSQLiteContext } from '../db/DatabaseProvider';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 
 import { deleteBudget, listCategoryBudgets, setBudget } from '../db/repos/budgets';
