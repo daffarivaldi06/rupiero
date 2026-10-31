@@ -685,6 +685,10 @@ Ide dari riset yang dicatat, **bukan** komitmen. Setiap item dirinci dan disetuj
   **biaya konversi bulan ini** = Σ (kurs ECB tanggal transfer − kurs implisit) × jumlah + fee eksplisit.
 - **Pengingat harian opsional:** `expo-notifications`, jam bisa diatur, "Belum ada catatan hari ini", dengan aksi yang membuka quick-add.
 - **Savings goals:** target per mata uang (mis. tiket pulang Jakarta, deposit apartemen) dengan progress bar.
+- **Pengingat backup / backup otomatis** (ditambahkan 2026-10-31): data hanya ada di HP, jadi hilang bila HP rusak/hilang atau app
+  ter-uninstall. Opsi bertahap: (1) pengingat berkala ("Backup terakhir 30 hari lalu") dengan tanggal backup terakhir di Pengaturan;
+  (2) backup otomatis ke folder pilihan pengguna (Storage Access Framework, mis. folder yang disinkron Drive) setiap N hari, menyimpan
+  beberapa versi terakhir; (3) cek pemulihan: pratinjau isi backup sebelum diganti. Tidak ada server/akun.
 
 ---
 
