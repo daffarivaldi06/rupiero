@@ -1,4 +1,4 @@
-import type { Month } from '../../domain/dates';
+import { addMonths, type Month } from '../../domain/dates';
 import type { CurrencyCode } from '../../domain/money';
 import type { CurrencyTotals } from '../../domain/types';
 import type { Db, SQLParam } from '../client';
@@ -55,5 +55,66 @@ export async function getCategoryMonthTotals(db: Db, month: Month): Promise<Cate
      GROUP BY t.category_id, a.currency
      ORDER BY a.currency, t.category_id`,
     month,
+  );
+}
+
+export interface CategorySpending {
+  currency: CurrencyCode;
+  /** null for transfer fees. */
+  categoryId: number | null;
+  name: string;
+  expenseMinor: number;
+}
+
+/**
+ * The month's spending per category and currency, largest first, with transfer fees as their own
+ * "Biaya transfer" line, so each currency adds up to getMonthSummary's expense.
+ */
+export async function getCategoryBreakdown(db: Db, month: Month): Promise<CategorySpending[]> {
+  return db.getAllAsync<CategorySpending>(
+    `SELECT a.currency AS currency, l.category_id AS categoryId, COALESCE(c.name, 'Biaya transfer') AS name,
+            SUM(-l.signed_minor) AS expenseMinor
+     FROM ledger l
+     JOIN accounts a ON a.id = l.account_id
+     LEFT JOIN categories c ON c.id = l.category_id
+     WHERE l.month = ? AND a.archived = 0
+       AND ((l.kind = 'tx' AND l.signed_minor < 0) OR l.kind = 'transfer_fee')
+     GROUP BY a.currency, l.category_id
+     ORDER BY a.currency, expenseMinor DESC, name`,
+    month,
+  );
+}
+
+export interface MonthSpending {
+  month: Month;
+  currency: CurrencyCode;
+  expenseMinor: number;
+}
+
+/**
+ * Spending per month for the `count` months ending at `endMonth`, oldest first, for every currency
+ * with an active account; months without spending are 0. Same definition as getMonthSummary.
+ */
+export async function getMonthlyTrend(db: Db, endMonth: Month, count = 6): Promise<MonthSpending[]> {
+  const months = Array.from({ length: count }, (_, i) => addMonths(endMonth, i - count + 1));
+  const [currencies, rows] = await Promise.all([
+    db.getAllAsync<{ currency: CurrencyCode }>('SELECT DISTINCT currency FROM accounts WHERE archived = 0 ORDER BY currency'),
+    db.getAllAsync<MonthSpending>(
+      `SELECT l.month AS month, a.currency AS currency, SUM(-l.signed_minor) AS expenseMinor
+       FROM ledger l
+       JOIN accounts a ON a.id = l.account_id
+       WHERE l.month BETWEEN ? AND ? AND a.archived = 0
+         AND ((l.kind = 'tx' AND l.signed_minor < 0) OR l.kind = 'transfer_fee')
+       GROUP BY l.month, a.currency`,
+      months[0],
+      endMonth,
+    ),
+  ]);
+  return currencies.flatMap(({ currency }) =>
+    months.map((month) => ({
+      month,
+      currency,
+      expenseMinor: rows.find((r) => r.month === month && r.currency === currency)?.expenseMinor ?? 0,
+    })),
   );
 }
