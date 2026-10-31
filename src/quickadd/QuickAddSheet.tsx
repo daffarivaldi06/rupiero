@@ -48,6 +48,9 @@ const REPEAT_LABEL: Record<Frequency, string> = { daily: 'Harian', weekly: 'Ming
 
 export interface QuickAddOptions {
   type?: TransactionType;
+  /** Preselected account (e.g. from the widget); unknown ids fall back to the last used account. */
+  accountId?: number;
+  /** Preselected category; unknown or archived ids are ignored. */
   categoryId?: number;
   /** Edit this transaction instead of adding one. */
   transactionId?: number;
@@ -116,11 +119,15 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
         setDate(editing.date);
         setNote(editing.note);
       } else {
-        const fallback = nextAccounts.find((a) => a.id === lastAccountId) ?? nextAccounts[0] ?? null;
+        const fallback =
+          nextAccounts.find((a) => a.id === options.accountId) ??
+          nextAccounts.find((a) => a.id === lastAccountId) ??
+          nextAccounts[0] ??
+          null;
         setEditingId(null);
         setType(options.type ?? 'expense');
         setAccountId(fallback?.id ?? null);
-        setCategoryId(options.categoryId ?? null);
+        setCategoryId(nextCategories.some((c) => c.id === options.categoryId) ? options.categoryId! : null);
         setExpression('');
         setDate(today);
         setNote('');
