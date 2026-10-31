@@ -9,6 +9,7 @@ const MONTH_NAMES = [
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
 ];
 const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const WEEKDAY_SHORT = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
 const pad2 = (n: number) => n.toString().padStart(2, '0');
 
@@ -89,4 +90,10 @@ export function formatMonthLabel(month: Month): string {
 export function formatDateLabel(date: LocalDate): string {
   if (!isValidLocalDate(date)) throw new RangeError(`Invalid date: ${date}`);
   return `${Number(date.slice(8, 10))} ${MONTH_SHORT[Number(date.slice(5, 7)) - 1]} ${date.slice(0, 4)}`;
+}
+
+/** "2026-10-31" → "Sab, 31 Okt" (ledger day headers). */
+export function formatDayHeader(date: LocalDate): string {
+  const weekday = WEEKDAY_SHORT[fromLocalDate(date).getDay()];
+  return `${weekday}, ${Number(date.slice(8, 10))} ${MONTH_SHORT[Number(date.slice(5, 7)) - 1]}`;
 }

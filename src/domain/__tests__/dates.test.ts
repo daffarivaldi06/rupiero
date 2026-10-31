@@ -4,6 +4,7 @@ import {
   dateInMonth,
   daysInMonth,
   formatDateLabel,
+  formatDayHeader,
   formatMonthLabel,
   fromLocalDate,
   isValidLocalDate,
@@ -79,5 +80,11 @@ describe('labels', () => {
     expect(formatMonthLabel('2027-01')).toBe('Januari 2027');
     expect(formatDateLabel('2026-10-05')).toBe('5 Okt 2026');
     expect(formatDateLabel('2026-08-31')).toBe('31 Agu 2026');
+  });
+
+  it('formats ledger day headers with the weekday', () => {
+    expect(formatDayHeader('2026-10-31')).toBe('Sab, 31 Okt');
+    expect(formatDayHeader('2026-11-01')).toBe('Min, 1 Nov');
+    expect(formatDayHeader('2028-02-29')).toBe('Sel, 29 Feb');
   });
 });

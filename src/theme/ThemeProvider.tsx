@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo } from 'react';
-import { StyleSheet, useColorScheme } from 'react-native';
+import { useColorScheme } from 'react-native';
 import { DarkTheme, DefaultTheme, type Theme as NavigationTheme } from '@react-navigation/native';
 import { palettes, radius, space, type ColorScheme, type Palette } from './tokens';
 import { fontFamily } from './typography';
@@ -29,12 +29,12 @@ export function useTheme(): Theme {
 }
 
 /**
- * StyleSheet built from the current theme, rebuilt only when the theme changes.
- * Pass a module-level factory so its identity is stable.
+ * Styles built from the current theme, rebuilt only when the theme changes. Pass a module-level
+ * factory that returns `StyleSheet.create(...)` so its identity is stable.
  */
-export function useThemedStyles<T extends StyleSheet.NamedStyles<T>>(factory: (theme: Theme) => T): T {
+export function useThemedStyles<T>(factory: (theme: Theme) => T): T {
   const theme = useTheme();
-  return useMemo(() => StyleSheet.create(factory(theme)), [theme, factory]);
+  return useMemo(() => factory(theme), [theme, factory]);
 }
 
 export function navigationTheme(theme: Theme): NavigationTheme {
