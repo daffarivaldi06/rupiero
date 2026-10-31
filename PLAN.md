@@ -9,8 +9,8 @@
 | Fase | Status | Catatan |
 |---|---|---|
 | 0 | ✅ selesai (tag `phase-0-done`) | Build debug Android dengan package id baru berhasil |
-| 1 | ✅ kode selesai, **menunggu uji manual** di perangkat | 95 test lolos, setiap commit lolos typecheck + test, bundle Hermes berhasil. Tag `phase-1-done` dibuat setelah uji manual lolos |
-| 1.5 | belum dimulai | Design system "Buku Kas" (ditambahkan 2026-10-31) |
+| 1 | ✅ selesai (tag `phase-1-done`) | Uji manual di perangkat lolos (2026-10-31) |
+| 1.5 | ✅ kode selesai, **menunggu cek visual** di perangkat | 139 test lolos (termasuk kontras), setiap commit lolos typecheck + test, font ter-embed, bundle Hermes berhasil. Tag `phase-1.5-done` setelah cek visual |
 | 2–5 | belum dimulai | |
 | 6 | backlog | Belum dijadwalkan; tiap item butuh persetujuan sendiri |
 
@@ -19,6 +19,13 @@ Penyimpangan dari rencana (Fase 0–1):
 - `expo install -- --save-dev` mengabaikan flag; `eslint-config-expo` dan paket Jest dipindah manual ke `devDependencies`.
 - Aturan `parseAmount`: tepat 3 digit setelah pemisah terakhir dibaca sebagai ribuan, jadi EUR "12,505" = €12.505,00 (konsisten dengan "1.234"). `MoneyInput` memformat ulang saat blur, jadi user langsung melihat tafsirannya.
 - Kriteria Fase 2 "tanpa `useRoute<any>`/`useNavigation<any>`" sudah terpenuhi di Fase 1.
+
+Penyimpangan dari rencana (Fase 1.5):
+- **IBM Plex Sans tidak punya fitur OpenType `tnum`**, tapi semua digit bawaannya sudah sama lebar (600 unit; dicek dengan fontTools).
+  Angka sudah tabular tanpa fitur itu. `fontVariant: ['tabular-nums']` tetap dipasang untuk berjaga-jaga jika font diganti.
+- Token tambahan `onIdr` (teks gelap di atas isian IDR): `ink` mode gelap di atas `#E0A93A` hanya 1.73:1. `lineStrong` = `#857E70` (light) / `#6B7380` (dark).
+- `Button` mendapat varian `income`. `primary` sekarang isian tinta (`ink`), bukan hijau.
+- Widget belum di-restyle (masih warna gelap lama); dijadwalkan bersama perombakan widget di Fase 4.
 
 ## Prinsip kerja
 
