@@ -14,6 +14,7 @@ import { BalanceHero } from '../components/BalanceHero';
 import { Money } from '../components/Money';
 import { MonthFlow } from '../components/MonthFlow';
 import { Txt } from '../components/Txt';
+import { useIntro } from '../intro/IntroProvider';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { RootStackParamList } from '../../App';
 
@@ -22,6 +23,7 @@ export default function DashboardScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { color } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const { ready: introReady, roll } = useIntro();
 
   const [balances, setBalances] = useState<CurrencyBalance[]>([]);
   const [totals, setTotals] = useState<CurrencyTotals[]>([]);
@@ -46,8 +48,10 @@ export default function DashboardScreen() {
       setCategoryTotals(nextCategoryTotals);
     } catch (e) {
       console.error(e);
+    } finally {
+      introReady();
     }
-  }, [db, selectedMonth]);
+  }, [db, selectedMonth, introReady]);
 
   useFocusEffect(
     useCallback(() => {
@@ -74,7 +78,7 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={color.ink} />}
       >
-        <BalanceHero label={isCurrentMonth ? 'Saldo saat ini' : `Saldo akhir ${monthLabel}`} balances={balances} />
+        <BalanceHero label={isCurrentMonth ? 'Saldo saat ini' : `Saldo akhir ${monthLabel}`} balances={balances} roll={roll} />
 
         <View style={styles.section}>
           <MonthFlow title={`Arus ${monthLabel}`} totals={totals} />

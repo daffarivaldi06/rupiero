@@ -3,18 +3,20 @@ import { View, StyleSheet } from 'react-native';
 import type { CurrencyBalance } from '../domain/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { Money } from './Money';
+import type { RollSpec } from './rolling';
 import { Txt } from './Txt';
 
 interface BalanceHeroProps {
   label: string;
   balances: CurrencyBalance[];
+  roll?: RollSpec | null;
 }
 
 /**
  * One big balance per currency, straight on the page and ruled like a ledger: ink rule on top,
  * hairlines between currencies, a double rule under the total. Currencies are never added up.
  */
-export const BalanceHero: React.FC<BalanceHeroProps> = ({ label, balances }) => {
+export const BalanceHero: React.FC<BalanceHeroProps> = ({ label, balances, roll }) => {
   const styles = useThemedStyles(makeStyles);
   return (
     <View>
@@ -29,6 +31,7 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({ label, balances }) => 
             currency={b.currency}
             variant="hero"
             tone={b.balanceMinor < 0 ? 'expense' : 'neutral'}
+            roll={roll}
           />
         </View>
       ))}
