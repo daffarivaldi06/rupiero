@@ -5,33 +5,16 @@ import { colors } from '../theme/colors';
 interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
-  isCurrency?: boolean;
 }
 
-export const Input: React.FC<InputProps> = ({ label, error, isCurrency, value, onChangeText, ...props }) => {
-  // Format the display value with commas if isCurrency is true
-  const displayValue = isCurrency && value ? value.replace(/\B(?=(\d{3})+(?!\d))/g, ",") : value;
-
-  const handleChangeText = (text: string) => {
-    if (onChangeText) {
-      if (isCurrency) {
-        // Strip non-numeric characters for the raw value
-        const numericText = text.replace(/[^0-9]/g, '');
-        onChangeText(numericText);
-      } else {
-        onChangeText(text);
-      }
-    }
-  };
-
+// Plain text input. Amounts go through MoneyInput instead.
+export const Input: React.FC<InputProps> = ({ label, error, ...props }) => {
   return (
     <View style={styles.container}>
       {label && <Text style={styles.label}>{label}</Text>}
       <TextInput
         style={[styles.input, error && styles.inputError]}
         placeholderTextColor={colors.textSecondary}
-        value={displayValue}
-        onChangeText={handleChangeText}
         {...props}
       />
       {error && <Text style={styles.errorText}>{error}</Text>}
