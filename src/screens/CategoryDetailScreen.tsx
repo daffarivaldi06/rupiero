@@ -18,6 +18,7 @@ import { CategoryMonthSummary } from '../components/CategoryMonthSummary';
 import { Txt } from '../components/Txt';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { useI18n } from '../i18n/I18nProvider';
+import { useToast } from '../feedback/ToastProvider';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
 import { useDataRevision } from '../data/DataProvider';
 import { useQuickAdd } from '../quickadd/QuickAddProvider';
@@ -31,6 +32,7 @@ export default function CategoryDetailScreen() {
   const { color } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const { t } = useI18n();
+  const toast = useToast();
   const { categoryId, month } = route.params;
   const quickAdd = useQuickAdd();
   const { revision } = useDataRevision();
@@ -84,7 +86,7 @@ export default function CategoryDetailScreen() {
         navigation.popTo('Dashboard');
       } catch (e) {
         console.error(e);
-        Alert.alert(t('common.failed'), t('categoryDetail.changeFailed'));
+        toast.show(t('categoryDetail.changeFailed'), { tone: 'error' });
       }
     };
     const used = await countCategoryTransactions(db, categoryId);

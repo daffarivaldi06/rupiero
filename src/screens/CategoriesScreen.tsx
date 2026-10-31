@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSQLiteContext } from '../db/DatabaseProvider';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
@@ -10,6 +10,7 @@ import { Txt } from '../components/Txt';
 import type { RootNavigation } from '../navigation/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { useI18n } from '../i18n/I18nProvider';
+import { useToast } from '../feedback/ToastProvider';
 
 /** Active categories, plus the archive where hidden ones can be brought back. */
 export default function CategoriesScreen() {
@@ -17,6 +18,7 @@ export default function CategoriesScreen() {
   const navigation = useNavigation<RootNavigation>();
   const styles = useThemedStyles(makeStyles);
   const { t } = useI18n();
+  const toast = useToast();
   const [active, setActive] = useState<Category[]>([]);
   const [archived, setArchived] = useState<Category[]>([]);
 
@@ -42,7 +44,7 @@ export default function CategoriesScreen() {
       await load();
     } catch (e) {
       console.error(e);
-      Alert.alert(t('common.failed'), t('categories.restoreFailed'));
+      toast.show(t('categories.restoreFailed'), { tone: 'error' });
     }
   };
 

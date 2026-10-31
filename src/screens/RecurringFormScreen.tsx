@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useSQLiteContext } from '../db/DatabaseProvider';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 
@@ -20,6 +20,8 @@ import { describeFrequency, FREQUENCIES, nextDueDate, type Frequency } from '../
 import type { Account, Category, TransactionType } from '../domain/types';
 import { AccountPicker } from '../components/AccountPicker';
 import { Button } from '../components/Button';
+import { FormScroll } from '../components/FormScroll';
+import { useToast } from '../feedback/ToastProvider';
 import { CategoryChips } from '../components/CategoryChips';
 import { DateChip } from '../components/DateChip';
 import { Input } from '../components/Input';
@@ -34,6 +36,7 @@ export default function RecurringFormScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'RecurringForm'>>();
   const styles = useThemedStyles(makeStyles);
   const { t } = useI18n();
+  const toast = useToast();
   const ruleId = route.params?.ruleId;
   const isEditing = ruleId !== undefined;
 
@@ -88,24 +91,16 @@ export default function RecurringFormScreen() {
     navigation.goBack();
   };
 
+  const amountMinor = account ? parseAmount(amount, account.currency) : null;
+  const amountError =
+    account && amount.trim() !== '' && (amountMinor === null || amountMinor <= 0)
+      ? t('money.amountHint', { example: formatInputValue(account.currency === 'EUR' ? 999 : 150_000, account.currency) })
+      : undefined;
+  const endError = endDate !== null && endDate < startDate ? t('recurringForm.endBeforeStart') : undefined;
+  const canSave = !!account && categoryId !== null && !!amountMinor && amountMinor > 0 && intervalValid && !endError;
+
   const save = async () => {
-    const amountMinor = account ? parseAmount(amount, account.currency) : null;
-    if (!account || categoryId === null) {
-      Alert.alert(t('recurringForm.incompleteTitle'), t('recurringForm.incomplete'));
-      return;
-    }
-    if (!amountMinor || amountMinor <= 0) {
-      Alert.alert(t('quickAdd.invalidAmountTitle'), t('money.amountHint', { example: formatInputValue(account.currency === 'EUR' ? 999 : 150_000, account.currency) }));
-      return;
-    }
-    if (!intervalValid) {
-      Alert.alert(t('recurringForm.invalidIntervalTitle'), t('recurringForm.intervalRange'));
-      return;
-    }
-    if (endDate !== null && endDate < startDate) {
-      Alert.alert(t('recurringForm.end'), t('recurringForm.endBeforeStart'));
-      return;
-    }
+    if (!account || categoryId === null || !amountMinor || !canSave) return;
     const rule = { accountId: account.id, categoryId, type, amountMinor, note, frequency, interval: intervalCount, startDate, endDate };
     try {
       if (isEditing) await updateRecurringRule(db, ruleId, rule);
@@ -113,7 +108,7 @@ export default function RecurringFormScreen() {
       await finish();
     } catch (e) {
       console.error(e);
-      Alert.alert(t('common.failed'), t('recurringForm.saveFailed'));
+      toast.show(t('recurringForm.saveFailed'), { tone: 'error' });
     }
   };
 
@@ -123,7 +118,7 @@ export default function RecurringFormScreen() {
       await finish();
     } catch (e) {
       console.error(e);
-      Alert.alert(t('common.failed'), t('recurringForm.changeFailed'));
+      toast.show(t('recurringForm.changeFailed'), { tone: 'error' });
     }
   };
 
@@ -134,7 +129,7 @@ export default function RecurringFormScreen() {
     ]);
 
   return (
-    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <FormScroll contentContainerStyle={styles.content}>
       <View style={styles.chipRow}>
         {(['expense', 'income'] as const).map((value) => {
           const selected = type === value;
@@ -164,6 +159,7 @@ export default function RecurringFormScreen() {
           value={amount}
           onChangeText={setAmount}
           keyboardType={account.currency === 'EUR' ? 'decimal-pad' : 'number-pad'}
+          error={amountError}
         />
       )}
 
@@ -214,6 +210,8 @@ export default function RecurringFormScreen() {
         </View>
       </View>
 
+      {endError && <Txt variant="caption" tone="expense">{endError}</Txt>}
+
       <Input label={t('recurringForm.note')} value={note} onChangeText={setNote} />
 
       <Txt variant="caption" tone="inkMuted" style={styles.next}>
@@ -221,7 +219,7 @@ export default function RecurringFormScreen() {
         {isEditing ? ` · ${t('recurringForm.editNote')}` : ''}
       </Txt>
 
-      <Button title={t(isEditing ? 'common.saveChanges' : 'recurringForm.save')} onPress={save} style={styles.save} />
+      <Button title={t(isEditing ? 'common.saveChanges' : 'recurringForm.save')} onPress={save} disabled={!canSave} style={styles.save} />
       {isEditing && (
         <>
           <Button
@@ -233,7 +231,7 @@ export default function RecurringFormScreen() {
           <Button title={t('recurringForm.delete')} variant="outline" onPress={confirmDelete} />
         </>
       )}
-    </ScrollView>
+    </FormScroll>
   );
 }
 

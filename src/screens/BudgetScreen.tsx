@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSQLiteContext } from '../db/DatabaseProvider';
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 
@@ -14,6 +14,7 @@ import { Txt } from '../components/Txt';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { useI18n } from '../i18n/I18nProvider';
+import { useToast } from '../feedback/ToastProvider';
 
 export default function BudgetScreen() {
   const db = useSQLiteContext();
@@ -21,6 +22,7 @@ export default function BudgetScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'Budget'>>();
   const styles = useThemedStyles(makeStyles);
   const { t } = useI18n();
+  const toast = useToast();
 
   const [month, setMonth] = useState(route.params?.month ?? currentMonth());
   const [categories, setCategories] = useState<Category[]>([]);
@@ -45,11 +47,15 @@ export default function BudgetScreen() {
   const copyPrevious = async () => {
     try {
       const added = await copyBudgetsFromPreviousMonth(db, month);
-      if (added === 0) Alert.alert(t('budget.nothingCopiedTitle'), t('budget.nothingCopied', { month: formatMonthName(addMonths(month, -1)) }));
+      toast.show(
+        added === 0
+          ? t('budget.nothingCopied', { month: formatMonthName(addMonths(month, -1)) })
+          : t('budget.copied', { month: formatMonthName(addMonths(month, -1)) }),
+      );
       await load();
     } catch (e) {
       console.error(e);
-      Alert.alert(t('common.failed'), t('budget.copyFailed'));
+      toast.show(t('budget.copyFailed'), { tone: 'error' });
     }
   };
 

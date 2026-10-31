@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useSQLiteContext } from '../db/DatabaseProvider';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
@@ -14,6 +14,8 @@ import type { Locale } from '../i18n/locale';
 import type { Account } from '../domain/types';
 import { AccountPicker } from '../components/AccountPicker';
 import { Button } from '../components/Button';
+import { FormScroll } from '../components/FormScroll';
+import { useToast } from '../feedback/ToastProvider';
 import { Input } from '../components/Input';
 import { Txt } from '../components/Txt';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
@@ -34,6 +36,7 @@ export default function TransferFormScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'TransferForm'>>();
   const styles = useThemedStyles(makeStyles);
   const { t, locale } = useI18n();
+  const toast = useToast();
   const transferId = route.params?.transferId;
   const isEditing = transferId !== undefined;
 
@@ -47,6 +50,7 @@ export default function TransferFormScreen() {
   const [note, setNote] = useState('');
   const [showIosPicker, setShowIosPicker] = useState(false);
   const [reference, setReference] = useState<ReferenceRate | null>(null);
+  const [formError, setFormError] = useState<string>();
 
   useEffect(() => {
     (async () => {
@@ -117,24 +121,23 @@ export default function TransferFormScreen() {
     }
   };
 
+  // Inline errors only for something typed that cannot be read; empty fields just keep Save disabled.
+  const amountError = (text: string, minor: number | null, currency: CurrencyCode) =>
+    text.trim() !== '' && (minor === null || minor <= 0)
+      ? t('money.amountHint', { example: formatInputValue(currency === 'EUR' ? 20000 : 3_000_000, currency) })
+      : undefined;
+  const sentError = from ? amountError(sent, sentMinor, from.currency) : undefined;
+  const receivedError = to && !sameCurrency ? amountError(received, receivedMinor, to.currency) : undefined;
+  const feeError = from && feeMinor === null ? t('transfer.invalidFee') : undefined;
+  const canSave = !!from && !!to && !!sentMinor && sentMinor > 0 && !!receivedMinor && receivedMinor > 0 && feeMinor !== null;
+
   const save = async () => {
-    if (!from || !to) {
-      Alert.alert(t('transfer.pickAccountsTitle'), t('transfer.pickAccounts'));
-      return;
-    }
-    if (!sentMinor || sentMinor <= 0 || !receivedMinor || receivedMinor <= 0) {
-      Alert.alert(t('quickAdd.invalidAmountTitle'), t('transfer.invalidAmounts'));
-      return;
-    }
-    if (feeMinor === null || feeMinor < 0) {
-      Alert.alert(t('transfer.invalidFeeTitle'), t('transfer.invalidFee'));
-      return;
-    }
+    if (!from || !to || !canSave) return;
     const transfer = {
       fromAccountId: from.id,
       toAccountId: to.id,
-      fromAmountMinor: sentMinor,
-      toAmountMinor: receivedMinor,
+      fromAmountMinor: sentMinor!,
+      toAmountMinor: receivedMinor!,
       feeMinor,
       date,
       note,
@@ -143,11 +146,12 @@ export default function TransferFormScreen() {
       if (isEditing) await updateTransfer(db, transferId, transfer);
       else await createTransfer(db, transfer);
       navigation.goBack();
+      toast.show(t('transfer.saved'));
     } catch (e) {
-      if (e instanceof TransferError) Alert.alert(t('transfer.invalidTitle'), e.message);
+      if (e instanceof TransferError) setFormError(e.message);
       else {
         console.error(e);
-        Alert.alert(t('common.failed'), t('transfer.saveFailed'));
+        toast.show(t('transfer.saveFailed'), { tone: 'error' });
       }
     }
   };
@@ -163,9 +167,10 @@ export default function TransferFormScreen() {
           try {
             await deleteTransfer(db, transferId);
             navigation.goBack();
+            toast.show(t('transfer.deleted'));
           } catch (e) {
             console.error(e);
-            Alert.alert(t('common.failed'), t('transfer.deleteFailed'));
+            toast.show(t('transfer.deleteFailed'), { tone: 'error' });
           }
         },
       },
@@ -177,7 +182,7 @@ export default function TransferFormScreen() {
     date === today ? t('common.today') : date === addDays(today, -1) ? t('common.yesterday') : formatDateLabel(date, locale);
 
   return (
-    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <FormScroll contentContainerStyle={styles.content}>
       <Txt variant="label" tone="inkMuted" style={styles.label}>{t('transfer.from')}</Txt>
       <AccountPicker accounts={accounts} selectedId={fromId} onSelect={selectFrom} />
       <Txt variant="label" tone="inkMuted" style={styles.label}>{t('transfer.to')}</Txt>
@@ -188,8 +193,12 @@ export default function TransferFormScreen() {
           label={t('transfer.sent', { currency: from.currency })}
           placeholder={formatInputValue(from.currency === 'EUR' ? 20000 : 3_000_000, from.currency)}
           value={sent}
-          onChangeText={setSent}
+          onChangeText={(text) => {
+            setSent(text);
+            setFormError(undefined);
+          }}
           keyboardType={from.currency === 'EUR' ? 'decimal-pad' : 'number-pad'}
+          error={sentError}
         />
       )}
       {to && !sameCurrency && (
@@ -197,8 +206,12 @@ export default function TransferFormScreen() {
           label={t('transfer.received', { currency: to.currency })}
           placeholder={receivedHint !== null ? formatInputValue(receivedHint, to.currency) : undefined}
           value={received}
-          onChangeText={setReceived}
+          onChangeText={(text) => {
+            setReceived(text);
+            setFormError(undefined);
+          }}
           keyboardType={to.currency === 'EUR' ? 'decimal-pad' : 'number-pad'}
+          error={receivedError}
         />
       )}
       {sameCurrency && <Txt variant="caption" tone="inkMuted">{t('transfer.sameCurrency')}</Txt>}
@@ -227,6 +240,7 @@ export default function TransferFormScreen() {
           value={fee}
           onChangeText={setFee}
           keyboardType={from.currency === 'EUR' ? 'decimal-pad' : 'number-pad'}
+          error={feeError}
         />
       )}
 
@@ -240,9 +254,12 @@ export default function TransferFormScreen() {
       )}
       <Input label={t('common.noteOptional')} value={note} onChangeText={setNote} />
 
-      <Button title={t(isEditing ? 'common.saveChanges' : 'transfer.save')} onPress={save} style={styles.save} />
+      {formError && (
+        <Txt variant="caption" tone="expense" accessibilityLiveRegion="polite">{formError}</Txt>
+      )}
+      <Button title={t(isEditing ? 'common.saveChanges' : 'transfer.save')} onPress={save} disabled={!canSave} style={styles.save} />
       {isEditing && <Button title={t('transfer.delete')} variant="outline" onPress={remove} />}
-    </ScrollView>
+    </FormScroll>
   );
 }
 

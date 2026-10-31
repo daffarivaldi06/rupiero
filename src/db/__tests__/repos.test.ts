@@ -40,6 +40,7 @@ import {
   getTransaction,
   listCategoriesByUse,
   listTransactions,
+  restoreTransaction,
   updateTransaction,
 } from '../repos/transactions';
 
@@ -233,6 +234,16 @@ describe('transactions', () => {
 
     await deleteTransaction(db, id);
     expect(await getTransaction(db, id)).toBeNull();
+  });
+
+  it('undoes a delete: same id, fields and timestamps', async () => {
+    const id = await createTransaction(db, { accountId: eur, categoryId: food, type: 'expense', amountMinor: 1250, date: '2026-10-05', note: 'Roti' });
+    const before = await db.getFirstAsync('SELECT * FROM transactions WHERE id = ?', id);
+    const deleted = await deleteTransaction(db, id);
+    expect(deleted).toMatchObject({ id, amount_minor: 1250, note: 'Roti' });
+    await restoreTransaction(db, deleted!);
+    expect(await db.getFirstAsync('SELECT * FROM transactions WHERE id = ?', id)).toEqual(before);
+    expect(await deleteTransaction(db, 9999)).toBeNull();
   });
 
   it('orders categories by use in the last 90 days', async () => {

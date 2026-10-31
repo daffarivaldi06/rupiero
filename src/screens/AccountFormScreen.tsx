@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useSQLiteContext } from '../db/DatabaseProvider';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 
@@ -13,6 +13,9 @@ import {
 } from '../db/repos/accounts';
 import { CURRENCY_CODES, formatInputValue, parseAmount, type CurrencyCode } from '../domain/money';
 import { Button } from '../components/Button';
+import { FormScroll } from '../components/FormScroll';
+import { useToast } from '../feedback/ToastProvider';
+import { isUniqueViolation } from '../db/errors';
 import { Input } from '../components/Input';
 import { Txt } from '../components/Txt';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
@@ -34,6 +37,7 @@ export default function AccountFormScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'AccountForm'>>();
   const styles = useThemedStyles(makeStyles);
   const { t } = useI18n();
+  const toast = useToast();
   const accountId = route.params?.accountId;
   const isEditing = accountId !== undefined;
 
@@ -42,7 +46,8 @@ export default function AccountFormScreen() {
   const [opening, setOpening] = useState('');
   const [archived, setArchived] = useState(false);
   const [currencyLocked, setCurrencyLocked] = useState(false);
-  const [openingError, setOpeningError] = useState<string>();
+  const [nameError, setNameError] = useState<string>();
+  const [currencyError, setCurrencyError] = useState<string>();
 
   useEffect(() => {
     if (accountId === undefined) return;
@@ -58,26 +63,26 @@ export default function AccountFormScreen() {
     })().catch(console.error);
   }, [db, accountId]);
 
+  const openingBalanceMinor = parseSignedAmount(opening, currency);
+  const openingError =
+    openingBalanceMinor === null
+      ? t('money.amountHint', { example: formatInputValue(currency === 'EUR' ? 125050 : 1_250_000, currency) })
+      : undefined;
+  const canSave = name.trim() !== '' && openingBalanceMinor !== null;
+
   const save = async () => {
-    if (!name.trim()) {
-      Alert.alert(t('accountForm.nameEmptyTitle'), t('accountForm.nameEmpty'));
-      return;
-    }
-    const openingBalanceMinor = parseSignedAmount(opening, currency);
-    if (openingBalanceMinor === null) {
-      setOpeningError(t('money.amountHint', { example: formatInputValue(currency === 'EUR' ? 125050 : 1_250_000, currency) }));
-      return;
-    }
+    if (!canSave) return;
     try {
       const account = { name, currency, openingBalanceMinor };
       if (isEditing) await updateAccount(db, accountId, account);
       else await createAccount(db, account);
       navigation.goBack();
     } catch (e) {
-      if (e instanceof AccountCurrencyLockedError) Alert.alert(t('accountForm.currencyLockedTitle'), e.message);
+      if (e instanceof AccountCurrencyLockedError) setCurrencyError(e.message);
+      else if (isUniqueViolation(e)) setNameError(t('accountForm.nameTaken'));
       else {
         console.error(e);
-        Alert.alert(t('accountForm.saveFailedTitle'), t('accountForm.saveFailed'));
+        toast.show(t('accountForm.saveFailed'), { tone: 'error' });
       }
     }
   };
@@ -89,13 +94,23 @@ export default function AccountFormScreen() {
       navigation.goBack();
     } catch (e) {
       console.error(e);
-      Alert.alert(t('common.failed'), t('accountForm.archiveFailed'));
+      toast.show(t('accountForm.archiveFailed'), { tone: 'error' });
     }
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Input label={t('accountForm.name')} placeholder={t('accountForm.namePlaceholder')} value={name} onChangeText={setName} autoFocus={!isEditing} />
+    <FormScroll contentContainerStyle={styles.content}>
+      <Input
+        label={t('accountForm.name')}
+        placeholder={t('accountForm.namePlaceholder')}
+        value={name}
+        onChangeText={(text) => {
+          setName(text);
+          setNameError(undefined);
+        }}
+        autoFocus={!isEditing}
+        error={nameError}
+      />
 
       <Txt variant="label" tone="inkMuted" style={styles.label}>{t('accountForm.currency')}</Txt>
       <View style={styles.currencyRow}>
@@ -107,7 +122,7 @@ export default function AccountFormScreen() {
               disabled={currencyLocked}
               onPress={() => {
                 setCurrency(code);
-                setOpeningError(undefined);
+                setCurrencyError(undefined);
               }}
               style={[styles.currencyChip, selected && styles.currencySelected, currencyLocked && !selected && styles.disabled]}
               accessibilityRole="radio"
@@ -121,31 +136,31 @@ export default function AccountFormScreen() {
       {currencyLocked && (
         <Txt variant="caption" tone="inkMuted" style={styles.hint}>{t('accountForm.currencyLocked')}</Txt>
       )}
+      {currencyError && (
+        <Txt variant="caption" tone="expense" style={styles.hint}>{currencyError}</Txt>
+      )}
 
       <Input
         label={t('accountForm.opening')}
         placeholder={formatInputValue(0, currency)}
         value={opening}
-        onChangeText={(text) => {
-          setOpening(text);
-          setOpeningError(undefined);
-        }}
+        onChangeText={setOpening}
         keyboardType={currency === 'EUR' ? 'decimal-pad' : 'number-pad'}
         error={openingError}
       />
 
-      <Button title={t(isEditing ? 'common.saveChanges' : 'accountForm.create')} onPress={save} style={styles.save} />
+      <Button title={t(isEditing ? 'common.saveChanges' : 'accountForm.create')} onPress={save} disabled={!canSave} style={styles.save} />
       {isEditing && (
         <Button title={t(archived ? 'accountForm.unarchive' : 'accountForm.archive')} variant="outline" onPress={toggleArchive} />
       )}
-    </ScrollView>
+    </FormScroll>
   );
 }
 
 const makeStyles = ({ color, radius, space }: Theme) =>
   StyleSheet.create({
     content: {
-      padding: space.xl,
+      paddingVertical: space.xl,
     },
     label: {
       marginTop: space.sm,

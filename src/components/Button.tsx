@@ -9,6 +9,8 @@ interface ButtonProps {
   title: string;
   onPress: () => void;
   loading?: boolean;
+  /** Greyed out and not pressable, e.g. while a form is incomplete. */
+  disabled?: boolean;
   variant?: ButtonVariant;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
@@ -25,6 +27,7 @@ export const Button: React.FC<ButtonProps> = ({
   title,
   onPress,
   loading = false,
+  disabled = false,
   variant = 'primary',
   style,
   textStyle,
@@ -36,11 +39,11 @@ export const Button: React.FC<ButtonProps> = ({
   return (
     <TouchableOpacity
       activeOpacity={0.8}
-      style={[styles.container, styles[variant], style]}
+      style={[styles.container, styles[variant], disabled && styles.disabled, style]}
       onPress={onPress}
-      disabled={loading}
+      disabled={loading || disabled}
       accessibilityRole="button"
-      accessibilityState={{ busy: loading }}
+      accessibilityState={{ busy: loading, disabled }}
     >
       {loading ? (
         <ActivityIndicator color={color[tone]} />
@@ -69,6 +72,9 @@ const makeStyles = ({ color, radius, space }: Theme) =>
     },
     danger: {
       backgroundColor: color.expense,
+    },
+    disabled: {
+      opacity: 0.4,
     },
     outline: {
       backgroundColor: 'transparent',

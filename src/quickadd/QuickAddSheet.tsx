@@ -1,5 +1,5 @@
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { Alert, BackHandler, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { BackHandler, Platform, Pressable, StyleSheet, View } from 'react-native';
 import {
   BottomSheetBackdrop,
   BottomSheetModal,
@@ -20,6 +20,7 @@ import {
   deleteTransaction,
   getTransaction,
   listCategoriesByUse,
+  restoreTransaction,
   updateTransaction,
 } from '../db/repos/transactions';
 import {
@@ -44,6 +45,7 @@ import { useReferenceRate } from '../fx/FxProvider';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { fontFamily } from '../theme/typography';
 import { useI18n } from '../i18n/I18nProvider';
+import { useToast } from '../feedback/ToastProvider';
 import { SEPARATORS } from '../domain/money';
 
 
@@ -67,6 +69,7 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
   const { color } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const { t, locale } = useI18n();
+  const toast = useToast();
   const insets = useSafeAreaInsets();
   const referenceRate = useReferenceRate();
   const sheetRef = useRef<BottomSheetModal>(null);
@@ -98,6 +101,16 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
   const account = accounts.find((a) => a.id === accountId) ?? null;
   const currency = account?.currency ?? 'EUR';
   const amount = useMemo(() => evaluateExpression(withoutTrailingOperator(expression), currency), [expression, currency]);
+  // What still stops Save, said under the button instead of in a dialog. Nothing while the amount is
+  // still empty: the keypad is the obvious next step.
+  const missing = !account
+    ? t('quickAdd.noAccount')
+    : expression !== '' && (amount === null || amount <= 0)
+      ? t('quickAdd.invalidAmount')
+      : expression !== '' && categoryId === null
+        ? t('quickAdd.pickCategory')
+        : null;
+  const canSave = !!account && amount !== null && amount > 0 && categoryId !== null;
 
   useImperativeHandle(ref, () => ({
     open: async (options = {}) => {
@@ -165,18 +178,7 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
   };
 
   const save = async () => {
-    if (!account) {
-      Alert.alert(t('quickAdd.noAccountTitle'), t('quickAdd.noAccount'));
-      return;
-    }
-    if (amount === null || amount <= 0) {
-      Alert.alert(t('quickAdd.invalidAmountTitle'), t('quickAdd.invalidAmount'));
-      return;
-    }
-    if (categoryId === null) {
-      Alert.alert(t('quickAdd.pickCategoryTitle'), t('quickAdd.pickCategory'));
-      return;
-    }
+    if (!canSave) return;
     const tx = { accountId: account.id, categoryId, type, amountMinor: amount, date, note };
     try {
       if (editingId !== null) await updateTransaction(db, editingId, tx);
@@ -188,30 +190,35 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
       await setLastAccountId(db, account.id);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       sheetRef.current?.dismiss();
+      toast.show(t(editingId !== null ? 'quickAdd.updated' : 'quickAdd.saved'));
     } catch (e) {
       console.error(e);
-      Alert.alert(t('common.failed'), t('quickAdd.saveFailed'));
+      toast.show(t('quickAdd.saveFailed'), { tone: 'error' });
     }
   };
 
-  const remove = () => {
+  // No confirmation dialog: the delete can be undone from the toast for a few seconds.
+  const remove = async () => {
     if (editingId === null) return;
-    Alert.alert(t('quickAdd.deleteTitle'), t('quickAdd.deleteMessage'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteTransaction(db, editingId);
-            sheetRef.current?.dismiss();
-          } catch (e) {
-            console.error(e);
-            Alert.alert(t('common.failed'), t('quickAdd.deleteFailed'));
-          }
+    try {
+      const deleted = await deleteTransaction(db, editingId);
+      sheetRef.current?.dismiss();
+      if (!deleted) return;
+      toast.show(t('quickAdd.deleted'), {
+        action: {
+          label: t('common.undo'),
+          onPress: () => {
+            restoreTransaction(db, deleted).catch((e) => {
+              console.error(e);
+              toast.show(t('quickAdd.restoreFailed'), { tone: 'error' });
+            });
+          },
         },
-      },
-    ]);
+      });
+    } catch (e) {
+      console.error(e);
+      toast.show(t('quickAdd.deleteFailed'), { tone: 'error' });
+    }
   };
 
   const renderBackdrop = useCallback(
@@ -325,8 +332,13 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
 
         <View style={styles.actions}>
           {editingId !== null && <Button title={t('common.delete')} variant="outline" onPress={remove} style={styles.deleteButton} />}
-          <Button title={t(editingId !== null ? 'common.saveChanges' : 'common.save')} onPress={save} style={styles.saveButton} />
+          <Button title={t(editingId !== null ? 'common.saveChanges' : 'common.save')} onPress={save} disabled={!canSave} style={styles.saveButton} />
         </View>
+        {missing !== null && (
+          <Txt variant="caption" tone="inkMuted" style={styles.missing} accessibilityLiveRegion="polite">
+            {missing}
+          </Txt>
+        )}
       </BottomSheetScrollView>
     </BottomSheetModal>
   );
@@ -430,5 +442,8 @@ const makeStyles = ({ color, radius, space }: Theme) =>
     },
     saveButton: {
       flex: 2,
+    },
+    missing: {
+      textAlign: 'center',
     },
   });

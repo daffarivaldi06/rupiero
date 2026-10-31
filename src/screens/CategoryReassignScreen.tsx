@@ -9,6 +9,7 @@ import { Txt } from '../components/Txt';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { useI18n } from '../i18n/I18nProvider';
+import { useToast } from '../feedback/ToastProvider';
 
 /** Pick where a category's transactions go before the category is deleted. */
 export default function CategoryReassignScreen() {
@@ -17,6 +18,7 @@ export default function CategoryReassignScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'CategoryReassign'>>();
   const styles = useThemedStyles(makeStyles);
   const { t } = useI18n();
+  const toast = useToast();
   const { categoryId } = route.params;
 
   const [name, setName] = useState('');
@@ -41,7 +43,7 @@ export default function CategoryReassignScreen() {
             navigation.popTo('Dashboard');
           } catch (e) {
             console.error(e);
-            Alert.alert(t('common.failed'), t('reassign.failed'));
+            toast.show(t('reassign.failed'), { tone: 'error' });
           }
         },
       },

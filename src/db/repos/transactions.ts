@@ -122,8 +122,48 @@ export async function updateTransaction(db: Db, id: number, tx: NewTransaction):
   notifyDataChanged();
 }
 
-export async function deleteTransaction(db: Db, id: number): Promise<void> {
+/** A transaction row exactly as stored, so a delete can be undone without changing its id or links. */
+export interface StoredTransaction {
+  id: number;
+  account_id: number;
+  category_id: number;
+  type: TransactionType;
+  amount_minor: number;
+  date: LocalDate;
+  note: string;
+  created_at: string;
+  updated_at: string;
+  recurring_rule_id: number | null;
+}
+
+/** Deletes and returns the row as it was (null if it did not exist), for undo. */
+export async function deleteTransaction(db: Db, id: number): Promise<StoredTransaction | null> {
+  const row = await db.getFirstAsync<StoredTransaction>(
+    `SELECT id, account_id, category_id, type, amount_minor, date, note, created_at, updated_at, recurring_rule_id
+     FROM transactions WHERE id = ?`,
+    id,
+  );
   await db.runAsync('DELETE FROM transactions WHERE id = ?', id);
+  notifyDataChanged();
+  return row;
+}
+
+/** Puts a deleted transaction back with the same id, timestamps and recurring-rule link. */
+export async function restoreTransaction(db: Db, row: StoredTransaction): Promise<void> {
+  await db.runAsync(
+    `INSERT INTO transactions (id, account_id, category_id, type, amount_minor, date, note, created_at, updated_at, recurring_rule_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    row.id,
+    row.account_id,
+    row.category_id,
+    row.type,
+    row.amount_minor,
+    row.date,
+    row.note,
+    row.created_at,
+    row.updated_at,
+    row.recurring_rule_id,
+  );
   notifyDataChanged();
 }
 

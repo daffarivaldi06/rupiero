@@ -15,6 +15,7 @@ import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import type { RootNavigation } from '../navigation/types';
 import { usePrivacy } from '../privacy/PrivacyProvider';
 import { useI18n } from '../i18n/I18nProvider';
+import { useToast } from '../feedback/ToastProvider';
 import { LANGUAGE_PREFERENCES, resolveLocale, type LanguagePreference } from '../i18n/locale';
 import { systemLanguageCodes } from '../i18n/system';
 import type { MessageKey } from '../i18n';
@@ -41,6 +42,7 @@ export default function SettingsScreen() {
   const { color } = useTheme();
   const privacy = usePrivacy();
   const { t, preference, setPreference } = useI18n();
+  const toast = useToast();
   const systemLocale = resolveLocale('system', systemLanguageCodes());
   const [schemaVersion, setSchemaVersion] = useState<number>();
 
@@ -57,7 +59,7 @@ export default function SettingsScreen() {
       await action();
     } catch (e) {
       console.error(e);
-      Alert.alert(t('common.failed'), failure);
+      toast.show(failure, { tone: 'error' });
     }
   };
 
@@ -67,7 +69,7 @@ export default function SettingsScreen() {
       text = await pickBackupText();
     } catch (e) {
       console.error(e);
-      Alert.alert(t('common.failed'), t('settings.fileUnreadable'));
+      toast.show(t('settings.fileUnreadable'), { tone: 'error' });
       return;
     }
     if (text === null) return;
@@ -90,7 +92,7 @@ export default function SettingsScreen() {
             onPress: async () => {
               try {
                 await importBackup(db, backup);
-                Alert.alert(t('settings.restoreDoneTitle'), t('settings.restoreDone'));
+                toast.show(t('settings.restoreDone'));
               } catch (e) {
                 Alert.alert(t('settings.backupRejected'), e instanceof BackupError ? e.message : t('settings.restoreFailed'));
               }
@@ -118,7 +120,7 @@ export default function SettingsScreen() {
               navigation.popToTop();
             } catch (e) {
               console.error(e);
-              Alert.alert(t('common.failed'), t('settings.resetFailed'));
+              toast.show(t('settings.resetFailed'), { tone: 'error' });
             }
           }
         }
