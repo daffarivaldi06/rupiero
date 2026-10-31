@@ -104,13 +104,13 @@ describe('migrate', () => {
 });
 
 describe('resetDatabase', () => {
-  it('rebuilds from scratch', async () => {
-    await initDb(db);
+  it('rebuilds from scratch without sample data when asked', async () => {
+    await initDb(db, { seed: false });
     await db.runAsync("INSERT INTO accounts (name, currency) VALUES ('Dompet', 'IDR')");
     await db.runAsync("INSERT INTO categories (name) VALUES ('Sewa')");
     await db.runAsync("INSERT INTO transactions (account_id, category_id, type, amount_minor, date) VALUES (3, 1, 'expense', 100, '2026-10-01')");
 
-    await resetDatabase(db);
+    await resetDatabase(db, { seed: false });
 
     expect(await getUserVersion(db)).toBe(LATEST);
     expect(await accounts()).toHaveLength(2);

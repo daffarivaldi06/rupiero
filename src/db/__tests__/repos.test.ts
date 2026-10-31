@@ -20,7 +20,7 @@ let salary: number;
 
 beforeEach(async () => {
   db = await createTestDb();
-  await initDb(db);
+  await initDb(db, { seed: false });
   [eur, idr] = (await listAccounts(db)).map((a) => a.id);
   food = await createCategory(db, 'Makanan');
   salary = await createCategory(db, 'Gaji');

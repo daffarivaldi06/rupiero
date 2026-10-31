@@ -1,5 +1,7 @@
+import { SEED_SAMPLE_DATA } from '../config/dev';
 import { setUserVersion, type Db } from './client';
 import { migrate } from './migrations';
+import { seedSampleData } from './seed';
 
 export const DATABASE_NAME = 'budget.db';
 
@@ -10,14 +12,19 @@ export async function configureConnection(db: Db): Promise<void> {
   await db.execAsync('PRAGMA foreign_keys = ON');
 }
 
-/** Used as SQLiteProvider's onInit. */
-export async function initDb(db: Db): Promise<void> {
-  await configureConnection(db);
-  await migrate(db);
+export interface InitOptions {
+  seed?: boolean;
 }
 
-/** Development only: drops every table and view, then initialises again. */
-export async function resetDatabase(db: Db): Promise<void> {
+/** Used as SQLiteProvider's onInit. */
+export async function initDb(db: Db, options: InitOptions = {}): Promise<void> {
+  await configureConnection(db);
+  await migrate(db);
+  if (options.seed ?? SEED_SAMPLE_DATA) await seedSampleData(db);
+}
+
+/** Development only: drops every table and view, then initialises again with sample data. */
+export async function resetDatabase(db: Db, options: InitOptions = { seed: true }): Promise<void> {
   const objects = await db.getAllAsync<{ type: 'table' | 'view'; name: string }>(
     "SELECT type, name FROM sqlite_master WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%'",
   );
@@ -32,5 +39,5 @@ export async function resetDatabase(db: Db): Promise<void> {
   } finally {
     await db.execAsync('PRAGMA foreign_keys = ON');
   }
-  await initDb(db);
+  await initDb(db, options);
 }
