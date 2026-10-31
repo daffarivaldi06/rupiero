@@ -14,6 +14,7 @@ import {
 import {
   createCategory,
   countCategoryTransactions,
+  listArchivedCategories,
   deleteCategory,
   reassignAndDeleteCategory,
   setCategoryArchived,
@@ -180,8 +181,10 @@ describe('categories', () => {
     await setCategoryArchived(db, food, true);
     expect((await listCategories(db)).map((c) => c.name)).toEqual(['Gaji']);
     expect((await listTransactions(db))[0].categoryName).toBe('Makanan');
+    expect((await listArchivedCategories(db)).map((c) => c.name)).toEqual(['Makanan']);
     await setCategoryArchived(db, food, false);
     expect((await listCategories(db)).length).toBe(2);
+    expect(await listArchivedCategories(db)).toEqual([]);
   });
 });
 

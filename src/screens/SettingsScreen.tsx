@@ -13,6 +13,14 @@ import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import type { RootNavigation } from '../navigation/types';
 import { usePrivacy } from '../privacy/PrivacyProvider';
 
+const LINKS = [
+  { route: 'Accounts', title: 'Akun', description: 'Tambah, ganti nama, saldo awal, arsip' },
+  { route: 'Categories', title: 'Kategori', description: 'Daftar kategori dan arsip' },
+  { route: 'Budget', title: 'Budget', description: 'Batas pengeluaran per kategori per bulan' },
+  { route: 'Recurring', title: 'Transaksi berulang', description: 'Harian, mingguan, bulanan, tahunan' },
+  { route: 'Subscriptions', title: 'Langganan', description: 'Pengeluaran rutin dan totalnya per bulan' },
+] as const;
+
 export default function SettingsScreen() {
   const db = useSQLiteContext();
   const navigation = useNavigation<RootNavigation>();
@@ -55,13 +63,15 @@ export default function SettingsScreen() {
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.list}>
-        <Pressable onPress={() => navigation.navigate('Accounts')} style={styles.row} accessibilityRole="button">
-          <View style={styles.rowText}>
-            <Txt variant="bodyStrong">Akun</Txt>
-            <Txt variant="caption" tone="inkMuted">Tambah, ganti nama, saldo awal, arsip</Txt>
-          </View>
-          <Txt tone="inkMuted">›</Txt>
-        </Pressable>
+        {LINKS.map((link) => (
+          <Pressable key={link.route} onPress={() => navigation.navigate(link.route)} style={styles.row} accessibilityRole="button">
+            <View style={styles.rowText}>
+              <Txt variant="bodyStrong">{link.title}</Txt>
+              <Txt variant="caption" tone="inkMuted">{link.description}</Txt>
+            </View>
+            <Txt tone="inkMuted">›</Txt>
+          </Pressable>
+        ))}
       </View>
 
       <Txt variant="label" tone="inkMuted" style={styles.sectionLabel}>Privasi</Txt>

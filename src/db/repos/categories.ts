@@ -22,6 +22,14 @@ export async function listCategories(db: Db): Promise<Category[]> {
   return rows.map(toCategory);
 }
 
+/** Archived categories, for bringing them back. */
+export async function listArchivedCategories(db: Db): Promise<Category[]> {
+  const rows = await db.getAllAsync<CategoryRow>(
+    'SELECT id, name, archived, sort_order FROM categories WHERE archived = 1 ORDER BY name',
+  );
+  return rows.map(toCategory);
+}
+
 export async function getCategory(db: Db, id: number): Promise<Category | null> {
   const row = await db.getFirstAsync<CategoryRow>(
     'SELECT id, name, archived, sort_order FROM categories WHERE id = ?',

@@ -8,6 +8,7 @@ import AccountFormScreen from '../screens/AccountFormScreen';
 import AccountsScreen from '../screens/AccountsScreen';
 import BudgetFormScreen from '../screens/BudgetFormScreen';
 import BudgetScreen from '../screens/BudgetScreen';
+import CategoriesScreen from '../screens/CategoriesScreen';
 import CategoryDetailScreen from '../screens/CategoryDetailScreen';
 import CategoryFormScreen from '../screens/CategoryFormScreen';
 import CategoryReassignScreen from '../screens/CategoryReassignScreen';
@@ -15,6 +16,7 @@ import DashboardScreen from '../screens/DashboardScreen';
 import RecurringFormScreen from '../screens/RecurringFormScreen';
 import RecurringListScreen from '../screens/RecurringListScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import SubscriptionsScreen from '../screens/SubscriptionsScreen';
 import TransactionListScreen from '../screens/TransactionListScreen';
 import TransferFormScreen from '../screens/TransferFormScreen';
 import type { RootStackParamList } from './types';
@@ -55,6 +57,8 @@ export function RootNavigator() {
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Pengaturan' }} />
         <Stack.Screen name="Accounts" component={AccountsScreen} options={{ title: 'Akun' }} />
         <Stack.Screen name="Budget" component={BudgetScreen} options={{ title: 'Budget' }} />
+        <Stack.Screen name="Categories" component={CategoriesScreen} options={{ title: 'Kategori' }} />
+        <Stack.Screen name="Subscriptions" component={SubscriptionsScreen} options={{ title: 'Langganan' }} />
         <Stack.Screen name="Recurring" component={RecurringListScreen} options={{ title: 'Transaksi Berulang' }} />
         <Stack.Screen
           name="RecurringForm"
