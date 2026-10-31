@@ -1,4 +1,5 @@
 import type { Month } from '../../domain/dates';
+import type { CurrencyCode } from '../../domain/money';
 import type { CurrencyTotals } from '../../domain/types';
 import type { Db, SQLParam } from '../client';
 
@@ -29,5 +30,27 @@ export async function getMonthSummary(
      GROUP BY a.currency
      ORDER BY a.currency`,
     ...params,
+  );
+}
+
+export interface CategoryCurrencyTotal {
+  categoryId: number;
+  currency: CurrencyCode;
+  /** Income minus expense. */
+  netMinor: number;
+}
+
+/** Net per category and currency for a month; only pairs with transactions get a row. */
+export async function getCategoryMonthTotals(db: Db, month: Month): Promise<CategoryCurrencyTotal[]> {
+  return db.getAllAsync<CategoryCurrencyTotal>(
+    `SELECT t.category_id AS categoryId,
+            a.currency AS currency,
+            SUM(CASE t.type WHEN 'income' THEN t.amount_minor ELSE -t.amount_minor END) AS netMinor
+     FROM transactions t
+     JOIN accounts a ON a.id = t.account_id
+     WHERE t.month = ? AND a.archived = 0
+     GROUP BY t.category_id, a.currency
+     ORDER BY a.currency, t.category_id`,
+    month,
   );
 }

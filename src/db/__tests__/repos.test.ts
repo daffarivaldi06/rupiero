@@ -1,6 +1,6 @@
 import { createTestDb, type TestDb } from '../../../test/sqljs-db';
 import { initDb } from '../init';
-import { createAccount, getAccount, listAccounts, listAccountsWithBalance } from '../repos/accounts';
+import { createAccount, getAccount, getBalancesByCurrency, listAccounts, listAccountsWithBalance } from '../repos/accounts';
 import {
   createCategory,
   deleteCategoryWithTransactions,
@@ -8,7 +8,7 @@ import {
   listCategories,
   renameCategory,
 } from '../repos/categories';
-import { getMonthSummary } from '../repos/reports';
+import { getCategoryMonthTotals, getMonthSummary } from '../repos/reports';
 import { getSetting, setSetting } from '../repos/settings';
 import { createTransaction, listTransactions } from '../repos/transactions';
 
@@ -48,6 +48,23 @@ describe('accounts', () => {
 
     const balances = Object.fromEntries((await listAccountsWithBalance(db)).map((a) => [a.name, a.balanceMinor]));
     expect(balances).toEqual({ 'Rekening EUR': 182655, 'Rekening IDR': 0, Dompet: 65_000 });
+  });
+
+  it('sums balances per currency, optionally up to a date', async () => {
+    const wallet = await createAccount(db, { name: 'Dompet', currency: 'IDR', openingBalanceMinor: 100_000 });
+    await createAccount(db, { name: 'Tabungan', currency: 'IDR', openingBalanceMinor: 250_000 });
+    await createTransaction(db, { accountId: eur, categoryId: salary, type: 'income', amountMinor: 185000, date: '2026-09-30' });
+    await createTransaction(db, { accountId: eur, categoryId: food, type: 'expense', amountMinor: 2345, date: '2026-10-01' });
+    await createTransaction(db, { accountId: wallet, categoryId: food, type: 'expense', amountMinor: 35_000, date: '2026-10-02' });
+
+    expect(await getBalancesByCurrency(db)).toEqual([
+      { currency: 'EUR', balanceMinor: 182655 },
+      { currency: 'IDR', balanceMinor: 315_000 },
+    ]);
+    expect(await getBalancesByCurrency(db, { asOf: '2026-09-30' })).toEqual([
+      { currency: 'EUR', balanceMinor: 185000 },
+      { currency: 'IDR', balanceMinor: 350_000 },
+    ]);
   });
 });
 
@@ -134,6 +151,23 @@ describe('getMonthSummary', () => {
       { currency: 'EUR', incomeMinor: 0, expenseMinor: 0 },
       { currency: 'IDR', incomeMinor: 0, expenseMinor: 0 },
     ]);
+  });
+});
+
+describe('getCategoryMonthTotals', () => {
+  it('nets each category per currency for the month only', async () => {
+    await createTransaction(db, { accountId: eur, categoryId: salary, type: 'income', amountMinor: 185000, date: '2026-10-01' });
+    await createTransaction(db, { accountId: eur, categoryId: food, type: 'expense', amountMinor: 2345, date: '2026-10-02' });
+    await createTransaction(db, { accountId: eur, categoryId: food, type: 'income', amountMinor: 345, date: '2026-10-03' });
+    await createTransaction(db, { accountId: idr, categoryId: food, type: 'expense', amountMinor: 35_000, date: '2026-10-04' });
+    await createTransaction(db, { accountId: idr, categoryId: food, type: 'expense', amountMinor: 99_000, date: '2026-09-30' });
+
+    expect(await getCategoryMonthTotals(db, '2026-10')).toEqual([
+      { categoryId: food, currency: 'EUR', netMinor: -2000 },
+      { categoryId: salary, currency: 'EUR', netMinor: 185000 },
+      { categoryId: food, currency: 'IDR', netMinor: -35_000 },
+    ]);
+    expect(await getCategoryMonthTotals(db, '2026-11')).toEqual([]);
   });
 });
 

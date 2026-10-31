@@ -42,6 +42,11 @@ export interface TransactionDetail extends Transaction {
 }
 
 /** Income and expense of one currency over some period. */
+export interface CurrencyBalance {
+  currency: CurrencyCode;
+  balanceMinor: number;
+}
+
 export interface CurrencyTotals {
   currency: CurrencyCode;
   incomeMinor: number;

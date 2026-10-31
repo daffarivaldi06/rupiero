@@ -1,5 +1,6 @@
 import type { CurrencyCode } from '../../domain/money';
-import type { Account, AccountWithBalance } from '../../domain/types';
+import type { LocalDate } from '../../domain/dates';
+import type { Account, AccountWithBalance, CurrencyBalance } from '../../domain/types';
 import type { Db } from '../client';
 
 interface AccountRow {
@@ -45,6 +46,31 @@ export async function listAccountsWithBalance(db: Db): Promise<AccountWithBalanc
      ORDER BY a.sort_order, a.name`,
   );
   return rows.map((row) => ({ ...toAccount(row), balanceMinor: row.balance_minor }));
+}
+
+/**
+ * Total balance per currency over active accounts (opening balance + transactions), never mixing
+ * currencies. With `asOf`, only transactions dated on or before that day count.
+ */
+export async function getBalancesByCurrency(db: Db, options: { asOf?: LocalDate } = {}): Promise<CurrencyBalance[]> {
+  const asOf = options.asOf ?? null;
+  return db.getAllAsync<CurrencyBalance>(
+    `SELECT currency, SUM(balance) AS balanceMinor
+     FROM (
+       SELECT a.currency,
+              a.opening_balance_minor + COALESCE(SUM(
+                CASE t.type WHEN 'income' THEN t.amount_minor ELSE -t.amount_minor END
+              ), 0) AS balance
+       FROM accounts a
+       LEFT JOIN transactions t ON t.account_id = a.id AND (? IS NULL OR t.date <= ?)
+       WHERE a.archived = 0
+       GROUP BY a.id
+     )
+     GROUP BY currency
+     ORDER BY currency`,
+    asOf,
+    asOf,
+  );
 }
 
 export async function getAccount(db: Db, id: number): Promise<Account | null> {
