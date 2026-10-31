@@ -13,8 +13,8 @@
 | 1.5 | ✅ selesai (tag `phase-1.5-done`) | Disetujui bersama review Fase 1.6 (2026-10-31) |
 | 1.6 | ✅ selesai (tag `phase-1.6-done`) | Review screenshot + 5 perbaikan (2026-10-31): count-up saldo, detail kategori bergaya ledger, ringkasan tanpa minus, subtotal harian hanya jika >1 transaksi, ikon adaptif lebih besar |
 | 2 | ✅ selesai (tag `phase-2-done`) | Uji di HP lolos (2026-10-31) |
-| 2.1 | 🔄 sedang dikerjakan | Sembunyikan saldo |
-| 3 | belum dimulai | Termasuk frekuensi harian dan kembalikan kategori arsip |
+| 2.1 | ✅ kode selesai, **menunggu uji manual** | Sembunyikan saldo; diuji di emulator. Tag `phase-2.1-done` setelah uji di HP |
+| 3 | ✅ kode selesai, **menunggu uji manual** | 260 test lolos; typecheck + lint bersih; diuji di emulator (budget + salin, berulang harian/bulanan, langganan, arsip kategori). Tag `phase-3-done` setelah uji di HP |
 | 4–5 | belum dimulai | |
 | 6 | backlog | Belum dijadwalkan; tiap item butuh persetujuan sendiri |
 
@@ -53,6 +53,18 @@ Penyimpangan dari rencana (Fase 2):
 - Hapus kategori yang masih dipakai: pilih "Pindahkan…" (layar `CategoryReassign`) atau "Arsipkan". Kategori yang diarsipkan belum bisa dikembalikan dari UI (backlog).
 - `MoneyInput` dan `TransactionFormScreen` dihapus; nominal hanya lewat keypad quick-add. Form akun/transfer memakai input teks biasa + `parseAmount`.
 - Date picker Android masih bergaya bawaan sistem (teal), belum mengikuti token tema.
+
+Penyimpangan dari rencana (Fase 2.1 & 3):
+- Saat saldo disembunyikan, warna pemasukan/pengeluaran juga dinetralkan (merah/hijau masih membocorkan arah). Persentase budget tetap tampil.
+- Quick-add: tombol back Android sekarang menutup sheet (sebelumnya menutup app; ditemukan saat uji Fase 3).
+- `DataProvider` menggantikan revision milik quick-add: satu revision data untuk semua layar, dan dialah yang menjalankan
+  `materializeDue` saat start dan saat app kembali ke foreground. Widget juga menjalankannya sebelum membaca saldo.
+- "Berikutnya" (`nextDueDate`) melewati kemunculan yang sudah dicatat hari ini (memakai `last_generated_date`).
+- "Hentikan" pada aturan yang belum mulai = dijeda (karena `end_date` tidak boleh sebelum `start_date`).
+- Realisasi budget = pengeluaran kategori saja; pemasukan/refund di kategori itu tidak mengurangi. Dashboard hanya menampilkan budget ≥ 80%;
+  layar Budget bisa dibuka dari Dashboard dan Pengaturan.
+- Toggle "Ulangi" di quick-add memakai interval 1; interval lain lewat form Transaksi Berulang.
+- Catatan dev: file watcher Metro di mesin ini sering tidak menangkap perubahan; jalankan `npx expo start --clear` ulang bila UI tidak berubah.
 
 ## Prinsip kerja
 
