@@ -15,7 +15,7 @@
 | 2 | ✅ selesai (tag `phase-2-done`) | Uji di HP lolos (2026-10-31) |
 | 2.1 | ✅ selesai (tag `phase-2.1-done`) | Uji di HP lolos (2026-10-31) |
 | 3 | ✅ selesai (tag `phase-3-done`) | Uji di HP lolos (2026-10-31) |
-| 4 | ✅ kode selesai, **menunggu uji manual** | 285 test lolos; typecheck + lint bersih; diuji di emulator (widget light/dark + update setelah simpan, deep link dingin/hangat/id tak dikenal, grafik, ekspor JSON/CSV, impor valid & rusak). Tag `phase-4-done` setelah uji di HP |
+| 4 | ✅ selesai (tag `phase-4-done`) | Uji di HP lolos (2026-10-31), plus revisi widget (bar budget, warna peringatan, ukuran 3×2). Build release pertama 1.0.0 (versionCode 1), lihat [docs/RELEASE.md](docs/RELEASE.md) |
 | 5 | belum dimulai | |
 | 6 | backlog | Belum dijadwalkan; tiap item butuh persetujuan sendiri |
 
