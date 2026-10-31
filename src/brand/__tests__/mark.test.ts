@@ -18,6 +18,12 @@ describe('buildMarkSvg', () => {
     expect(svg).toContain('<rect x="-50" y="-50" width="200" height="200" fill="#FFFFFF"/>');
   });
 
+  it('rounds the frame on request, within the range the ledger rule allows', () => {
+    expect(buildMarkSvg(colors)).toContain('rx="7"');
+    expect(buildMarkSvg(colors, { frameRadius: 18 })).toContain('rx="18"');
+    expect(() => buildMarkSvg(colors, { frameRadius: 19 })).toThrow(RangeError);
+  });
+
   it('rejects padding that leaves no room for the mark', () => {
     expect(() => buildMarkSvg(colors, { padding: 0.5 })).toThrow(RangeError);
     expect(() => buildMarkSvg(colors, { padding: -0.1 })).toThrow(RangeError);

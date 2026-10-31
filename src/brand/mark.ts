@@ -24,6 +24,11 @@ export interface MarkSvgOptions {
   background?: string;
   /** Empty space around the mark as a fraction of the canvas side (0–0.5). */
   padding?: number;
+  /**
+   * Corner radius of the frame on the 100 grid (default 7). Rounder corners let a bigger mark sit
+   * inside a round launcher mask; up to 18 the ledger rule still meets the frame cleanly.
+   */
+  frameRadius?: number;
 }
 
 export const MARK_VIEWBOX = 100;
@@ -38,18 +43,19 @@ const LEG = [
   [75, 73],
   [63, 73],
 ] as const;
-const BARS = { left: 24, right: 48, height: 5, upper: 35.5, lower: 45.5 };
+// Thick enough to read as two bars at launcher size (~48 dp).
+const BARS = { left: 23, right: 48, height: 7, upper: 34, lower: 44.5 };
 // Ledger rule the letter stands on, running into the frame on both sides.
 const RULE = { y: 74.75, height: 3.5 };
 
 const n = (value: number) => Number(value.toFixed(3)).toString();
 
 /** The mark's shapes without the outer <svg>, on the 100×100 grid. */
-export function markShapes({ ink, eur, idr }: MarkColors): string {
+export function markShapes({ ink, eur, idr }: MarkColors, frameRadius = FRAME.radius): string {
   const radius = (BOWL.bottom - BOWL.top) / 2;
   const stemCentre = STEM.x + STEM.width / 2;
   return [
-    `<rect x="${FRAME.x}" y="${FRAME.y}" width="${FRAME.size}" height="${FRAME.size}" rx="${FRAME.radius}" ` +
+    `<rect x="${FRAME.x}" y="${FRAME.y}" width="${FRAME.size}" height="${FRAME.size}" rx="${frameRadius}" ` +
       `fill="none" stroke="${ink}" stroke-width="${FRAME.stroke}"/>`,
     `<rect x="${STEM.x}" y="${STEM.top}" width="${STEM.width}" height="${STEM.bottom - STEM.top}" fill="${ink}"/>`,
     `<path d="M${n(stemCentre)} ${BOWL.top} H${BOWL.right} A${n(radius)} ${n(radius)} 0 0 1 ${BOWL.right} ${BOWL.bottom} ` +
@@ -62,8 +68,11 @@ export function markShapes({ ink, eur, idr }: MarkColors): string {
 }
 
 /** A standalone square SVG document of the mark. */
-export function buildMarkSvg(colors: MarkColors, { background, padding = 0 }: MarkSvgOptions = {}): string {
+export function buildMarkSvg(colors: MarkColors, { background, padding = 0, frameRadius }: MarkSvgOptions = {}): string {
   if (padding < 0 || padding >= 0.5) throw new RangeError(`padding must be in [0, 0.5): ${padding}`);
+  if (frameRadius !== undefined && (frameRadius < 0 || frameRadius > 18)) {
+    throw new RangeError(`frameRadius must be in [0, 18]: ${frameRadius}`);
+  }
   // Grow the viewBox around the 100×100 grid so the mark takes (1 − 2·padding) of the canvas.
   const side = MARK_VIEWBOX / (1 - 2 * padding);
   const offset = (side - MARK_VIEWBOX) / 2;
@@ -71,7 +80,7 @@ export function buildMarkSvg(colors: MarkColors, { background, padding = 0 }: Ma
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${n(-offset)} ${n(-offset)} ${n(side)} ${n(side)}">` +
     fill +
-    markShapes(colors) +
+    markShapes(colors, frameRadius) +
     '</svg>'
   );
 }
