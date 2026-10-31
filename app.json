@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "BudgetApp",
+    "name": "Rupiero",
     "slug": "BudgetApp",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -31,10 +31,10 @@
           "widgets": [
             {
               "name": "BudgetWidget",
-              "label": "Budget Summary",
+              "label": "Saldo Rupiero",
               "minWidth": "250dp",
               "minHeight": "150dp",
-              "description": "Displays budget summary",
+              "description": "Saldo akun Rupiero",
               "previewImage": "./assets/icon.png"
             }
           ]
