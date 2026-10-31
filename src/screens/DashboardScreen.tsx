@@ -6,8 +6,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { listCategories } from '../db/repos/categories';
 import { getMonthSummary } from '../db/repos/reports';
-import { addMonths, currentMonth, formatMonthLabel } from '../domain/dates';
+import { currentMonth } from '../domain/dates';
 import type { Category, CurrencyTotals } from '../domain/types';
+import { AppHeader } from '../components/AppHeader';
 import { MonthSummaryCard } from '../components/MonthSummaryCard';
 import { Txt } from '../components/Txt';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
@@ -46,70 +47,50 @@ export default function DashboardScreen() {
   };
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={color.ink} />}
-    >
-      <View style={styles.monthSelector}>
-        <Pressable
-          onPress={() => setSelectedMonth(addMonths(selectedMonth, -1))}
-          style={styles.monthButton}
-          accessibilityRole="button"
-          accessibilityLabel="Bulan sebelumnya"
-        >
-          <Txt variant="title">‹</Txt>
-        </Pressable>
-        <Txt variant="heading">{formatMonthLabel(selectedMonth)}</Txt>
-        <Pressable
-          onPress={() => setSelectedMonth(addMonths(selectedMonth, 1))}
-          style={styles.monthButton}
-          accessibilityRole="button"
-          accessibilityLabel="Bulan berikutnya"
-        >
-          <Txt variant="title">›</Txt>
-        </Pressable>
-      </View>
+    <View style={styles.screen}>
+      <AppHeader
+        month={selectedMonth}
+        onChangeMonth={setSelectedMonth}
+        onPressSettings={() => navigation.navigate('Settings')}
+      />
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={color.ink} />}
+      >
 
-      <MonthSummaryCard title="Sisa uang bulan ini" totals={totals} />
+        <MonthSummaryCard title="Sisa uang bulan ini" totals={totals} />
 
-      <Txt variant="title" style={styles.sectionTitle}>Kategori</Txt>
-      <View style={styles.list}>
-        {categories.map((cat) => (
-          <Pressable
-            key={cat.id}
-            onPress={() => navigation.navigate('CategoryDetail', { category: cat.name, categoryId: cat.id })}
-            style={styles.row}
-            accessibilityRole="button"
-          >
-            <Txt style={styles.rowText} numberOfLines={1}>{cat.name}</Txt>
-            <Txt tone="inkMuted">›</Txt>
+        <Txt variant="title" style={styles.sectionTitle}>Kategori</Txt>
+        <View style={styles.list}>
+          {categories.map((cat) => (
+            <Pressable
+              key={cat.id}
+              onPress={() => navigation.navigate('CategoryDetail', { category: cat.name, categoryId: cat.id })}
+              style={styles.row}
+              accessibilityRole="button"
+            >
+              <Txt style={styles.rowText} numberOfLines={1}>{cat.name}</Txt>
+              <Txt tone="inkMuted">›</Txt>
+            </Pressable>
+          ))}
+          <Pressable onPress={() => navigation.navigate('CategoryForm')} style={styles.row} accessibilityRole="button">
+            <Txt variant="bodyStrong">+ Tambah kategori</Txt>
           </Pressable>
-        ))}
-        <Pressable onPress={() => navigation.navigate('CategoryForm')} style={styles.row} accessibilityRole="button">
-          <Txt variant="bodyStrong">+ Tambah kategori</Txt>
-        </Pressable>
-      </View>
-    </ScrollView>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const makeStyles = ({ color, space }: Theme) =>
   StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: color.bg,
+    },
     content: {
       padding: space.lg,
       paddingBottom: space.xxl,
-    },
-    monthSelector: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: space.sm,
-    },
-    monthButton: {
-      minWidth: 48,
-      minHeight: 48,
-      alignItems: 'center',
-      justifyContent: 'center',
     },
     sectionTitle: {
       marginTop: space.xl,

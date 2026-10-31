@@ -6,6 +6,7 @@ import {
   formatDateLabel,
   formatDayHeader,
   formatMonthLabel,
+  formatMonthShort,
   fromLocalDate,
   isValidLocalDate,
   monthOf,
@@ -78,6 +79,8 @@ describe('labels', () => {
   it('formats in Indonesian', () => {
     expect(formatMonthLabel('2026-10')).toBe('Oktober 2026');
     expect(formatMonthLabel('2027-01')).toBe('Januari 2027');
+    expect(formatMonthShort('2026-10')).toBe('Okt 2026');
+    expect(formatMonthShort('2026-05')).toBe('Mei 2026');
     expect(formatDateLabel('2026-10-05')).toBe('5 Okt 2026');
     expect(formatDateLabel('2026-08-31')).toBe('31 Agu 2026');
   });

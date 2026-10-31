@@ -86,6 +86,12 @@ export function formatMonthLabel(month: Month): string {
   return `${MONTH_NAMES[m - 1]} ${year}`;
 }
 
+/** "2026-10" → "Okt 2026" (compact headers). */
+export function formatMonthShort(month: Month): string {
+  const [year, m] = parseMonth(month);
+  return `${MONTH_SHORT[m - 1]} ${year}`;
+}
+
 /** "2026-10-31" → "31 Okt 2026". */
 export function formatDateLabel(date: LocalDate): string {
   if (!isValidLocalDate(date)) throw new RangeError(`Invalid date: ${date}`);

@@ -3,11 +3,10 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SQLiteProvider } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
-import { Pressable } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { DATABASE_NAME, initDb } from './src/db/init';
 import { ThemeProvider, navigationTheme, useTheme } from './src/theme/ThemeProvider';
-import { Txt } from './src/components/Txt';
 import type { TransactionType } from './src/domain/types';
 
 import DashboardScreen from './src/screens/DashboardScreen';
@@ -28,11 +27,13 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <SQLiteProvider databaseName={DATABASE_NAME} onInit={initDb}>
-        <RootNavigator />
-      </SQLiteProvider>
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <SQLiteProvider databaseName={DATABASE_NAME} onInit={initDb}>
+          <RootNavigator />
+        </SQLiteProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 
@@ -54,14 +55,7 @@ function RootNavigator() {
         <Stack.Screen
           name="Dashboard"
           component={DashboardScreen}
-          options={({ navigation }) => ({ 
-            title: 'BudgetApp',
-            headerRight: () => (
-              <Pressable onPress={() => navigation.navigate('Settings')} accessibilityRole="button" hitSlop={12}>
-                <Txt variant="bodyStrong">Pengaturan</Txt>
-              </Pressable>
-            ),
-          })}
+          options={{ title: 'Rupiero', headerShown: false }}
         />
         <Stack.Screen
           name="CategoryDetail"
