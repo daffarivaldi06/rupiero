@@ -106,13 +106,13 @@ export default function CategoryDetailScreen() {
       <View style={styles.actionRow}>
         <Button
           title="+ Pemasukan"
-          variant="income"
+          variant="outline"
           onPress={() => navigation.navigate('TransactionForm', { categoryId, initialType: 'income' })}
           style={styles.actionButton}
         />
         <Button
           title="− Pengeluaran"
-          variant="danger"
+          variant="outline"
           onPress={() => navigation.navigate('TransactionForm', { categoryId, initialType: 'expense' })}
           style={styles.actionButton}
         />
@@ -127,7 +127,7 @@ export default function CategoryDetailScreen() {
             {day.items.map((t) => (
               <LedgerRow
                 key={t.id}
-                title={t.note || 'Tanpa keterangan'}
+                title={t.note || undefined}
                 subtitle={t.accountName}
                 signedMinor={signed(t)}
                 currency={t.currency}

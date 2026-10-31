@@ -6,7 +6,8 @@ import { Txt } from './Txt';
 import { Money } from './Money';
 
 interface LedgerRowProps {
-  title: string;
+  /** Omitted when there is nothing to say (e.g. no note); the subtitle then takes the first line. */
+  title?: string;
   subtitle?: string;
   /** Signed amount: positive in, negative out. */
   signedMinor: number;
@@ -20,8 +21,14 @@ export const LedgerRow: React.FC<LedgerRowProps> = ({ title, subtitle, signedMin
   const content = (
     <>
       <View style={styles.text}>
-        <Txt numberOfLines={1}>{title}</Txt>
-        {subtitle ? (
+        {title ? (
+          <Txt numberOfLines={1}>{title}</Txt>
+        ) : (
+          <Txt tone="inkMuted" numberOfLines={1}>
+            {subtitle}
+          </Txt>
+        )}
+        {title && subtitle ? (
           <Txt variant="caption" tone="inkMuted" numberOfLines={1}>
             {subtitle}
           </Txt>
