@@ -12,8 +12,10 @@
 | 1 | ✅ selesai (tag `phase-1-done`) | Uji manual di perangkat lolos (2026-10-31) |
 | 1.5 | ✅ selesai (tag `phase-1.5-done`) | Disetujui bersama review Fase 1.6 (2026-10-31) |
 | 1.6 | ✅ selesai (tag `phase-1.6-done`) | Review screenshot + 5 perbaikan (2026-10-31): count-up saldo, detail kategori bergaya ledger, ringkasan tanpa minus, subtotal harian hanya jika >1 transaksi, ikon adaptif lebih besar |
-| 2 | ✅ kode selesai, **menunggu uji manual** | 214 test lolos; typecheck + lint bersih; diuji di emulator (quick-add, pratinjau kurs, transfer + fee, list, edit/ubah tanggal, rename, hapus kategori). Tag `phase-2-done` setelah uji di perangkat |
-| 3–5 | belum dimulai | |
+| 2 | ✅ selesai (tag `phase-2-done`) | Uji di HP lolos (2026-10-31) |
+| 2.1 | 🔄 sedang dikerjakan | Sembunyikan saldo |
+| 3 | belum dimulai | Termasuk frekuensi harian dan kembalikan kategori arsip |
+| 4–5 | belum dimulai | |
 | 6 | backlog | Belum dijadwalkan; tiap item butuh persetujuan sendiri |
 
 Penyimpangan dari rencana (Fase 0–1):
@@ -484,6 +486,29 @@ CREATE VIEW ledger AS
 
 ---
 
+## Fase 2.1: Sembunyikan saldo
+
+Tujuan: membuka app di tempat umum tanpa memperlihatkan nominal.
+
+- Ikon mata di header Dashboard untuk menyalakan/mematikan; status disimpan di `settings` (`hide_balances`) dan berlaku di semua layar.
+- Satu titik kontrol: komponen `<Money>` membaca status dari `PrivacyProvider`. Saat aktif, nominal tampil sebagai "€ ••••" / "Rp ••••"
+  (tanpa tanda dan tanpa animasi hitung), dan screen reader membaca "Saldo disembunyikan".
+  Logika tampilan di fungsi murni `moneyDisplay()` (`domain/money.ts`) supaya bisa dites.
+- Nominal yang sedang diketik di quick-add (dan pratinjau konversinya) tetap terlihat (`<Money reveal>`). Input teks di form akun/transfer tetap terlihat.
+- Pengaturan: "Sembunyikan juga di widget" (`hide_balances_widget`). Widget menyembunyikan saldo hanya jika kedua setting aktif,
+  dan diperbarui segera setelah status berubah (`requestWidgetUpdate`).
+- Header: jika layar sempit (< 380 dp), wordmark hanya menampilkan logo agar ikon mata muat.
+
+**File:** `src/privacy/PrivacyProvider.tsx`, `src/components/EyeIcon.tsx`, `src/widget/data.ts` (+ test), `src/widget/refresh.ts`,
+`src/domain/money.ts` (`MASK`, `moneyDisplay`), `src/db/repos/settings.ts`, `Money.tsx`, `AppHeader.tsx`, `SettingsScreen.tsx`, `QuickAddSheet.tsx`.
+
+**Kriteria selesai**
+- Test: `moneyDisplay` menyamarkan dan memberi label aksesibilitas; setting tersimpan; data widget tersamarkan hanya jika kedua setting aktif.
+- Manual: toggle mata menyamarkan Dashboard, detail kategori, list transaksi, akun, langganan; status bertahan setelah app ditutup;
+  quick-add tetap menampilkan angka yang diketik; TalkBack membaca "Saldo disembunyikan"; widget ikut tersamarkan jika opsi aktif.
+
+---
+
 ## Fase 3: Budget per kategori/bulan, recurring rules, langganan
 
 ### Skema v3 (migrasi `003_budgets_recurring.ts`)
@@ -505,7 +530,7 @@ CREATE TABLE recurring_rules (
   type                TEXT    NOT NULL CHECK (type IN ('income','expense')),
   amount_minor        INTEGER NOT NULL CHECK (amount_minor > 0),
   note                TEXT    NOT NULL DEFAULT '',
-  frequency           TEXT    NOT NULL CHECK (frequency IN ('weekly','monthly','yearly')),
+  frequency           TEXT    NOT NULL CHECK (frequency IN ('daily','weekly','monthly','yearly')),
   interval_count      INTEGER NOT NULL DEFAULT 1 CHECK (interval_count >= 1),
   start_date          TEXT    NOT NULL,
   end_date            TEXT,                      -- NULL = tanpa akhir; "stop" = isi tanggal ini
@@ -529,6 +554,10 @@ CREATE UNIQUE INDEX idx_tx_rule_date ON transactions(recurring_rule_id, date) WH
 - **Langganan:** `SubscriptionsScreen.tsx` menampilkan recurring rules pengeluaran yang aktif (mis. Spotify, Free Mobile, asuransi):
   nominal, frekuensi, tanggal jatuh tempo berikutnya, dan **total per bulan per mata uang** (mingguan ×52/12, tahunan ÷12, dibulatkan per minor unit).
   Domain: `monthlyEquivalent(rule)` dan `nextDueDate(rule, today)` di `recurrence.ts`.
+- **Frekuensi harian** (tambahan 2026-10-31): `daily` dengan `interval_count` (mis. tiap 2 hari) di skema, `recurrence.ts`, form, dan test.
+  Ekuivalen bulanan harian = nominal × 365 / 12 / interval.
+- **Kembalikan kategori arsip** (tambahan 2026-10-31): layar `CategoriesScreen.tsx` (dari Pengaturan) berisi daftar kategori aktif dan bagian "Arsip"
+  dengan tombol "Kembalikan". Repo: `listArchivedCategories`.
 
 ### Langkah
 1. `feat(db): add budgets and recurring_rules (v3)` + test migrasi v2→v3.
@@ -544,8 +573,10 @@ CREATE UNIQUE INDEX idx_tx_rule_date ON transactions(recurring_rule_id, date) WH
 **Kriteria selesai**
 - Test: aturan bulanan tanggal 31 menghasilkan 28/29 Feb, 30 Apr, dst. Materialisasi ganda tidak membuat duplikat. Aturan yang di-stop tidak menghasilkan transaksi baru.
   Ekuivalen bulanan: €9,99/minggu → €43,29/bulan, Rp 1.200.000/tahun → Rp 100.000/bulan.
+  Harian: aturan tiap 2 hari mulai 30 Okt menghasilkan 30 Okt, 1 Nov, 3 Nov; €1/hari → €30,42/bulan.
 - Manual: set budget Makanan €300 lalu catat €250, progress tampil 83% dengan warna peringatan. "Salin dari bulan lalu" berfungsi.
   Aturan sewa bulanan muncul sekali per bulan dan berhenti setelah di-stop. Layar langganan menampilkan total EUR dan IDR terpisah.
+  Kategori yang diarsipkan muncul di "Arsip" dan bisa dikembalikan.
 - Total widget/Dashboard/list konsisten (recurring sekarang berupa transaksi nyata, bukan hitungan semu).
 
 ---
