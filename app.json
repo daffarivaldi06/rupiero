@@ -20,13 +20,15 @@
       "backgroundColor": "#F4F1EA",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.daffarivaldi.budgetapp"
+      "package": "com.daffarivaldi.budgetapp",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "./plugins/with-latest-intent.js",
+      "./plugins/with-release-signing.js",
       [
         "./plugins/with-night-window-background.js",
         {
