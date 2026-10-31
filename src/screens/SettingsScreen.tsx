@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Text, Alert, ScrollView } from 'react-native';
+import { View, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -8,16 +8,18 @@ import { SHOW_DEV_TOOLS } from '../config/dev';
 import { getUserVersion } from '../db/client';
 import { resetDatabase } from '../db/init';
 import { listAccountsWithBalance } from '../db/repos/accounts';
-import { formatMoney } from '../domain/money';
 import type { AccountWithBalance } from '../domain/types';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
-import { colors } from '../theme/colors';
+import { Money } from '../components/Money';
+import { Txt } from '../components/Txt';
+import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { RootStackParamList } from '../../App';
 
 export default function SettingsScreen() {
   const db = useSQLiteContext();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const styles = useThemedStyles(makeStyles);
   const [accounts, setAccounts] = useState<AccountWithBalance[]>([]);
   const [schemaVersion, setSchemaVersion] = useState<number>();
 
@@ -54,76 +56,69 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Card>
-        <Text style={styles.sectionTitle}>Akun</Text>
-        <Text style={styles.description}>
-          Setiap akun memakai satu mata uang. Saldo tidak dikonversi antar mata uang.
-        </Text>
+    <ScrollView contentContainerStyle={styles.content}>
+      <Txt variant="title">Akun</Txt>
+      <Txt tone="inkMuted" style={styles.description}>
+        Setiap akun memakai satu mata uang. Saldo tidak dikonversi antar mata uang.
+      </Txt>
+      <View style={styles.list}>
         {accounts.map((account) => (
           <View key={account.id} style={styles.accountRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.accountName}>{account.name}</Text>
-              <Text style={styles.accountCurrency}>{account.currency}</Text>
+            <View style={styles.accountText}>
+              <Txt variant="bodyStrong">{account.name}</Txt>
+              <Txt variant="code" tone={account.currency === 'EUR' ? 'eur' : 'idrText'}>{account.currency}</Txt>
             </View>
-            <Text style={styles.accountBalance}>{formatMoney(account.balanceMinor, account.currency)}</Text>
+            <Money minor={account.balanceMinor} currency={account.currency} variant="bodyStrong" />
           </View>
         ))}
-      </Card>
+      </View>
 
       {SHOW_DEV_TOOLS && (
-        <Card style={{ marginTop: 16, borderColor: colors.danger, borderWidth: 1 }}>
-          <Text style={[styles.sectionTitle, { color: colors.danger }]}>Alat Pengembang</Text>
-          <Text style={styles.description}>
+        <Card style={styles.devCard}>
+          <Txt variant="heading" tone="expense">Alat Pengembang</Txt>
+          <Txt variant="caption" tone="inkMuted" style={styles.devDescription}>
             Hanya tampil di build development. Skema database: v{schemaVersion ?? '?'}
-          </Text>
+          </Txt>
           <Button title="Reset & isi data contoh" variant="danger" onPress={() => handleReset(true)} />
           <Button title="Reset ke kosong" variant="outline" onPress={() => handleReset(false)} />
         </Card>
       )}
-
-      <View style={{ height: 40 }} />
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  sectionTitle: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  description: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  accountRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  accountName: {
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  accountCurrency: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  accountBalance: {
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
+const makeStyles = ({ color, space }: Theme) =>
+  StyleSheet.create({
+    content: {
+      padding: space.lg,
+      paddingBottom: space.xxl,
+    },
+    description: {
+      marginTop: space.xs,
+      marginBottom: space.lg,
+    },
+    list: {
+      borderTopWidth: 1,
+      borderTopColor: color.ink,
+    },
+    accountRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      minHeight: 56,
+      paddingVertical: space.sm,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: color.line,
+    },
+    accountText: {
+      flex: 1,
+    },
+    devCard: {
+      marginTop: space.xxl,
+      borderColor: color.expense,
+      borderWidth: 1,
+    },
+    devDescription: {
+      marginTop: space.xs,
+      marginBottom: space.sm,
+    },
+  });

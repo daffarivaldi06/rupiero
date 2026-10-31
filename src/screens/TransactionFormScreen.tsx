@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Text, Pressable } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Pressable } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 
@@ -13,13 +13,15 @@ import { Input } from '../components/Input';
 import { MoneyInput } from '../components/MoneyInput';
 import { AccountPicker } from '../components/AccountPicker';
 import { Button } from '../components/Button';
-import { colors } from '../theme/colors';
+import { Txt } from '../components/Txt';
+import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { RootStackParamList } from '../../App';
 
 export default function TransactionFormScreen() {
   const db = useSQLiteContext();
   const navigation = useNavigation();
   const route = useRoute<RouteProp<RootStackParamList, 'TransactionForm'>>();
+  const styles = useThemedStyles(makeStyles);
 
   const lockedCategoryId = route.params?.categoryId;
   const initialType = route.params?.initialType;
@@ -76,24 +78,24 @@ export default function TransactionFormScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
-      <Text style={styles.sectionLabel}>Jenis Transaksi</Text>
+    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <Txt variant="label" tone="inkMuted" style={styles.sectionLabel}>Jenis transaksi</Txt>
       <View style={styles.typeSelector}>
         <Button
           title="Pengeluaran"
           variant={type === 'expense' ? 'danger' : 'outline'}
           onPress={() => !initialType && setType('expense')}
-          style={{ flex: 1, marginRight: 5, opacity: initialType && type !== 'expense' ? 0.3 : 1 }}
+          style={[styles.typeButton, initialType && type !== 'expense' ? styles.locked : null]}
         />
         <Button
           title="Pemasukan"
-          variant={type === 'income' ? 'primary' : 'outline'}
+          variant={type === 'income' ? 'income' : 'outline'}
           onPress={() => !initialType && setType('income')}
-          style={{ flex: 1, marginLeft: 5, opacity: initialType && type !== 'income' ? 0.3 : 1 }}
+          style={[styles.typeButton, initialType && type !== 'income' ? styles.locked : null]}
         />
       </View>
 
-      <Text style={styles.sectionLabel}>Akun</Text>
+      <Txt variant="label" tone="inkMuted" style={styles.sectionLabel}>Akun</Txt>
       <AccountPicker
         accounts={accounts}
         selectedId={account?.id ?? null}
@@ -105,7 +107,7 @@ export default function TransactionFormScreen() {
 
       {account && (
         <MoneyInput
-          label={`Nominal (${account.currency})`}
+          label="Nominal"
           currency={account.currency}
           value={amountText}
           onChangeText={(text) => {
@@ -118,30 +120,28 @@ export default function TransactionFormScreen() {
 
       {lockedCategoryId !== undefined ? (
         <View style={styles.scopedCategoryRow}>
-            <Text style={styles.scopedLabel}>Kategori</Text>
-            <View style={styles.scopedBadge}>
-                <Text style={styles.scopedText}>{lockedCategory?.name ?? '…'}</Text>
-            </View>
+          <Txt variant="label" tone="inkMuted">Kategori</Txt>
+          <Txt variant="bodyStrong">{lockedCategory?.name ?? '…'}</Txt>
         </View>
       ) : (
-        <View style={{ marginBottom: 16 }}>
-             <Text style={styles.sectionLabel}>Kategori</Text>
-             <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={styles.catScroll}>
-                {categories.map(cat => (
-                    <Pressable
-                        key={cat.id}
-                        onPress={() => setCategoryId(cat.id)}
-                        style={[
-                            styles.catBadge,
-                            categoryId === cat.id && { backgroundColor: colors.primary, borderColor: colors.primary }
-                        ]}
-                        accessibilityRole="radio"
-                        accessibilityState={{ selected: categoryId === cat.id }}
-                    >
-                        <Text style={[styles.catBadgeText, categoryId === cat.id && { color: '#000' }]}>{cat.name}</Text>
-                    </Pressable>
-                ))}
-             </ScrollView>
+        <View style={styles.categoryBlock}>
+          <Txt variant="label" tone="inkMuted" style={styles.sectionLabel}>Kategori</Txt>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            {categories.map((cat) => {
+              const selected = categoryId === cat.id;
+              return (
+                <Pressable
+                  key={cat.id}
+                  onPress={() => setCategoryId(cat.id)}
+                  style={[styles.chip, selected && styles.chipSelected]}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                >
+                  <Txt variant="label" tone={selected ? 'onInk' : 'ink'}>{cat.name}</Txt>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
         </View>
       )}
 
@@ -154,69 +154,57 @@ export default function TransactionFormScreen() {
       />
 
       <Button title="Simpan Transaksi" onPress={handleSave} style={styles.saveButton} />
-      <View style={{ height: 40 }} />
     </ScrollView>
   );
 }
 
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: colors.background,
-  },
-  sectionLabel: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-  },
-  typeSelector: {
-    flexDirection: 'row',
-    marginBottom: 20,
-  },
-  saveButton: {
-    marginTop: 20,
-  },
-  scopedCategoryRow: {
-    marginVertical: 20,
-    padding: 12,
-    backgroundColor: colors.surface,
-    borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  scopedLabel: {
-    color: colors.textSecondary,
-    fontSize: 14,
-  },
-  scopedBadge: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 16,
-  },
-  scopedText: {
-    color: '#000',
-    fontWeight: 'bold',
-  },
-  catScroll: {
-    flexDirection: 'row',
-    marginBottom: 10,
-  },
-  catBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginRight: 8,
-  },
-  catBadgeText: {
-    color: colors.text,
-    fontSize: 13,
-  },
-});
+const makeStyles = ({ color, radius, space }: Theme) =>
+  StyleSheet.create({
+    content: {
+      padding: space.lg,
+      paddingBottom: space.xxl,
+    },
+    sectionLabel: {
+      marginBottom: space.xs,
+    },
+    typeSelector: {
+      flexDirection: 'row',
+      gap: space.md,
+      marginBottom: space.md,
+    },
+    typeButton: {
+      flex: 1,
+    },
+    locked: {
+      opacity: 0.35,
+    },
+    scopedCategoryRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      minHeight: 48,
+      marginVertical: space.sm,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderColor: color.line,
+    },
+    categoryBlock: {
+      marginVertical: space.sm,
+    },
+    chip: {
+      minHeight: 40,
+      justifyContent: 'center',
+      paddingHorizontal: space.md,
+      borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: color.lineStrong,
+      marginRight: space.sm,
+    },
+    chipSelected: {
+      backgroundColor: color.ink,
+      borderColor: color.ink,
+    },
+    saveButton: {
+      marginTop: space.lg,
+    },
+  });

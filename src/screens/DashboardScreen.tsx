@@ -1,24 +1,23 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, Pressable, Dimensions } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Pressable } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { listCategories } from '../db/repos/categories';
 import { getMonthSummary } from '../db/repos/reports';
 import { addMonths, currentMonth, formatMonthLabel } from '../domain/dates';
 import type { Category, CurrencyTotals } from '../domain/types';
-import { Card } from '../components/Card';
 import { MonthSummaryCard } from '../components/MonthSummaryCard';
-import { colors } from '../theme/colors';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Txt } from '../components/Txt';
+import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { RootStackParamList } from '../../App';
-
-const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 48) / 2;
 
 export default function DashboardScreen() {
   const db = useSQLiteContext();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { color } = useTheme();
+  const styles = useThemedStyles(makeStyles);
 
   const [totals, setTotals] = useState<CurrencyTotals[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -48,8 +47,8 @@ export default function DashboardScreen() {
 
   return (
     <ScrollView
-      style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+      contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={color.ink} />}
     >
       <View style={styles.monthSelector}>
         <Pressable
@@ -57,138 +56,77 @@ export default function DashboardScreen() {
           style={styles.monthButton}
           accessibilityRole="button"
           accessibilityLabel="Bulan sebelumnya"
-          hitSlop={8}
         >
-          <Text style={styles.monthButtonText}>{'<'}</Text>
+          <Txt variant="title">‹</Txt>
         </Pressable>
-        <Text style={styles.monthText}>{formatMonthLabel(selectedMonth)}</Text>
+        <Txt variant="heading">{formatMonthLabel(selectedMonth)}</Txt>
         <Pressable
           onPress={() => setSelectedMonth(addMonths(selectedMonth, 1))}
           style={styles.monthButton}
           accessibilityRole="button"
           accessibilityLabel="Bulan berikutnya"
-          hitSlop={8}
         >
-          <Text style={styles.monthButtonText}>{'>'}</Text>
+          <Txt variant="title">›</Txt>
         </Pressable>
       </View>
 
-      <MonthSummaryCard title="Sisa Uang Bulan Ini" totals={totals} />
+      <MonthSummaryCard title="Sisa uang bulan ini" totals={totals} />
 
-      <Text style={styles.sectionTitle}>Kategori</Text>
-
-      <View style={styles.categoryGrid}>
+      <Txt variant="title" style={styles.sectionTitle}>Kategori</Txt>
+      <View style={styles.list}>
         {categories.map((cat) => (
           <Pressable
             key={cat.id}
             onPress={() => navigation.navigate('CategoryDetail', { category: cat.name, categoryId: cat.id })}
+            style={styles.row}
             accessibilityRole="button"
           >
-            <Card style={styles.categoryCard}>
-              <View style={styles.categoryIconCircle}>
-                <Text style={styles.categoryEmoji}>{cat.name.charAt(0).toUpperCase()}</Text>
-              </View>
-              <Text style={styles.categoryName} numberOfLines={1}>{cat.name}</Text>
-            </Card>
+            <Txt style={styles.rowText} numberOfLines={1}>{cat.name}</Txt>
+            <Txt tone="inkMuted">›</Txt>
           </Pressable>
         ))}
-
-        <Pressable onPress={() => navigation.navigate('CategoryForm')} accessibilityRole="button">
-          <Card style={[styles.categoryCard, styles.addCategoryCard]}>
-            <Text style={styles.addIcon}>+</Text>
-            <Text style={styles.addText}>Tambah Kategori</Text>
-          </Card>
+        <Pressable onPress={() => navigation.navigate('CategoryForm')} style={styles.row} accessibilityRole="button">
+          <Txt variant="bodyStrong">+ Tambah kategori</Txt>
         </Pressable>
       </View>
-
-      <View style={{ height: 40 }} />
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: colors.background,
-  },
-  monthSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-    backgroundColor: colors.surface,
-    padding: 12,
-    borderRadius: 12,
-  },
-  monthButton: {
-    paddingHorizontal: 15,
-  },
-  monthButtonText: {
-    color: colors.primary,
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  monthText: {
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: '600',
-    marginHorizontal: 20,
-  },
-  sectionTitle: {
-    color: colors.text,
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginVertical: 20,
-  },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  categoryCard: {
-    width: CARD_WIDTH,
-    alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 10,
-    marginBottom: 16,
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-  },
-  categoryIconCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: colors.glass,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: colors.glassBorder,
-  },
-  categoryEmoji: {
-    fontSize: 20,
-    color: colors.primary,
-    fontWeight: 'bold',
-  },
-  categoryName: {
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  addCategoryCard: {
-    backgroundColor: 'transparent',
-    borderStyle: 'dashed',
-    borderColor: colors.textSecondary,
-  },
-  addIcon: {
-    fontSize: 24,
-    color: colors.textSecondary,
-    marginBottom: 8,
-  },
-  addText: {
-    color: colors.textSecondary,
-    fontSize: 14,
-  }
-});
+const makeStyles = ({ color, space }: Theme) =>
+  StyleSheet.create({
+    content: {
+      padding: space.lg,
+      paddingBottom: space.xxl,
+    },
+    monthSelector: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: space.sm,
+    },
+    monthButton: {
+      minWidth: 48,
+      minHeight: 48,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    sectionTitle: {
+      marginTop: space.xl,
+      marginBottom: space.xs,
+    },
+    list: {
+      borderTopWidth: 1,
+      borderTopColor: color.ink,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      minHeight: 52,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: color.line,
+    },
+    rowText: {
+      flex: 1,
+    },
+  });

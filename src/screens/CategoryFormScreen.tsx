@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Alert, Text } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -7,14 +7,16 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { createCategory, renameCategory } from '../db/repos/categories';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
-import { colors } from '../theme/colors';
+import { Txt } from '../components/Txt';
+import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { RootStackParamList } from '../../App';
 
 export default function CategoryFormScreen() {
   const db = useSQLiteContext();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'CategoryForm'>>();
-  
+  const styles = useThemedStyles(makeStyles);
+
   const categoryId = route.params?.categoryId;
   const initialName = route.params?.initialName;
   const isEditing = categoryId !== undefined;
@@ -44,13 +46,13 @@ export default function CategoryFormScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{isEditing ? 'Ubah Kategori' : 'Kategori Baru'}</Text>
-      <Text style={styles.subtitle}>
-        {isEditing 
+      <Txt variant="title">{isEditing ? 'Ubah Kategori' : 'Kategori Baru'}</Txt>
+      <Txt tone="inkMuted" style={styles.subtitle}>
+        {isEditing
           ? 'Ganti nama kategori ini. Transaksinya tetap terhubung.'
-          : 'Buat kartu kategori baru di dashboard'}
-      </Text>
-      
+          : 'Buat kategori baru di dashboard'}
+      </Txt>
+
       <Input
         label="Nama Kategori"
         placeholder="mis. Belanja, Hobi"
@@ -59,33 +61,26 @@ export default function CategoryFormScreen() {
         autoFocus
       />
 
-      <Button 
-        title={isEditing ? 'Simpan Perubahan' : 'Buat Kategori'} 
-        onPress={handleSave} 
+      <Button
+        title={isEditing ? 'Simpan Perubahan' : 'Buat Kategori'}
+        onPress={handleSave}
         style={styles.button}
       />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-    backgroundColor: colors.background,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 32,
-  },
-  button: {
-    marginTop: 16,
-  },
-});
+const makeStyles = ({ space }: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      padding: space.xl,
+    },
+    subtitle: {
+      marginTop: space.xs,
+      marginBottom: space.xl,
+    },
+    button: {
+      marginTop: space.lg,
+    },
+  });
