@@ -1,4 +1,5 @@
 import { isCurrencyCode, type CurrencyCode } from '../../domain/money';
+import { isLanguagePreference, type LanguagePreference } from '../../i18n/locale';
 import type { Db } from '../client';
 import { notifyDataChanged } from '../events';
 
@@ -55,3 +56,15 @@ export const setHideBalances = (db: Db, value: boolean) => setFlag(db, HIDE_BALA
 /** Also hide them in the home-screen widget (only while hide_balances is on). */
 export const getHideBalancesInWidget = (db: Db) => getFlag(db, HIDE_BALANCES_WIDGET_KEY);
 export const setHideBalancesInWidget = (db: Db, value: boolean) => setFlag(db, HIDE_BALANCES_WIDGET_KEY, value);
+
+export const LANGUAGE_KEY = 'language';
+
+/** The UI language choice: 'system' (default) follows the phone. */
+export async function getLanguagePreference(db: Db): Promise<LanguagePreference> {
+  const value = await getSetting(db, LANGUAGE_KEY);
+  return isLanguagePreference(value) ? value : 'system';
+}
+
+export async function setLanguagePreference(db: Db, value: LanguagePreference): Promise<void> {
+  await setSetting(db, LANGUAGE_KEY, value);
+}

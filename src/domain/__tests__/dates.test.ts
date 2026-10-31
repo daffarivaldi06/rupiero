@@ -95,6 +95,15 @@ describe('labels', () => {
     expect(formatDayHeader('2026-11-01')).toBe('Min, 1 Nov');
     expect(formatDayHeader('2028-02-29')).toBe('Sel, 29 Feb');
   });
+
+  it('formats in English with the same patterns', () => {
+    expect(formatMonthLabel('2026-10', 'en')).toBe('October 2026');
+    expect(formatMonthName('2026-05', 'en')).toBe('May');
+    expect(formatMonthShort('2026-08', 'en')).toBe('Aug 2026');
+    expect(formatDateLabel('2026-10-05', 'en')).toBe('5 Oct 2026');
+    expect(formatDayMonth('2026-12-24', 'en')).toBe('24 Dec');
+    expect(formatDayHeader('2026-10-31', 'en')).toBe('Sat, 31 Oct');
+  });
 });
 
 describe('addDays and formatDayMonth', () => {

@@ -1,15 +1,11 @@
 // Dates are stored as local calendar dates ('YYYY-MM-DD') and months as 'YYYY-MM'.
 // Never derive them from toISOString(): that is UTC and shifts entries across day/month boundaries.
+// Labels use the active UI language unless a locale is passed.
+import { CALENDAR } from '../i18n/calendar';
+import { getLocale, type Locale } from '../i18n/locale';
 
 export type LocalDate = string;
 export type Month = string;
-
-const MONTH_NAMES = [
-  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
-];
-const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-const WEEKDAY_SHORT = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
 const pad2 = (n: number) => n.toString().padStart(2, '0');
 
@@ -92,37 +88,39 @@ export function dateInMonth(month: Month, day: number): LocalDate {
   return `${month}-${pad2(Math.min(Math.max(day, 1), daysInMonth(year, m)))}`;
 }
 
-/** "2026-10" → "Oktober 2026". */
-export function formatMonthLabel(month: Month): string {
+/** "2026-10" → "Oktober 2026" / "October 2026". */
+export function formatMonthLabel(month: Month, locale: Locale = getLocale()): string {
   const [year, m] = parseMonth(month);
-  return `${MONTH_NAMES[m - 1]} ${year}`;
+  return `${CALENDAR[locale].months[m - 1]} ${year}`;
 }
 
-/** "2026-10" → "Oktober". */
-export function formatMonthName(month: Month): string {
-  return MONTH_NAMES[parseMonth(month)[1] - 1];
+/** "2026-10" → "Oktober" / "October". */
+export function formatMonthName(month: Month, locale: Locale = getLocale()): string {
+  return CALENDAR[locale].months[parseMonth(month)[1] - 1];
 }
 
-/** "2026-10" → "Okt 2026" (compact headers). */
-export function formatMonthShort(month: Month): string {
+/** "2026-10" → "Okt 2026" / "Oct 2026" (compact headers). */
+export function formatMonthShort(month: Month, locale: Locale = getLocale()): string {
   const [year, m] = parseMonth(month);
-  return `${MONTH_SHORT[m - 1]} ${year}`;
+  return `${CALENDAR[locale].monthsShort[m - 1]} ${year}`;
 }
 
-/** "2026-10-31" → "31 Okt 2026". */
-export function formatDateLabel(date: LocalDate): string {
+const shortMonthOf = (date: LocalDate, locale: Locale) => CALENDAR[locale].monthsShort[Number(date.slice(5, 7)) - 1];
+
+/** "2026-10-31" → "31 Okt 2026" / "31 Oct 2026". */
+export function formatDateLabel(date: LocalDate, locale: Locale = getLocale()): string {
   if (!isValidLocalDate(date)) throw new RangeError(`Invalid date: ${date}`);
-  return `${Number(date.slice(8, 10))} ${MONTH_SHORT[Number(date.slice(5, 7)) - 1]} ${date.slice(0, 4)}`;
+  return `${Number(date.slice(8, 10))} ${shortMonthOf(date, locale)} ${date.slice(0, 4)}`;
 }
 
-/** "2026-10-30" → "30 Okt" (rate dates, date chips). */
-export function formatDayMonth(date: LocalDate): string {
+/** "2026-10-30" → "30 Okt" / "30 Oct" (rate dates, date chips). */
+export function formatDayMonth(date: LocalDate, locale: Locale = getLocale()): string {
   if (!isValidLocalDate(date)) throw new RangeError(`Invalid date: ${date}`);
-  return `${Number(date.slice(8, 10))} ${MONTH_SHORT[Number(date.slice(5, 7)) - 1]}`;
+  return `${Number(date.slice(8, 10))} ${shortMonthOf(date, locale)}`;
 }
 
-/** "2026-10-31" → "Sab, 31 Okt" (ledger day headers). */
-export function formatDayHeader(date: LocalDate): string {
-  const weekday = WEEKDAY_SHORT[fromLocalDate(date).getDay()];
-  return `${weekday}, ${Number(date.slice(8, 10))} ${MONTH_SHORT[Number(date.slice(5, 7)) - 1]}`;
+/** "2026-10-31" → "Sab, 31 Okt" / "Sat, 31 Oct" (ledger day headers). */
+export function formatDayHeader(date: LocalDate, locale: Locale = getLocale()): string {
+  const weekday = CALENDAR[locale].weekdaysShort[fromLocalDate(date).getDay()];
+  return `${weekday}, ${Number(date.slice(8, 10))} ${shortMonthOf(date, locale)}`;
 }

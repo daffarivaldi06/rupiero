@@ -1,5 +1,9 @@
 // Money is always an integer count of the currency's minor unit (EUR cents, whole rupiah).
-// Formatting is done by hand instead of Intl so output is identical on Hermes and Node.
+// Formatting is done by hand instead of Intl so output is identical on Hermes and Node. Separators
+// follow the UI language: "€ 2.655,38" in Indonesian, "€2,655.38" in English.
+import { t } from '../i18n';
+import { getLocale, type Locale } from '../i18n/locale';
+import { spokenAmount } from '../i18n/spoken';
 
 export type CurrencyCode = 'IDR' | 'EUR';
 
@@ -20,31 +24,50 @@ export function isCurrencyCode(value: unknown): value is CurrencyCode {
   return typeof value === 'string' && Object.prototype.hasOwnProperty.call(CURRENCIES, value);
 }
 
-const THOUSANDS = '.';
-const DECIMAL = ',';
 const NBSP = ' ';
 
-function groupThousands(digits: string): string {
-  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, THOUSANDS);
+export interface NumberSeparators {
+  thousands: string;
+  decimal: string;
 }
 
-/** Formats the absolute value without symbol, e.g. 123456 EUR → "1.234,56". */
-function formatAbsolute(minor: number, currency: CurrencyCode): string {
+export const SEPARATORS: Record<Locale, NumberSeparators> = {
+  id: { thousands: '.', decimal: ',' },
+  en: { thousands: ',', decimal: '.' },
+};
+
+/** Between symbol and digits: "€ 12,50" and "Rp 12.500" in Indonesian; "€12.50" but "Rp 12,500" in English. */
+function symbolGap(currency: CurrencyCode, locale: Locale): string {
+  return locale === 'en' && currency === 'EUR' ? '' : NBSP;
+}
+
+/** Inserts the thousands separator into a run of digits: "1234567" → "1.234.567" / "1,234,567". */
+export function groupThousands(digits: string, locale: Locale = getLocale()): string {
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, SEPARATORS[locale].thousands);
+}
+
+/** Formats the absolute value without symbol, e.g. 123456 EUR → "1.234,56" / "1,234.56". */
+function formatAbsolute(minor: number, currency: CurrencyCode, locale: Locale): string {
   const { minorDigits } = CURRENCIES[currency];
   const digits = Math.abs(minor).toString().padStart(minorDigits + 1, '0');
   const whole = digits.slice(0, digits.length - minorDigits);
   const fraction = digits.slice(digits.length - minorDigits);
-  return minorDigits > 0 ? `${groupThousands(whole)}${DECIMAL}${fraction}` : groupThousands(whole);
+  const grouped = groupThousands(whole, locale);
+  return minorDigits > 0 ? `${grouped}${SEPARATORS[locale].decimal}${fraction}` : grouped;
 }
 
 export interface FormatMoneyOptions {
   /** Prefix positive amounts with "+" (negative amounts always get "-"). */
   sign?: boolean;
+  /** Defaults to the active UI language. */
+  locale?: Locale;
 }
 
 export interface MoneyParts {
   sign: '' | '-' | '+';
   symbol: string;
+  /** Between symbol and amount: a no-break space, or nothing ("€12.50" in English). */
+  gap: string;
   /** Absolute value with grouping and decimals, e.g. "1.234,56". */
   amount: string;
 }
@@ -52,53 +75,64 @@ export interface MoneyParts {
 /** The pieces of a formatted amount, for UIs that style them separately. */
 export function formatMoneyParts(minor: number, currency: CurrencyCode, options: FormatMoneyOptions = {}): MoneyParts {
   assertMinor(minor);
+  const locale = options.locale ?? getLocale();
   return {
     sign: minor < 0 ? '-' : options.sign && minor > 0 ? '+' : '',
     symbol: CURRENCIES[currency].symbol,
-    amount: formatAbsolute(minor, currency),
+    gap: symbolGap(currency, locale),
+    amount: formatAbsolute(minor, currency, locale),
   };
 }
 
 /** What hidden amounts show instead of digits. */
 export const MASK = '••••';
-export const HIDDEN_LABEL = 'Saldo disembunyikan';
 
 export interface MoneyDisplay extends MoneyParts {
-  /** For screen readers; set only when the amount is hidden. */
-  accessibilityLabel?: string;
+  /** What a screen reader says: the amount in words ("minus 12 euro 50 sen"), or that it is hidden. */
+  accessibilityLabel: string;
 }
 
 /**
  * How an amount is shown: formatted, or — with `hidden` — as "€ ••••" with no sign, so neither the
- * value nor its direction leaks, and a spoken "Saldo disembunyikan".
+ * value nor its direction leaks, spoken as "balance hidden".
  */
 export function moneyDisplay(
   minor: number,
   currency: CurrencyCode,
   options: FormatMoneyOptions & { hidden?: boolean } = {},
 ): MoneyDisplay {
+  const locale = options.locale ?? getLocale();
   if (options.hidden) {
-    return { sign: '', symbol: CURRENCIES[currency].symbol, amount: MASK, accessibilityLabel: HIDDEN_LABEL };
+    return {
+      sign: '',
+      symbol: CURRENCIES[currency].symbol,
+      gap: NBSP,
+      amount: MASK,
+      accessibilityLabel: t('money.hidden', undefined, locale),
+    };
   }
-  return formatMoneyParts(minor, currency, options);
+  return {
+    ...formatMoneyParts(minor, currency, options),
+    accessibilityLabel: spokenAmount(minor, currency, { sign: options.sign, locale }),
+  };
 }
 
 /** moneyDisplay as one string, e.g. for the widget. */
 export function formatMoneyDisplay(minor: number, currency: CurrencyCode, options: FormatMoneyOptions & { hidden?: boolean } = {}): string {
-  const { sign, symbol, amount } = moneyDisplay(minor, currency, options);
-  return `${sign}${symbol}${NBSP}${amount}`;
+  const { sign, symbol, gap, amount } = moneyDisplay(minor, currency, options);
+  return `${sign}${symbol}${gap}${amount}`;
 }
 
-/** 123456 EUR → "€ 1.234,56", -12500 IDR → "-Rp 12.500". */
+/** 123456 EUR → "€ 1.234,56" (id) / "€1,234.56" (en); -12500 IDR → "-Rp 12.500" / "-Rp 12,500". */
 export function formatMoney(minor: number, currency: CurrencyCode, options: FormatMoneyOptions = {}): string {
-  const { sign, symbol, amount } = formatMoneyParts(minor, currency, options);
-  return `${sign}${symbol}${NBSP}${amount}`;
+  const { sign, symbol, gap, amount } = formatMoneyParts(minor, currency, options);
+  return `${sign}${symbol}${gap}${amount}`;
 }
 
-/** Value to prefill an amount field with, e.g. 1250 EUR → "12,50". Parses back with parseAmount. */
-export function formatInputValue(minor: number, currency: CurrencyCode): string {
+/** Value to prefill an amount field with, e.g. 1250 EUR → "12,50" / "12.50". Parses back with parseAmount. */
+export function formatInputValue(minor: number, currency: CurrencyCode, locale: Locale = getLocale()): string {
   assertMinor(minor);
-  return formatAbsolute(minor, currency);
+  return formatAbsolute(minor, currency, locale);
 }
 
 function isValidGrouping(integerPart: string, separator: string): boolean {
@@ -108,7 +142,7 @@ function isValidGrouping(integerPart: string, separator: string): boolean {
 
 /**
  * Parses user input into minor units, or null when it is not a valid non-negative amount.
- * Accepts "12,50", "12.50", "1.234,56", "1,234.56" and "1234". For IDR every "." or "," is a
+ * Accepts both languages' formats: "12,50", "12.50", "1.234,56", "1,234.56" and "1234". For IDR every "." or "," is a
  * thousands separator, so "12,50" is rejected rather than read as 1250.
  */
 export function parseAmount(text: string, currency: CurrencyCode): number | null {
