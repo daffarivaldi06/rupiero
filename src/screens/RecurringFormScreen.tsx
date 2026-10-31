@@ -26,14 +26,14 @@ import { Input } from '../components/Input';
 import { Txt } from '../components/Txt';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
-
-const FREQUENCY_LABEL: Record<Frequency, string> = { daily: 'Harian', weekly: 'Mingguan', monthly: 'Bulanan', yearly: 'Tahunan' };
+import { useI18n } from '../i18n/I18nProvider';
 
 export default function RecurringFormScreen() {
   const db = useSQLiteContext();
   const navigation = useNavigation<RootNavigation>();
   const route = useRoute<RouteProp<RootStackParamList, 'RecurringForm'>>();
   const styles = useThemedStyles(makeStyles);
+  const { t } = useI18n();
   const ruleId = route.params?.ruleId;
   const isEditing = ruleId !== undefined;
 
@@ -91,19 +91,19 @@ export default function RecurringFormScreen() {
   const save = async () => {
     const amountMinor = account ? parseAmount(amount, account.currency) : null;
     if (!account || categoryId === null) {
-      Alert.alert('Belum lengkap', 'Pilih akun dan kategori');
+      Alert.alert(t('recurringForm.incompleteTitle'), t('recurringForm.incomplete'));
       return;
     }
     if (!amountMinor || amountMinor <= 0) {
-      Alert.alert('Nominal belum valid', account.currency === 'EUR' ? 'Contoh: 9,99' : 'Contoh: 150.000');
+      Alert.alert(t('quickAdd.invalidAmountTitle'), t('money.amountHint', { example: formatInputValue(account.currency === 'EUR' ? 999 : 150_000, account.currency) }));
       return;
     }
     if (!intervalValid) {
-      Alert.alert('Interval belum valid', 'Isi angka 1–365');
+      Alert.alert(t('recurringForm.invalidIntervalTitle'), t('recurringForm.intervalRange'));
       return;
     }
     if (endDate !== null && endDate < startDate) {
-      Alert.alert('Tanggal akhir', 'Tanggal akhir tidak boleh sebelum tanggal mulai');
+      Alert.alert(t('recurringForm.end'), t('recurringForm.endBeforeStart'));
       return;
     }
     const rule = { accountId: account.id, categoryId, type, amountMinor, note, frequency, interval: intervalCount, startDate, endDate };
@@ -113,7 +113,7 @@ export default function RecurringFormScreen() {
       await finish();
     } catch (e) {
       console.error(e);
-      Alert.alert('Gagal', 'Aturan tidak dapat disimpan');
+      Alert.alert(t('common.failed'), t('recurringForm.saveFailed'));
     }
   };
 
@@ -123,14 +123,14 @@ export default function RecurringFormScreen() {
       await finish();
     } catch (e) {
       console.error(e);
-      Alert.alert('Gagal', 'Aturan tidak dapat diubah');
+      Alert.alert(t('common.failed'), t('recurringForm.changeFailed'));
     }
   };
 
   const confirmDelete = () =>
-    Alert.alert('Hapus aturan', 'Transaksi yang sudah tercatat tetap ada. Hanya kemunculan berikutnya yang tidak dibuat.', [
-      { text: 'Batal', style: 'cancel' },
-      { text: 'Hapus', style: 'destructive', onPress: run(() => deleteRecurringRule(db, ruleId!)) },
+    Alert.alert(t('recurringForm.delete'), t('recurringForm.deleteMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: run(() => deleteRecurringRule(db, ruleId!)) },
     ]);
 
   return (
@@ -147,30 +147,30 @@ export default function RecurringFormScreen() {
               accessibilityState={{ selected }}
             >
               <Txt variant="bodyStrong" tone={selected ? (value === 'expense' ? 'onExpense' : 'onIncome') : 'ink'}>
-                {value === 'expense' ? 'Pengeluaran' : 'Pemasukan'}
+                {t(value === 'expense' ? 'common.expense' : 'common.income')}
               </Txt>
             </Pressable>
           );
         })}
       </View>
 
-      <Txt variant="label" tone="inkMuted" style={styles.label}>Akun</Txt>
+      <Txt variant="label" tone="inkMuted" style={styles.label}>{t('common.account')}</Txt>
       <AccountPicker accounts={accounts} selectedId={accountId} onSelect={(a) => setAccountId(a.id)} />
 
       {account && (
         <Input
-          label={`Nominal (${account.currency})`}
-          placeholder={account.currency === 'EUR' ? '9,99' : '150.000'}
+          label={t('recurringForm.amount', { currency: account.currency })}
+          placeholder={formatInputValue(account.currency === 'EUR' ? 999 : 150_000, account.currency)}
           value={amount}
           onChangeText={setAmount}
           keyboardType={account.currency === 'EUR' ? 'decimal-pad' : 'number-pad'}
         />
       )}
 
-      <Txt variant="label" tone="inkMuted" style={styles.label}>Kategori</Txt>
+      <Txt variant="label" tone="inkMuted" style={styles.label}>{t('common.category')}</Txt>
       <CategoryChips categories={categories} selectedId={categoryId} onSelect={setCategoryId} />
 
-      <Txt variant="label" tone="inkMuted" style={styles.label}>Frekuensi</Txt>
+      <Txt variant="label" tone="inkMuted" style={styles.label}>{t('recurringForm.frequency')}</Txt>
       <View style={styles.chipRow}>
         {FREQUENCIES.map((value) => {
           const selected = frequency === value;
@@ -182,31 +182,31 @@ export default function RecurringFormScreen() {
               accessibilityRole="radio"
               accessibilityState={{ selected }}
             >
-              <Txt variant="label" tone={selected ? 'onInk' : 'ink'}>{FREQUENCY_LABEL[value]}</Txt>
+              <Txt variant="label" tone={selected ? 'onInk' : 'ink'}>{t(`frequency.${value}`)}</Txt>
             </Pressable>
           );
         })}
       </View>
       <Input
-        label="Setiap berapa (interval)"
+        label={t('recurringForm.interval')}
         value={intervalText}
         onChangeText={setIntervalText}
         keyboardType="number-pad"
-        error={intervalValid ? undefined : 'Isi angka 1–365'}
+        error={intervalValid ? undefined : t('recurringForm.intervalRange')}
       />
       {intervalValid && <Txt variant="caption" tone="inkMuted">{describeFrequency(frequency, intervalCount)}</Txt>}
 
       <View style={styles.dates}>
         <View style={styles.dateField}>
-          <Txt variant="label" tone="inkMuted" style={styles.label}>Mulai</Txt>
-          <DateChip value={startDate} onChange={setStartDate} accessibilityLabel="Tanggal mulai" />
+          <Txt variant="label" tone="inkMuted" style={styles.label}>{t('recurringForm.start')}</Txt>
+          <DateChip value={startDate} onChange={setStartDate} accessibilityLabel={t('recurringForm.startDate')} />
         </View>
         <View style={styles.dateField}>
-          <Txt variant="label" tone="inkMuted" style={styles.label}>Berakhir</Txt>
+          <Txt variant="label" tone="inkMuted" style={styles.label}>{t('recurringForm.end')}</Txt>
           <View style={styles.endRow}>
-            <DateChip value={endDate} onChange={setEndDate} placeholder="Tanpa akhir" accessibilityLabel="Tanggal berakhir" minimumDate={startDate} />
+            <DateChip value={endDate} onChange={setEndDate} placeholder={t('recurringForm.noEnd')} accessibilityLabel={t('recurringForm.endDate')} minimumDate={startDate} />
             {endDate !== null && (
-              <Pressable onPress={() => setEndDate(null)} style={styles.clear} accessibilityRole="button" accessibilityLabel="Hapus tanggal berakhir">
+              <Pressable onPress={() => setEndDate(null)} style={styles.clear} accessibilityRole="button" accessibilityLabel={t('recurringForm.clearEnd')}>
                 <Txt tone="inkMuted">✕</Txt>
               </Pressable>
             )}
@@ -214,23 +214,23 @@ export default function RecurringFormScreen() {
         </View>
       </View>
 
-      <Input label="Catatan (mis. Spotify, Sewa)" value={note} onChangeText={setNote} />
+      <Input label={t('recurringForm.note')} value={note} onChangeText={setNote} />
 
       <Txt variant="caption" tone="inkMuted" style={styles.next}>
-        {paused ? 'Dijeda' : next ? `Berikutnya: ${formatDateLabel(next)}` : 'Tidak ada kemunculan berikutnya'}
-        {isEditing ? ' · Perubahan hanya berlaku untuk kemunculan berikutnya.' : ''}
+        {paused ? t('recurringForm.paused') : next ? t('recurringForm.next', { date: formatDateLabel(next) }) : t('recurringForm.noNext')}
+        {isEditing ? ` · ${t('recurringForm.editNote')}` : ''}
       </Txt>
 
-      <Button title={isEditing ? 'Simpan Perubahan' : 'Simpan Aturan'} onPress={save} style={styles.save} />
+      <Button title={t(isEditing ? 'common.saveChanges' : 'recurringForm.save')} onPress={save} style={styles.save} />
       {isEditing && (
         <>
           <Button
-            title={paused ? 'Lanjutkan' : 'Jeda'}
+            title={t(paused ? 'recurringForm.resume' : 'recurringForm.pause')}
             variant="outline"
             onPress={run(() => setRecurringRulePaused(db, ruleId, !paused))}
           />
-          <Button title="Hentikan mulai hari ini" variant="outline" onPress={run(() => stopRecurringRule(db, ruleId, todayLocal()))} />
-          <Button title="Hapus aturan" variant="outline" onPress={confirmDelete} />
+          <Button title={t('recurringForm.stopToday')} variant="outline" onPress={run(() => stopRecurringRule(db, ruleId, todayLocal()))} />
+          <Button title={t('recurringForm.delete')} variant="outline" onPress={confirmDelete} />
         </>
       )}
     </ScrollView>

@@ -4,6 +4,7 @@ import * as Haptics from 'expo-haptics';
 import type { Category } from '../domain/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { Txt } from './Txt';
+import { useI18n } from '../i18n/I18nProvider';
 
 interface CategoryChipsProps {
   /** Most used first. */
@@ -14,9 +15,10 @@ interface CategoryChipsProps {
 
 const TOP = 8;
 
-/** The most used categories as one-tap chips; "Semua…" reveals the rest. */
+/** The most used categories as one-tap chips; "All…" reveals the rest. */
 export const CategoryChips: React.FC<CategoryChipsProps> = ({ categories, selectedId, onSelect }) => {
   const styles = useThemedStyles(makeStyles);
+  const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
   const selectedIndex = categories.findIndex((c) => c.id === selectedId);
   // Keep a selection from the long tail visible even when collapsed.
@@ -44,7 +46,7 @@ export const CategoryChips: React.FC<CategoryChipsProps> = ({ categories, select
       })}
       {!showAll && categories.length > TOP && (
         <Pressable onPress={() => setExpanded(true)} style={[styles.chip, styles.more]} accessibilityRole="button">
-          <Txt variant="label" tone="inkMuted">Semua…</Txt>
+          <Txt variant="label" tone="inkMuted">{t('common.allMore')}</Txt>
         </Pressable>
       )}
     </View>

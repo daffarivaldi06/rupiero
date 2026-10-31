@@ -2,9 +2,11 @@ import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import type { KeypadKey } from '../domain/calc';
-import { CURRENCIES, type CurrencyCode } from '../domain/money';
+import { CURRENCIES, SEPARATORS, type CurrencyCode } from '../domain/money';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { Txt } from './Txt';
+import { useI18n } from '../i18n/I18nProvider';
+import type { MessageKey } from '../i18n';
 
 interface KeypadProps {
   currency: CurrencyCode;
@@ -13,20 +15,24 @@ interface KeypadProps {
   onClear: () => void;
 }
 
-const LABELS: Partial<Record<KeypadKey, string>> = { back: '⌫' };
-const A11Y: Partial<Record<KeypadKey, string>> = {
-  back: 'Hapus satu',
-  '+': 'tambah',
-  '−': 'kurang',
-  '×': 'kali',
-  '÷': 'bagi',
-  ',': 'koma',
-  '000': 'tiga nol',
+const A11Y: Partial<Record<KeypadKey, MessageKey>> = {
+  back: 'keypad.back',
+  '+': 'keypad.plus',
+  '−': 'keypad.minus',
+  '×': 'keypad.times',
+  '÷': 'keypad.divide',
+  ',': 'keypad.decimal',
+  '000': 'keypad.thousand',
 };
 
-/** Digits and + − × ÷ for the quick-add calculator. EUR gets a decimal comma, IDR gets "000" instead. */
+/**
+ * Digits and + − × ÷ for the quick-add calculator. EUR gets a decimal key (shown as the language's
+ * separator, always ',' in the expression), IDR gets "000" instead.
+ */
 export const Keypad: React.FC<KeypadProps> = ({ currency, onKey, onClear }) => {
   const styles = useThemedStyles(makeStyles);
+  const { t, locale } = useI18n();
+  const label = (key: KeypadKey) => (key === 'back' ? '⌫' : key === ',' ? SEPARATORS[locale].decimal : key);
   const special: KeypadKey = CURRENCIES[currency].minorDigits > 0 ? ',' : '000';
   const rows: KeypadKey[][] = [
     ['7', '8', '9', '÷'],
@@ -53,9 +59,10 @@ export const Keypad: React.FC<KeypadProps> = ({ currency, onKey, onClear }) => {
                 onLongPress={key === 'back' ? onClear : undefined}
                 style={({ pressed }) => [styles.key, pressed && styles.pressed]}
                 accessibilityRole="button"
-                accessibilityLabel={A11Y[key] ?? key}
+                accessibilityLabel={A11Y[key] ? t(A11Y[key]) : key}
+                accessibilityHint={key === 'back' ? t('keypad.clearHint') : undefined}
               >
-                <Txt variant="title" tone={isOperator ? 'inkMuted' : 'ink'}>{LABELS[key] ?? key}</Txt>
+                <Txt variant="title" tone={isOperator ? 'inkMuted' : 'ink'}>{label(key)}</Txt>
               </Pressable>
             );
           })}

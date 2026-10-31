@@ -43,8 +43,9 @@ import { Txt } from '../components/Txt';
 import { useReferenceRate } from '../fx/FxProvider';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { fontFamily } from '../theme/typography';
+import { useI18n } from '../i18n/I18nProvider';
+import { SEPARATORS } from '../domain/money';
 
-const REPEAT_LABEL: Record<Frequency, string> = { daily: 'Harian', weekly: 'Mingguan', monthly: 'Bulanan', yearly: 'Tahunan' };
 
 export interface QuickAddOptions {
   type?: TransactionType;
@@ -65,6 +66,7 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
   const db = useSQLiteContext();
   const { color } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const { t, locale } = useI18n();
   const insets = useSafeAreaInsets();
   const referenceRate = useReferenceRate();
   const sheetRef = useRef<BottomSheetModal>(null);
@@ -164,15 +166,15 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
 
   const save = async () => {
     if (!account) {
-      Alert.alert('Belum ada akun', 'Tambahkan akun terlebih dahulu');
+      Alert.alert(t('quickAdd.noAccountTitle'), t('quickAdd.noAccount'));
       return;
     }
     if (amount === null || amount <= 0) {
-      Alert.alert('Nominal belum valid', 'Masukkan nominal lebih dari nol');
+      Alert.alert(t('quickAdd.invalidAmountTitle'), t('quickAdd.invalidAmount'));
       return;
     }
     if (categoryId === null) {
-      Alert.alert('Pilih kategori', 'Tap salah satu kategori');
+      Alert.alert(t('quickAdd.pickCategoryTitle'), t('quickAdd.pickCategory'));
       return;
     }
     const tx = { accountId: account.id, categoryId, type, amountMinor: amount, date, note };
@@ -188,16 +190,16 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
       sheetRef.current?.dismiss();
     } catch (e) {
       console.error(e);
-      Alert.alert('Gagal', 'Transaksi tidak dapat disimpan');
+      Alert.alert(t('common.failed'), t('quickAdd.saveFailed'));
     }
   };
 
   const remove = () => {
     if (editingId === null) return;
-    Alert.alert('Hapus transaksi', 'Transaksi ini akan dihapus permanen.', [
-      { text: 'Batal', style: 'cancel' },
+    Alert.alert(t('quickAdd.deleteTitle'), t('quickAdd.deleteMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Hapus',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           try {
@@ -205,7 +207,7 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
             sheetRef.current?.dismiss();
           } catch (e) {
             console.error(e);
-            Alert.alert('Gagal', 'Transaksi tidak dapat dihapus');
+            Alert.alert(t('common.failed'), t('quickAdd.deleteFailed'));
           }
         },
       },
@@ -218,7 +220,8 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
   );
 
   const today = todayLocal();
-  const dateLabel = date === today ? 'Hari ini' : date === addDays(today, -1) ? 'Kemarin' : formatDateLabel(date);
+  const dateLabel =
+    date === today ? t('common.today') : date === addDays(today, -1) ? t('common.yesterday') : formatDateLabel(date, locale);
   const otherCurrency = currency === 'EUR' ? 'IDR' : 'EUR';
   const preview =
     referenceRate && amount !== null && amount > 0 ? safeConvert(amount, currency, otherCurrency, referenceRate.rateMicro) : null;
@@ -250,7 +253,7 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
                 accessibilityState={{ selected }}
               >
                 <Txt variant="bodyStrong" tone={selected ? (value === 'expense' ? 'onExpense' : 'onIncome') : 'ink'}>
-                  {value === 'expense' ? 'Pengeluaran' : 'Pemasukan'}
+                  {t(value === 'expense' ? 'common.expense' : 'common.income')}
                 </Txt>
               </Pressable>
             );
@@ -261,7 +264,9 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
 
         <View style={styles.amountBlock} accessibilityLiveRegion="polite">
           {hasOperator(expression) && (
-            <Txt variant="body" tone="inkMuted" numberOfLines={1} style={styles.expression}>{expression}</Txt>
+            <Txt variant="body" tone="inkMuted" numberOfLines={1} style={styles.expression}>
+              {expression.replace(/,/g, SEPARATORS[locale].decimal)}
+            </Txt>
           )}
           <Money
             minor={amount !== null && expression ? amount : 0}
@@ -272,7 +277,8 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
           />
           {preview !== null && referenceRate && (
             <Txt variant="caption" tone="inkMuted">
-              ≈ <Money minor={preview} currency={otherCurrency} variant="caption" tone="inkMuted" reveal /> · kurs ECB {formatDayMonth(referenceRate.date)}
+              ≈ <Money minor={preview} currency={otherCurrency} variant="caption" tone="inkMuted" reveal /> ·{' '}
+              {t('common.ecbRate', { date: formatDayMonth(referenceRate.date, locale) })}
             </Txt>
           )}
         </View>
@@ -280,13 +286,13 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
         <CategoryChips categories={categories} selectedId={categoryId} onSelect={setCategoryId} />
 
         <View style={styles.metaRow}>
-          <Pressable onPress={pickDate} style={styles.dateChip} accessibilityRole="button" accessibilityLabel={`Tanggal: ${dateLabel}`}>
+          <Pressable onPress={pickDate} style={styles.dateChip} accessibilityRole="button" accessibilityLabel={t('common.dateValue', { date: dateLabel })}>
             <Txt variant="label">{dateLabel}</Txt>
           </Pressable>
           <BottomSheetTextInput
             value={note}
             onChangeText={setNote}
-            placeholder="Catatan (opsional)"
+            placeholder={t('common.noteOptional')}
             placeholderTextColor={color.inkMuted}
             style={styles.note}
             returnKeyType="done"
@@ -294,7 +300,7 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
         </View>
         {editingId === null && (
           <View style={styles.repeatRow}>
-            <Txt variant="label" tone="inkMuted">Ulangi</Txt>
+            <Txt variant="label" tone="inkMuted">{t('quickAdd.repeat')}</Txt>
             {([null, ...FREQUENCIES] as const).map((value) => {
               const selected = repeat === value;
               return (
@@ -305,7 +311,7 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
                   accessibilityRole="radio"
                   accessibilityState={{ selected }}
                 >
-                  <Txt variant="caption" tone={selected ? 'onInk' : 'ink'}>{value === null ? 'Tidak' : REPEAT_LABEL[value]}</Txt>
+                  <Txt variant="caption" tone={selected ? 'onInk' : 'ink'}>{t(value === null ? 'quickAdd.repeatNone' : `frequency.${value}`)}</Txt>
                 </Pressable>
               );
             })}
@@ -318,8 +324,8 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
         <Keypad currency={currency} onKey={onKey} onClear={() => setExpression('')} />
 
         <View style={styles.actions}>
-          {editingId !== null && <Button title="Hapus" variant="outline" onPress={remove} style={styles.deleteButton} />}
-          <Button title={editingId !== null ? 'Simpan Perubahan' : 'Simpan'} onPress={save} style={styles.saveButton} />
+          {editingId !== null && <Button title={t('common.delete')} variant="outline" onPress={remove} style={styles.deleteButton} />}
+          <Button title={t(editingId !== null ? 'common.saveChanges' : 'common.save')} onPress={save} style={styles.saveButton} />
         </View>
       </BottomSheetScrollView>
     </BottomSheetModal>

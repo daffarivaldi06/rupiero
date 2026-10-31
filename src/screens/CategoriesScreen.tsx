@@ -9,12 +9,14 @@ import type { Category } from '../domain/types';
 import { Txt } from '../components/Txt';
 import type { RootNavigation } from '../navigation/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useI18n } from '../i18n/I18nProvider';
 
 /** Active categories, plus the archive where hidden ones can be brought back. */
 export default function CategoriesScreen() {
   const db = useSQLiteContext();
   const navigation = useNavigation<RootNavigation>();
   const styles = useThemedStyles(makeStyles);
+  const { t } = useI18n();
   const [active, setActive] = useState<Category[]>([]);
   const [archived, setArchived] = useState<Category[]>([]);
 
@@ -40,7 +42,7 @@ export default function CategoriesScreen() {
       await load();
     } catch (e) {
       console.error(e);
-      Alert.alert('Gagal', 'Kategori tidak dapat dikembalikan');
+      Alert.alert(t('common.failed'), t('categories.restoreFailed'));
     }
   };
 
@@ -59,13 +61,13 @@ export default function CategoriesScreen() {
           </Pressable>
         ))}
         <Pressable onPress={() => navigation.navigate('CategoryForm')} style={styles.row} accessibilityRole="button">
-          <Txt variant="bodyStrong">+ Tambah kategori</Txt>
+          <Txt variant="bodyStrong">{t('categories.add')}</Txt>
         </Pressable>
       </View>
 
-      <Txt variant="label" tone="inkMuted" style={styles.sectionLabel}>Arsip</Txt>
+      <Txt variant="label" tone="inkMuted" style={styles.sectionLabel}>{t('categories.archive')}</Txt>
       {archived.length === 0 ? (
-        <Txt tone="inkMuted">Tidak ada kategori yang diarsipkan.</Txt>
+        <Txt tone="inkMuted">{t('categories.archiveEmpty')}</Txt>
       ) : (
         <View style={styles.list}>
           {archived.map((category) => (
@@ -75,9 +77,9 @@ export default function CategoriesScreen() {
                 onPress={() => restore(category)}
                 style={styles.restore}
                 accessibilityRole="button"
-                accessibilityLabel={`Kembalikan ${category.name}`}
+                accessibilityLabel={t('categories.restoreName', { name: category.name })}
               >
-                <Txt variant="bodyStrong">Kembalikan</Txt>
+                <Txt variant="bodyStrong">{t('common.restore')}</Txt>
               </Pressable>
             </View>
           ))}

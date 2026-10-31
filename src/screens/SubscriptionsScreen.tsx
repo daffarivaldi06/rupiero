@@ -10,12 +10,15 @@ import { Money } from '../components/Money';
 import { Txt } from '../components/Txt';
 import type { RootNavigation } from '../navigation/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useI18n } from '../i18n/I18nProvider';
+import { renderMessage } from '../i18n/rich';
 
 /** Active recurring expenses with their next due date, and what they cost per month per currency. */
 export default function SubscriptionsScreen() {
   const db = useSQLiteContext();
   const navigation = useNavigation<RootNavigation>();
   const styles = useThemedStyles(makeStyles);
+  const { t } = useI18n();
   const [rules, setRules] = useState<RecurringRuleDetail[]>([]);
 
   useFocusEffect(
@@ -32,18 +35,18 @@ export default function SubscriptionsScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <Txt variant="label" tone="inkMuted" style={styles.label}>Total per bulan</Txt>
+      <Txt variant="label" tone="inkMuted" style={styles.label}>{t('subscriptions.monthlyTotal')}</Txt>
       <View style={styles.topRule} />
-      {totals.length === 0 && <Txt tone="inkMuted" style={styles.empty}>Belum ada langganan aktif.</Txt>}
-      {totals.map((t, index) => (
-        <View key={t.currency} style={[styles.totalRow, index > 0 && styles.divider]}>
-          <Txt variant="code" tone={t.currency === 'EUR' ? 'eur' : 'idrText'}>{t.currency}</Txt>
-          <Money minor={t.monthlyMinor} currency={t.currency} variant="display" />
+      {totals.length === 0 && <Txt tone="inkMuted" style={styles.empty}>{t('subscriptions.empty')}</Txt>}
+      {totals.map((total, index) => (
+        <View key={total.currency} style={[styles.totalRow, index > 0 && styles.divider]}>
+          <Txt variant="code" tone={total.currency === 'EUR' ? 'eur' : 'idrText'}>{total.currency}</Txt>
+          <Money minor={total.monthlyMinor} currency={total.currency} variant="display" />
         </View>
       ))}
       {totals.length > 0 && <View style={styles.doubleRule} />}
       <Txt variant="caption" tone="inkMuted" style={styles.hint}>
-        Mingguan dihitung ×52/12, harian ×365/12, tahunan ÷12.
+        {t('subscriptions.hint')}
       </Txt>
 
       <View style={styles.list}>
@@ -60,14 +63,16 @@ export default function SubscriptionsScreen() {
                 <Txt numberOfLines={1}>{rule.note || rule.categoryName}</Txt>
                 <Txt variant="caption" tone="inkMuted" numberOfLines={1}>
                   {describeFrequency(rule.frequency, rule.interval)}
-                  {next ? ` · berikutnya ${formatDayMonth(next)}` : ''}
+                  {next ? ` · ${t('recurrence.next', { date: formatDayMonth(next) })}` : ''}
                 </Txt>
               </View>
               <View style={styles.amounts}>
                 <Money minor={rule.amountMinor} currency={rule.currency} variant="bodyStrong" />
                 {rule.frequency !== 'monthly' || rule.interval !== 1 ? (
                   <Txt variant="caption" tone="inkMuted">
-                    <Money minor={monthlyEquivalent(rule)} currency={rule.currency} variant="caption" tone="inkMuted" />/bln
+                    {renderMessage('subscriptions.perMonth', {
+                      amount: <Money minor={monthlyEquivalent(rule)} currency={rule.currency} variant="caption" tone="inkMuted" />,
+                    })}
                   </Txt>
                 ) : null}
               </View>
@@ -75,7 +80,7 @@ export default function SubscriptionsScreen() {
           );
         })}
         <Pressable onPress={() => navigation.navigate('RecurringForm')} style={styles.row} accessibilityRole="button">
-          <Txt variant="bodyStrong">+ Tambah langganan</Txt>
+          <Txt variant="bodyStrong">{t('subscriptions.add')}</Txt>
         </Pressable>
       </View>
     </ScrollView>

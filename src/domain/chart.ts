@@ -1,5 +1,6 @@
 // Pure helpers for the hand-drawn SVG charts (no chart library: exact Buku Kas styling, no extra
 // native dependency).
+import { t } from '../i18n';
 
 export interface Share<K> {
   key: K | 'other';
@@ -10,7 +11,7 @@ export interface Share<K> {
 }
 
 /**
- * The `top` largest items as they are, the rest folded into one "Lainnya" entry, each with its
+ * The `top` largest items as they are, the rest folded into one "Other (n)" entry, each with its
  * share of the total. Items with no value are dropped.
  */
 export function topShares<K>(items: { key: K; label: string; value: number }[], top: number): Share<K>[] {
@@ -22,7 +23,7 @@ export function topShares<K>(items: { key: K; label: string; value: number }[], 
   const rest = positive.slice(top);
   if (rest.length === 0) return head;
   const value = rest.reduce((sum, i) => sum + i.value, 0);
-  return [...head, { key: 'other', label: `Lainnya (${rest.length})`, value, percent: percent(value) }];
+  return [...head, { key: 'other', label: t('chart.other', { count: rest.length }), value, percent: percent(value) }];
 }
 
 export interface Arc {

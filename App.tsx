@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DataProvider } from './src/data/DataProvider';
 import { DatabaseProvider } from './src/db/DatabaseProvider';
 import { FxProvider } from './src/fx/FxProvider';
+import { I18nProvider } from './src/i18n/I18nProvider';
 import { IntroProvider } from './src/intro/IntroProvider';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { PrivacyProvider } from './src/privacy/PrivacyProvider';
@@ -19,15 +20,17 @@ export default function App() {
         <ThemeProvider>
           <IntroProvider>
             <DatabaseProvider>
-              <PrivacyProvider>
-                <DataProvider>
-                  <FxProvider>
-                    <QuickAddProvider>
-                      <RootNavigator />
-                    </QuickAddProvider>
-                  </FxProvider>
-                </DataProvider>
-              </PrivacyProvider>
+              <I18nProvider>
+                <PrivacyProvider>
+                  <DataProvider>
+                    <FxProvider>
+                      <QuickAddProvider>
+                        <RootNavigator />
+                      </QuickAddProvider>
+                    </FxProvider>
+                  </DataProvider>
+                </PrivacyProvider>
+              </I18nProvider>
             </DatabaseProvider>
           </IntroProvider>
         </ThemeProvider>

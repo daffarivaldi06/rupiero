@@ -10,11 +10,13 @@ import { LedgerRow } from '../components/LedgerRow';
 import { Txt } from '../components/Txt';
 import type { RootNavigation } from '../navigation/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useI18n } from '../i18n/I18nProvider';
 
 export default function RecurringListScreen() {
   const db = useSQLiteContext();
   const navigation = useNavigation<RootNavigation>();
   const styles = useThemedStyles(makeStyles);
+  const { t } = useI18n();
   const [rules, setRules] = useState<RecurringRuleDetail[]>([]);
 
   useFocusEffect(
@@ -27,21 +29,21 @@ export default function RecurringListScreen() {
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <Txt tone="inkMuted" style={styles.description}>
-        Transaksi berulang dicatat otomatis saat jatuh tempo (tidak pernah sebelum harinya).
+        {t('recurringList.description')}
       </Txt>
       <View style={styles.list}>
         {rules.map((rule) => (
           <LedgerRow
             key={rule.id}
             title={rule.note || rule.categoryName}
-            subtitle={`${describeSchedule(rule, today)} · ${rule.accountName}`}
+            subtitle={t('recurringList.subtitle', { schedule: describeSchedule(rule, today), account: rule.accountName })}
             signedMinor={rule.type === 'income' ? rule.amountMinor : -rule.amountMinor}
             currency={rule.currency}
             onPress={() => navigation.navigate('RecurringForm', { ruleId: rule.id })}
           />
         ))}
         <Pressable onPress={() => navigation.navigate('RecurringForm')} style={styles.row} accessibilityRole="button">
-          <Txt variant="bodyStrong">+ Tambah transaksi berulang</Txt>
+          <Txt variant="bodyStrong">{t('recurringList.add')}</Txt>
         </Pressable>
       </View>
     </ScrollView>

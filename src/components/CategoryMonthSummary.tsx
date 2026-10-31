@@ -5,6 +5,7 @@ import type { CurrencyTotals } from '../domain/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { Money } from './Money';
 import { Txt } from './Txt';
+import { useI18n } from '../i18n/I18nProvider';
 
 interface CategoryMonthSummaryProps {
   month: Month;
@@ -18,41 +19,42 @@ interface CategoryMonthSummaryProps {
  */
 export const CategoryMonthSummary: React.FC<CategoryMonthSummaryProps> = ({ month, totals }) => {
   const styles = useThemedStyles(makeStyles);
-  const active = totals.filter((t) => t.incomeMinor !== 0 || t.expenseMinor !== 0);
+  const { t, locale } = useI18n();
+  const active = totals.filter((row) => row.incomeMinor !== 0 || row.expenseMinor !== 0);
   if (active.length === 0) return null;
 
-  const monthName = formatMonthName(month);
+  const monthName = formatMonthName(month, locale);
   return (
     <View>
       <View style={styles.topRule} />
-      {active.map((t, index) => {
+      {active.map((row, index) => {
         const code = (
-          <Txt variant="code" tone={t.currency === 'EUR' ? 'eur' : 'idrText'}>{t.currency}</Txt>
+          <Txt variant="code" tone={row.currency === 'EUR' ? 'eur' : 'idrText'}>{row.currency}</Txt>
         );
-        if (t.incomeMinor === 0 || t.expenseMinor === 0) {
-          const isIncome = t.expenseMinor === 0;
+        if (row.incomeMinor === 0 || row.expenseMinor === 0) {
+          const isIncome = row.expenseMinor === 0;
           return (
-            <View key={t.currency} style={[styles.block, index > 0 && styles.divider]}>
+            <View key={row.currency} style={[styles.block, index > 0 && styles.divider]}>
               {code}
-              <Txt variant="label" tone="inkMuted">{isIncome ? 'Pemasukan' : 'Pengeluaran'} {monthName}</Txt>
-              <Money minor={isIncome ? t.incomeMinor : t.expenseMinor} currency={t.currency} variant="display" />
+              <Txt variant="label" tone="inkMuted">{t(isIncome ? 'categorySummary.incomeIn' : 'categorySummary.expenseIn', { month: monthName })}</Txt>
+              <Money minor={isIncome ? row.incomeMinor : row.expenseMinor} currency={row.currency} variant="display" />
             </View>
           );
         }
         return (
-          <View key={t.currency} style={[styles.block, index > 0 && styles.divider]}>
+          <View key={row.currency} style={[styles.block, index > 0 && styles.divider]}>
             {code}
             <View style={styles.line}>
-              <Txt tone="inkMuted">Pemasukan {monthName}</Txt>
-              <Money minor={t.incomeMinor} currency={t.currency} variant="bodyStrong" />
+              <Txt tone="inkMuted">{t('categorySummary.incomeIn', { month: monthName })}</Txt>
+              <Money minor={row.incomeMinor} currency={row.currency} variant="bodyStrong" />
             </View>
             <View style={styles.line}>
-              <Txt tone="inkMuted">Pengeluaran {monthName}</Txt>
-              <Money minor={t.expenseMinor} currency={t.currency} variant="bodyStrong" />
+              <Txt tone="inkMuted">{t('categorySummary.expenseIn', { month: monthName })}</Txt>
+              <Money minor={row.expenseMinor} currency={row.currency} variant="bodyStrong" />
             </View>
             <View style={[styles.line, styles.totalLine]}>
-              <Txt variant="bodyStrong">Selisih</Txt>
-              <Money minor={t.incomeMinor - t.expenseMinor} currency={t.currency} variant="heading" tone="signed" sign />
+              <Txt variant="bodyStrong">{t('categorySummary.difference')}</Txt>
+              <Money minor={row.incomeMinor - row.expenseMinor} currency={row.currency} variant="heading" tone="signed" sign />
             </View>
           </View>
         );

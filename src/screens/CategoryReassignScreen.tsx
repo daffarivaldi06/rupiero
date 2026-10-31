@@ -8,6 +8,7 @@ import type { Category } from '../domain/types';
 import { Txt } from '../components/Txt';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useI18n } from '../i18n/I18nProvider';
 
 /** Pick where a category's transactions go before the category is deleted. */
 export default function CategoryReassignScreen() {
@@ -15,6 +16,7 @@ export default function CategoryReassignScreen() {
   const navigation = useNavigation<RootNavigation>();
   const route = useRoute<RouteProp<RootStackParamList, 'CategoryReassign'>>();
   const styles = useThemedStyles(makeStyles);
+  const { t } = useI18n();
   const { categoryId } = route.params;
 
   const [name, setName] = useState('');
@@ -28,10 +30,10 @@ export default function CategoryReassignScreen() {
   }, [db, categoryId]);
 
   const choose = (target: Category) => {
-    Alert.alert('Pindahkan dan hapus', `Semua transaksi "${name}" pindah ke "${target.name}", lalu "${name}" dihapus.`, [
-      { text: 'Batal', style: 'cancel' },
+    Alert.alert(t('reassign.confirmTitle'), t('reassign.confirmMessage', { name, target: target.name }), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Pindahkan',
+        text: t('reassign.move'),
         style: 'destructive',
         onPress: async () => {
           try {
@@ -39,7 +41,7 @@ export default function CategoryReassignScreen() {
             navigation.popTo('Dashboard');
           } catch (e) {
             console.error(e);
-            Alert.alert('Gagal', 'Transaksi tidak dapat dipindahkan');
+            Alert.alert(t('common.failed'), t('reassign.failed'));
           }
         },
       },
@@ -48,7 +50,7 @@ export default function CategoryReassignScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <Txt tone="inkMuted" style={styles.description}>Pindahkan transaksi &quot;{name}&quot; ke:</Txt>
+      <Txt tone="inkMuted" style={styles.description}>{t('reassign.description', { name })}</Txt>
       <View style={styles.list}>
         {targets.map((target) => (
           <Pressable key={target.id} onPress={() => choose(target)} style={styles.row} accessibilityRole="button">
@@ -57,7 +59,7 @@ export default function CategoryReassignScreen() {
           </Pressable>
         ))}
       </View>
-      {targets.length === 0 && <Txt tone="inkMuted">Belum ada kategori lain. Buat dulu, atau arsipkan kategori ini.</Txt>}
+      {targets.length === 0 && <Txt tone="inkMuted">{t('reassign.noTargets')}</Txt>}
     </ScrollView>
   );
 }

@@ -17,14 +17,16 @@ import type { RootNavigation, RootStackParamList } from '../navigation/types';
 import { useDataRevision } from '../data/DataProvider';
 import { useQuickAdd } from '../quickadd/QuickAddProvider';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useI18n } from '../i18n/I18nProvider';
+import { t as translate, type MessageKey } from '../i18n';
 
 const PAGE_SIZE = 50;
 
-const TYPES: { value: LedgerTypeFilter; label: string }[] = [
-  { value: 'all', label: 'Semua' },
-  { value: 'expense', label: 'Pengeluaran' },
-  { value: 'income', label: 'Pemasukan' },
-  { value: 'transfer', label: 'Transfer' },
+const TYPES: { value: LedgerTypeFilter; labelKey: MessageKey }[] = [
+  { value: 'all', labelKey: 'common.all' },
+  { value: 'expense', labelKey: 'common.expense' },
+  { value: 'income', labelKey: 'common.income' },
+  { value: 'transfer', labelKey: 'common.transfer' },
 ];
 
 type ListItem =
@@ -35,14 +37,14 @@ function describe(item: LedgerItem): { title?: string; subtitle: string } {
   switch (item.kind) {
     case 'tx':
       return item.note
-        ? { title: item.note, subtitle: `${item.categoryName} · ${item.accountName}` }
+        ? { title: item.note, subtitle: translate('transactions.subtitle', { category: item.categoryName ?? '', account: item.accountName }) }
         : { title: item.categoryName ?? undefined, subtitle: item.accountName };
     case 'transfer_out':
-      return { title: `Transfer ke ${item.counterpartyName}`, subtitle: item.note || item.accountName };
+      return { title: translate('transactions.transferTo', { name: item.counterpartyName ?? '' }), subtitle: item.note || item.accountName };
     case 'transfer_in':
-      return { title: `Transfer dari ${item.counterpartyName}`, subtitle: item.note || item.accountName };
+      return { title: translate('transactions.transferFrom', { name: item.counterpartyName ?? '' }), subtitle: item.note || item.accountName };
     case 'transfer_fee':
-      return { title: 'Biaya transfer', subtitle: `${item.accountName} → ${item.counterpartyName}` };
+      return { title: translate('common.transferFee'), subtitle: `${item.accountName} → ${item.counterpartyName}` };
   }
 }
 
@@ -51,6 +53,7 @@ export default function TransactionListScreen() {
   const navigation = useNavigation<RootNavigation>();
   const route = useRoute<RouteProp<RootStackParamList, 'Transactions'>>();
   const styles = useThemedStyles(makeStyles);
+  const { t } = useI18n();
   const quickAdd = useQuickAdd();
   const { revision } = useDataRevision();
 
@@ -137,24 +140,24 @@ export default function TransactionListScreen() {
   const header = (
     <View style={styles.filters}>
       <View style={styles.monthRow}>
-        <Pressable onPress={() => setMonth(addMonths(month, -1))} style={styles.monthButton} accessibilityRole="button" accessibilityLabel="Bulan sebelumnya">
+        <Pressable onPress={() => setMonth(addMonths(month, -1))} style={styles.monthButton} accessibilityRole="button" accessibilityLabel={t('common.previousMonth')}>
           <Txt variant="title">‹</Txt>
         </Pressable>
         <Txt variant="heading">{formatMonthLabel(month)}</Txt>
-        <Pressable onPress={() => setMonth(addMonths(month, 1))} style={styles.monthButton} accessibilityRole="button" accessibilityLabel="Bulan berikutnya">
+        <Pressable onPress={() => setMonth(addMonths(month, 1))} style={styles.monthButton} accessibilityRole="button" accessibilityLabel={t('common.nextMonth')}>
           <Txt variant="title">›</Txt>
         </Pressable>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-        {TYPES.map((t) => chip(t.label, type === t.value, () => setType(t.value), t.value))}
+        {TYPES.map((option) => chip(t(option.labelKey), type === option.value, () => setType(option.value), option.value))}
       </ScrollView>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-        {chip('Semua akun', accountId === undefined, () => setAccountId(undefined), 'all-accounts')}
+        {chip(t('transactions.allAccounts'), accountId === undefined, () => setAccountId(undefined), 'all-accounts')}
         {accounts.map((a) => chip(a.name, accountId === a.id, () => setAccountId(a.id), `account-${a.id}`))}
       </ScrollView>
       {categoryId !== undefined && (
         <View style={styles.chipRow}>
-          {chip(`${categoryName ?? 'Kategori'}  ✕`, true, () => setCategoryId(undefined), 'category')}
+          {chip(`${categoryName ?? t('common.category')}  ✕`, true, () => setCategoryId(undefined), 'category')}
         </View>
       )}
     </View>
@@ -168,7 +171,7 @@ export default function TransactionListScreen() {
       contentContainerStyle={styles.content}
       onEndReached={loadMore}
       onEndReachedThreshold={0.5}
-      ListEmptyComponent={<Txt tone="inkMuted" style={styles.empty}>Tidak ada transaksi untuk filter ini.</Txt>}
+      ListEmptyComponent={<Txt tone="inkMuted" style={styles.empty}>{t('transactions.empty')}</Txt>}
       renderItem={({ item: entry }) => {
         if (entry.type === 'day') {
           return (

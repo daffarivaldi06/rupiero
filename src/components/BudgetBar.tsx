@@ -5,13 +5,15 @@ import type { CurrencyCode } from '../domain/money';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { Money } from './Money';
 import { Txt } from './Txt';
+import { useI18n } from '../i18n/I18nProvider';
+import { renderMessage } from '../i18n/rich';
 
 interface BudgetBarProps {
   status: BudgetStatus;
   currency: CurrencyCode;
 }
 
-const LEVEL_TEXT = { ok: '', warning: 'Hampir habis', over: 'Melewati budget' } as const;
+const LEVEL_TEXT = { ok: null, warning: 'budgetBar.levelWarning', over: 'budgetBar.levelOver' } as const;
 
 /**
  * Spent against limit for one currency: amounts, a thin bar and what is left. Level is spelled out
@@ -19,6 +21,7 @@ const LEVEL_TEXT = { ok: '', warning: 'Hampir habis', over: 'Melewati budget' } 
  */
 export const BudgetBar: React.FC<BudgetBarProps> = ({ status, currency }) => {
   const styles = useThemedStyles(makeStyles);
+  const { t, locale } = useI18n();
   const fill = status.level === 'over' ? styles.over : status.level === 'warning' ? styles.warning : styles.ok;
   const levelText = LEVEL_TEXT[status.level];
 
@@ -26,8 +29,14 @@ export const BudgetBar: React.FC<BudgetBarProps> = ({ status, currency }) => {
     <View style={styles.wrap}>
       <View style={styles.line}>
         <Txt variant="label" style={styles.amounts} numberOfLines={1}>
-          <Money minor={status.spentMinor} currency={currency} variant="label" /> dari{' '}
-          <Money minor={status.limitMinor} currency={currency} variant="label" tone="inkMuted" />
+          {renderMessage(
+            'budgetBar.of',
+            {
+              spent: <Money minor={status.spentMinor} currency={currency} variant="label" />,
+              limit: <Money minor={status.limitMinor} currency={currency} variant="label" tone="inkMuted" />,
+            },
+            locale,
+          )}
         </Txt>
         <Txt variant="label" tone={status.level === 'over' ? 'expense' : status.level === 'warning' ? 'idrText' : 'inkMuted'}>
           {status.percent}%
@@ -43,11 +52,14 @@ export const BudgetBar: React.FC<BudgetBarProps> = ({ status, currency }) => {
       </View>
       <View style={styles.line}>
         <Txt variant="caption" tone="inkMuted">
-          {status.remainingMinor >= 0 ? 'Sisa ' : 'Lebih '}
-          <Money minor={Math.abs(status.remainingMinor)} currency={currency} variant="caption" tone="inkMuted" />
+          {renderMessage(
+            status.remainingMinor >= 0 ? 'budgetBar.left' : 'budgetBar.over',
+            { amount: <Money minor={Math.abs(status.remainingMinor)} currency={currency} variant="caption" tone="inkMuted" /> },
+            locale,
+          )}
         </Txt>
-        {levelText !== '' && (
-          <Txt variant="caption" tone={status.level === 'over' ? 'expense' : 'idrText'}>{levelText}</Txt>
+        {levelText !== null && (
+          <Txt variant="caption" tone={status.level === 'over' ? 'expense' : 'idrText'}>{t(levelText)}</Txt>
         )}
       </View>
     </View>

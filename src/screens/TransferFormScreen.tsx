@@ -9,7 +9,8 @@ import { getReferenceRateOn } from '../db/repos/fxRates';
 import { createTransfer, deleteTransfer, getTransfer, TransferError, updateTransfer } from '../db/repos/transfers';
 import { addDays, formatDateLabel, formatDayMonth, fromLocalDate, toLocalDate, todayLocal, type LocalDate } from '../domain/dates';
 import { convertWithReference, differenceBasisPoints, rateMicroOf, type ReferenceRate } from '../domain/fx';
-import { formatInputValue, formatMoney, impliedRate, parseAmount, type CurrencyCode } from '../domain/money';
+import { formatInputValue, formatMoney, impliedRate, parseAmount, SEPARATORS, type CurrencyCode } from '../domain/money';
+import type { Locale } from '../i18n/locale';
 import type { Account } from '../domain/types';
 import { AccountPicker } from '../components/AccountPicker';
 import { Button } from '../components/Button';
@@ -17,13 +18,14 @@ import { Input } from '../components/Input';
 import { Txt } from '../components/Txt';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useI18n } from '../i18n/I18nProvider';
 
 const parse = (text: string, currency: CurrencyCode) => (text.trim() === '' ? null : parseAmount(text, currency));
 
-/** "1566" basis points → "15,66". */
-const formatPercent = (bp: number) => {
+/** 1566 basis points → "15,66" / "15.66". */
+const formatPercent = (bp: number, locale: Locale) => {
   const abs = Math.abs(bp);
-  return `${Math.trunc(abs / 100)},${String(abs % 100).padStart(2, '0')}`;
+  return `${Math.trunc(abs / 100)}${SEPARATORS[locale].decimal}${String(abs % 100).padStart(2, '0')}`;
 };
 
 export default function TransferFormScreen() {
@@ -31,6 +33,7 @@ export default function TransferFormScreen() {
   const navigation = useNavigation<RootNavigation>();
   const route = useRoute<RouteProp<RootStackParamList, 'TransferForm'>>();
   const styles = useThemedStyles(makeStyles);
+  const { t, locale } = useI18n();
   const transferId = route.params?.transferId;
   const isEditing = transferId !== undefined;
 
@@ -116,15 +119,15 @@ export default function TransferFormScreen() {
 
   const save = async () => {
     if (!from || !to) {
-      Alert.alert('Pilih akun', 'Pilih akun asal dan tujuan');
+      Alert.alert(t('transfer.pickAccountsTitle'), t('transfer.pickAccounts'));
       return;
     }
     if (!sentMinor || sentMinor <= 0 || !receivedMinor || receivedMinor <= 0) {
-      Alert.alert('Nominal belum valid', 'Isi nominal kirim dan terima lebih dari nol');
+      Alert.alert(t('quickAdd.invalidAmountTitle'), t('transfer.invalidAmounts'));
       return;
     }
     if (feeMinor === null || feeMinor < 0) {
-      Alert.alert('Biaya belum valid', 'Kosongkan atau isi biaya transfer');
+      Alert.alert(t('transfer.invalidFeeTitle'), t('transfer.invalidFee'));
       return;
     }
     const transfer = {
@@ -141,20 +144,20 @@ export default function TransferFormScreen() {
       else await createTransfer(db, transfer);
       navigation.goBack();
     } catch (e) {
-      if (e instanceof TransferError) Alert.alert('Transfer tidak valid', e.message);
+      if (e instanceof TransferError) Alert.alert(t('transfer.invalidTitle'), e.message);
       else {
         console.error(e);
-        Alert.alert('Gagal', 'Transfer tidak dapat disimpan');
+        Alert.alert(t('common.failed'), t('transfer.saveFailed'));
       }
     }
   };
 
   const remove = () => {
     if (transferId === undefined) return;
-    Alert.alert('Hapus transfer', 'Transfer ini akan dihapus dari kedua akun.', [
-      { text: 'Batal', style: 'cancel' },
+    Alert.alert(t('transfer.delete'), t('transfer.deleteMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Hapus',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           try {
@@ -162,7 +165,7 @@ export default function TransferFormScreen() {
             navigation.goBack();
           } catch (e) {
             console.error(e);
-            Alert.alert('Gagal', 'Transfer tidak dapat dihapus');
+            Alert.alert(t('common.failed'), t('transfer.deleteFailed'));
           }
         },
       },
@@ -170,19 +173,20 @@ export default function TransferFormScreen() {
   };
 
   const today = todayLocal();
-  const dateLabel = date === today ? 'Hari ini' : date === addDays(today, -1) ? 'Kemarin' : formatDateLabel(date);
+  const dateLabel =
+    date === today ? t('common.today') : date === addDays(today, -1) ? t('common.yesterday') : formatDateLabel(date, locale);
 
   return (
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Txt variant="label" tone="inkMuted" style={styles.label}>Dari</Txt>
+      <Txt variant="label" tone="inkMuted" style={styles.label}>{t('transfer.from')}</Txt>
       <AccountPicker accounts={accounts} selectedId={fromId} onSelect={selectFrom} />
-      <Txt variant="label" tone="inkMuted" style={styles.label}>Ke</Txt>
+      <Txt variant="label" tone="inkMuted" style={styles.label}>{t('transfer.to')}</Txt>
       <AccountPicker accounts={accounts.filter((a) => a.id !== fromId)} selectedId={toId} onSelect={(a) => setToId(a.id)} />
 
       {from && (
         <Input
-          label={`Dikirim (${from.currency})`}
-          placeholder={from.currency === 'EUR' ? '200,00' : '3.000.000'}
+          label={t('transfer.sent', { currency: from.currency })}
+          placeholder={formatInputValue(from.currency === 'EUR' ? 20000 : 3_000_000, from.currency)}
           value={sent}
           onChangeText={setSent}
           keyboardType={from.currency === 'EUR' ? 'decimal-pad' : 'number-pad'}
@@ -190,23 +194,27 @@ export default function TransferFormScreen() {
       )}
       {to && !sameCurrency && (
         <Input
-          label={`Diterima (${to.currency})`}
+          label={t('transfer.received', { currency: to.currency })}
           placeholder={receivedHint !== null ? formatInputValue(receivedHint, to.currency) : undefined}
           value={received}
           onChangeText={setReceived}
           keyboardType={to.currency === 'EUR' ? 'decimal-pad' : 'number-pad'}
         />
       )}
-      {sameCurrency && <Txt variant="caption" tone="inkMuted">Mata uang sama: jumlah diterima sama dengan yang dikirim.</Txt>}
+      {sameCurrency && <Txt variant="caption" tone="inkMuted">{t('transfer.sameCurrency')}</Txt>}
 
       {rateInfo && (
         <View style={styles.rateBox}>
-          <Txt variant="bodyStrong">1 EUR = {formatMoney(rateInfo.perEur, 'IDR')}</Txt>
+          <Txt variant="bodyStrong">{t('transfer.rate', { rate: formatMoney(rateInfo.perEur, 'IDR') })}</Txt>
           {rateInfo.diff !== null && reference && (
             <Txt variant="caption" tone="inkMuted">
               {rateInfo.diff === 0
-                ? `Sama dengan kurs ECB ${formatDayMonth(reference.date)}`
-                : `${formatPercent(rateInfo.diff)}% ${rateInfo.diff < 0 ? 'di bawah' : 'di atas'} kurs ECB ${formatDayMonth(reference.date)} (${formatMoney(Math.round(reference.rateMicro / 1_000_000), 'IDR')})`}
+                ? t('transfer.rateSame', { date: formatDayMonth(reference.date) })
+                : t(rateInfo.diff < 0 ? 'transfer.rateBelow' : 'transfer.rateAbove', {
+                    percent: formatPercent(rateInfo.diff, locale),
+                    date: formatDayMonth(reference.date),
+                    rate: formatMoney(Math.round(reference.rateMicro / 1_000_000), 'IDR'),
+                  })}
             </Txt>
           )}
         </View>
@@ -214,7 +222,7 @@ export default function TransferFormScreen() {
 
       {from && (
         <Input
-          label={`Biaya transfer (${from.currency}, opsional)`}
+          label={t('transfer.fee', { currency: from.currency })}
           placeholder="0"
           value={fee}
           onChangeText={setFee}
@@ -223,17 +231,17 @@ export default function TransferFormScreen() {
       )}
 
       <View style={styles.metaRow}>
-        <Pressable onPress={pickDate} style={styles.dateChip} accessibilityRole="button" accessibilityLabel={`Tanggal: ${dateLabel}`}>
+        <Pressable onPress={pickDate} style={styles.dateChip} accessibilityRole="button" accessibilityLabel={t('common.dateValue', { date: dateLabel })}>
           <Txt variant="label">{dateLabel}</Txt>
         </Pressable>
       </View>
       {showIosPicker && (
         <DateTimePicker value={fromLocalDate(date)} mode="date" display="inline" onChange={(_, picked) => picked && setDate(toLocalDate(picked))} />
       )}
-      <Input label="Catatan (opsional)" value={note} onChangeText={setNote} />
+      <Input label={t('common.noteOptional')} value={note} onChangeText={setNote} />
 
-      <Button title={isEditing ? 'Simpan Perubahan' : 'Simpan Transfer'} onPress={save} style={styles.save} />
-      {isEditing && <Button title="Hapus transfer" variant="outline" onPress={remove} />}
+      <Button title={t(isEditing ? 'common.saveChanges' : 'transfer.save')} onPress={save} style={styles.save} />
+      {isEditing && <Button title={t('transfer.delete')} variant="outline" onPress={remove} />}
     </ScrollView>
   );
 }

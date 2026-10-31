@@ -2,11 +2,17 @@ import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { barHeights } from '../domain/chart';
 import { formatMonthLabel, formatMonthShort, type Month } from '../domain/dates';
+import type { CurrencyCode } from '../domain/money';
+import { useI18n } from '../i18n/I18nProvider';
+import { spokenAmount } from '../i18n/spoken';
+import { usePrivacy } from '../privacy/PrivacyProvider';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { Txt } from './Txt';
 
 interface TrendBarsProps {
   points: { month: Month; value: number }[];
+  /** For the spoken amount of each bar. */
+  currency: CurrencyCode;
   color: string;
   selected: Month;
   onSelect: (month: Month) => void;
@@ -14,8 +20,10 @@ interface TrendBarsProps {
 }
 
 /** Plain bars on an ink baseline, one per month; the selected month is solid, the others muted. */
-export const TrendBars: React.FC<TrendBarsProps> = ({ points, color, selected, onSelect, height = 96 }) => {
+export const TrendBars: React.FC<TrendBarsProps> = ({ points, currency, color, selected, onSelect, height = 96 }) => {
   const styles = useThemedStyles(makeStyles);
+  const { t, locale } = useI18n();
+  const { hidden } = usePrivacy();
   const heights = barHeights(
     points.map((p) => p.value),
     height,
@@ -33,7 +41,10 @@ export const TrendBars: React.FC<TrendBarsProps> = ({ points, color, selected, o
               style={styles.slot}
               accessibilityRole="button"
               accessibilityState={{ selected: isSelected }}
-              accessibilityLabel={formatMonthLabel(point.month)}
+              accessibilityLabel={t('common.labelValue', {
+                label: formatMonthLabel(point.month, locale),
+                value: hidden ? t('money.hidden') : spokenAmount(point.value, currency, { locale }),
+              })}
             >
               <View style={[styles.bar, { height: heights[i], backgroundColor: color, opacity: isSelected ? 1 : 0.4 }]} />
             </Pressable>
@@ -49,7 +60,7 @@ export const TrendBars: React.FC<TrendBarsProps> = ({ points, color, selected, o
             tone={point.month === selected ? 'ink' : 'inkMuted'}
             style={styles.label}
           >
-            {formatMonthShort(point.month).split(' ')[0]}
+            {formatMonthShort(point.month, locale).split(' ')[0]}
           </Txt>
         ))}
       </View>

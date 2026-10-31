@@ -17,11 +17,12 @@ import { LedgerSection } from '../components/LedgerSection';
 import { CategoryMonthSummary } from '../components/CategoryMonthSummary';
 import { Txt } from '../components/Txt';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useI18n } from '../i18n/I18nProvider';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
 import { useDataRevision } from '../data/DataProvider';
 import { useQuickAdd } from '../quickadd/QuickAddProvider';
 
-const signed = (t: TransactionDetail) => (t.type === 'income' ? t.amountMinor : -t.amountMinor);
+const signed = (tx: TransactionDetail) => (tx.type === 'income' ? tx.amountMinor : -tx.amountMinor);
 
 export default function CategoryDetailScreen() {
   const db = useSQLiteContext();
@@ -29,6 +30,7 @@ export default function CategoryDetailScreen() {
   const navigation = useNavigation<RootNavigation>();
   const { color } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const { t } = useI18n();
   const { categoryId, month } = route.params;
   const quickAdd = useQuickAdd();
   const { revision } = useDataRevision();
@@ -82,24 +84,24 @@ export default function CategoryDetailScreen() {
         navigation.popTo('Dashboard');
       } catch (e) {
         console.error(e);
-        Alert.alert('Gagal', 'Kategori tidak dapat diubah');
+        Alert.alert(t('common.failed'), t('categoryDetail.changeFailed'));
       }
     };
     const used = await countCategoryTransactions(db, categoryId);
     if (used === 0) {
-      Alert.alert('Hapus kategori', `Hapus "${category}"?`, [
-        { text: 'Batal', style: 'cancel' },
-        { text: 'Hapus', style: 'destructive', onPress: run(() => deleteCategory(db, categoryId)) },
+      Alert.alert(t('categoryDetail.deleteTitle'), t('categoryDetail.deleteMessage', { name: category }), [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.delete'), style: 'destructive', onPress: run(() => deleteCategory(db, categoryId)) },
       ]);
       return;
     }
     Alert.alert(
-      'Kategori masih dipakai',
-      `${used} transaksi memakai "${category}". Pindahkan ke kategori lain lalu hapus, atau arsipkan agar tidak muncul di daftar.`,
+      t('categoryDetail.inUseTitle'),
+      t('categoryDetail.inUseMessage', { count: used, name: category }),
       [
-        { text: 'Batal', style: 'cancel' },
-        { text: 'Arsipkan', onPress: run(() => setCategoryArchived(db, categoryId, true)) },
-        { text: 'Pindahkan…', onPress: () => navigation.navigate('CategoryReassign', { categoryId }) },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('categoryDetail.archive'), onPress: run(() => setCategoryArchived(db, categoryId, true)) },
+        { text: t('categoryDetail.move'), onPress: () => navigation.navigate('CategoryReassign', { categoryId }) },
       ],
     );
   };
@@ -114,17 +116,17 @@ export default function CategoryDetailScreen() {
             style={styles.headerButton}
             accessibilityRole="button"
           >
-            <Txt variant="bodyStrong">Ubah</Txt>
+            <Txt variant="bodyStrong">{t('common.edit')}</Txt>
           </Pressable>
           <Pressable onPress={handleDelete} style={styles.headerButton} accessibilityRole="button">
-            <Txt variant="bodyStrong" tone="expense">Hapus</Txt>
+            <Txt variant="bodyStrong" tone="expense">{t('common.delete')}</Txt>
           </Pressable>
         </View>
       ),
     });
   });
 
-  const days = groupByDate(transactions, (t) => ({ date: t.date, currency: t.currency, signedMinor: signed(t) }));
+  const days = groupByDate(transactions, (tx) => ({ date: tx.date, currency: tx.currency, signedMinor: signed(tx) }));
 
   return (
     <ScrollView
@@ -139,8 +141,8 @@ export default function CategoryDetailScreen() {
         accessibilityRole="button"
       >
         <View style={styles.budgetHeader}>
-          <Txt variant="label" tone="inkMuted">Budget</Txt>
-          <Txt variant="label">{budgets.length === 0 ? 'Atur ›' : 'Ubah ›'}</Txt>
+          <Txt variant="label" tone="inkMuted">{t('common.budget')}</Txt>
+          <Txt variant="label">{t(budgets.length === 0 ? 'common.setMore' : 'common.editMore')}</Txt>
         </View>
         {budgets.map((line) => (
           <BudgetBar key={line.currency} status={budgetStatus(line.spentMinor, line.limitMinor)} currency={line.currency} />
@@ -149,33 +151,33 @@ export default function CategoryDetailScreen() {
 
       <View style={styles.actionRow}>
         <Button
-          title="+ Pemasukan"
+          title={t('categoryDetail.addIncome')}
           variant="outline"
           onPress={() => quickAdd.open({ categoryId, type: 'income' })}
           style={styles.actionButton}
         />
         <Button
-          title="− Pengeluaran"
+          title={t('categoryDetail.addExpense')}
           variant="outline"
           onPress={() => quickAdd.open({ categoryId, type: 'expense' })}
           style={styles.actionButton}
         />
       </View>
 
-      <Txt variant="title" style={styles.sectionTitle}>Transaksi</Txt>
+      <Txt variant="title" style={styles.sectionTitle}>{t('common.transactions')}</Txt>
       {days.length === 0 ? (
-        <Txt tone="inkMuted" style={styles.emptyText}>Belum ada transaksi di kategori ini bulan ini.</Txt>
+        <Txt tone="inkMuted" style={styles.emptyText}>{t('categoryDetail.empty')}</Txt>
       ) : (
         days.map((day) => (
           <LedgerSection key={day.date} date={day.date} totals={day.items.length > 1 ? day.totals : undefined}>
-            {day.items.map((t) => (
+            {day.items.map((tx) => (
               <LedgerRow
-                key={t.id}
-                title={t.note || undefined}
-                subtitle={t.accountName}
-                signedMinor={signed(t)}
-                currency={t.currency}
-                onPress={() => quickAdd.open({ transactionId: t.id })}
+                key={tx.id}
+                title={tx.note || undefined}
+                subtitle={tx.accountName}
+                signedMinor={signed(tx)}
+                currency={tx.currency}
+                onPress={() => quickAdd.open({ transactionId: tx.id })}
               />
             ))}
           </LedgerSection>

@@ -8,6 +8,7 @@ import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { Txt } from '../components/Txt';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useI18n } from '../i18n/I18nProvider';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
 
 export default function CategoryFormScreen() {
@@ -15,6 +16,7 @@ export default function CategoryFormScreen() {
   const navigation = useNavigation<RootNavigation>();
   const route = useRoute<RouteProp<RootStackParamList, 'CategoryForm'>>();
   const styles = useThemedStyles(makeStyles);
+  const { t } = useI18n();
 
   const categoryId = route.params?.categoryId;
   const isEditing = categoryId !== undefined;
@@ -30,7 +32,7 @@ export default function CategoryFormScreen() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert('Nama kosong', 'Masukkan nama kategori');
+      Alert.alert(t('categoryForm.nameEmptyTitle'), t('categoryForm.nameEmpty'));
       return;
     }
 
@@ -44,26 +46,26 @@ export default function CategoryFormScreen() {
       navigation.goBack();
     } catch (e) {
       console.error(e);
-      Alert.alert('Gagal menyimpan', 'Nama kategori sudah dipakai atau terjadi kesalahan');
+      Alert.alert(t('accountForm.saveFailedTitle'), t('categoryForm.saveFailed'));
     }
   };
 
   return (
     <View style={styles.container}>
       <Txt tone="inkMuted" style={styles.subtitle}>
-        {isEditing ? 'Transaksinya tetap terhubung ke kategori ini.' : 'Kategori baru muncul di dashboard.'}
+        {t(isEditing ? 'categoryForm.editHint' : 'categoryForm.newHint')}
       </Txt>
 
       <Input
-        label="Nama Kategori"
-        placeholder="mis. Belanja, Hobi"
+        label={t('categoryForm.name')}
+        placeholder={t('categoryForm.namePlaceholder')}
         value={name}
         onChangeText={setName}
         autoFocus
       />
 
       <Button
-        title={isEditing ? 'Simpan Perubahan' : 'Buat Kategori'}
+        title={t(isEditing ? 'common.saveChanges' : 'categoryForm.create')}
         onPress={handleSave}
         style={styles.button}
       />

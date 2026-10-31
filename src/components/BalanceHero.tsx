@@ -5,6 +5,7 @@ import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { Money } from './Money';
 import type { RollSpec } from './countUp';
 import { Txt } from './Txt';
+import { useI18n } from '../i18n/I18nProvider';
 
 interface BalanceHeroProps {
   label: string;
@@ -18,11 +19,12 @@ interface BalanceHeroProps {
  */
 export const BalanceHero: React.FC<BalanceHeroProps> = ({ label, balances, roll }) => {
   const styles = useThemedStyles(makeStyles);
+  const { t } = useI18n();
   return (
     <View>
       <Txt variant="label" tone="inkMuted" style={styles.label}>{label}</Txt>
       <View style={styles.topRule} />
-      {balances.length === 0 && <Txt tone="inkMuted" style={styles.empty}>Belum ada akun</Txt>}
+      {balances.length === 0 && <Txt tone="inkMuted" style={styles.empty}>{t('balance.noAccounts')}</Txt>}
       {balances.map((b, index) => (
         <View key={b.currency} style={[styles.row, index > 0 && styles.divider]}>
           <Txt variant="code" tone={b.currency === 'EUR' ? 'eur' : 'idrText'}>{b.currency}</Txt>

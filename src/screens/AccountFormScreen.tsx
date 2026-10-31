@@ -17,6 +17,7 @@ import { Input } from '../components/Input';
 import { Txt } from '../components/Txt';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useI18n } from '../i18n/I18nProvider';
 
 /** Opening balances may be negative (e.g. a credit card), so allow a leading minus. */
 function parseSignedAmount(text: string, currency: CurrencyCode): number | null {
@@ -32,6 +33,7 @@ export default function AccountFormScreen() {
   const navigation = useNavigation<RootNavigation>();
   const route = useRoute<RouteProp<RootStackParamList, 'AccountForm'>>();
   const styles = useThemedStyles(makeStyles);
+  const { t } = useI18n();
   const accountId = route.params?.accountId;
   const isEditing = accountId !== undefined;
 
@@ -58,12 +60,12 @@ export default function AccountFormScreen() {
 
   const save = async () => {
     if (!name.trim()) {
-      Alert.alert('Nama kosong', 'Masukkan nama akun');
+      Alert.alert(t('accountForm.nameEmptyTitle'), t('accountForm.nameEmpty'));
       return;
     }
     const openingBalanceMinor = parseSignedAmount(opening, currency);
     if (openingBalanceMinor === null) {
-      setOpeningError(currency === 'EUR' ? 'Contoh: 1.250,50' : 'Contoh: 1.250.000');
+      setOpeningError(t('money.amountHint', { example: formatInputValue(currency === 'EUR' ? 125050 : 1_250_000, currency) }));
       return;
     }
     try {
@@ -72,10 +74,10 @@ export default function AccountFormScreen() {
       else await createAccount(db, account);
       navigation.goBack();
     } catch (e) {
-      if (e instanceof AccountCurrencyLockedError) Alert.alert('Mata uang terkunci', e.message);
+      if (e instanceof AccountCurrencyLockedError) Alert.alert(t('accountForm.currencyLockedTitle'), e.message);
       else {
         console.error(e);
-        Alert.alert('Gagal menyimpan', 'Nama akun sudah dipakai atau terjadi kesalahan');
+        Alert.alert(t('accountForm.saveFailedTitle'), t('accountForm.saveFailed'));
       }
     }
   };
@@ -87,15 +89,15 @@ export default function AccountFormScreen() {
       navigation.goBack();
     } catch (e) {
       console.error(e);
-      Alert.alert('Gagal', 'Status arsip tidak dapat diubah');
+      Alert.alert(t('common.failed'), t('accountForm.archiveFailed'));
     }
   };
 
   return (
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Input label="Nama akun" placeholder="mis. Bank, Dompet" value={name} onChangeText={setName} autoFocus={!isEditing} />
+      <Input label={t('accountForm.name')} placeholder={t('accountForm.namePlaceholder')} value={name} onChangeText={setName} autoFocus={!isEditing} />
 
-      <Txt variant="label" tone="inkMuted" style={styles.label}>Mata uang</Txt>
+      <Txt variant="label" tone="inkMuted" style={styles.label}>{t('accountForm.currency')}</Txt>
       <View style={styles.currencyRow}>
         {CURRENCY_CODES.map((code) => {
           const selected = code === currency;
@@ -117,12 +119,12 @@ export default function AccountFormScreen() {
         })}
       </View>
       {currencyLocked && (
-        <Txt variant="caption" tone="inkMuted" style={styles.hint}>Terkunci karena akun ini sudah punya transaksi.</Txt>
+        <Txt variant="caption" tone="inkMuted" style={styles.hint}>{t('accountForm.currencyLocked')}</Txt>
       )}
 
       <Input
-        label="Saldo awal"
-        placeholder={currency === 'EUR' ? '0,00' : '0'}
+        label={t('accountForm.opening')}
+        placeholder={formatInputValue(0, currency)}
         value={opening}
         onChangeText={(text) => {
           setOpening(text);
@@ -132,9 +134,9 @@ export default function AccountFormScreen() {
         error={openingError}
       />
 
-      <Button title={isEditing ? 'Simpan Perubahan' : 'Buat Akun'} onPress={save} style={styles.save} />
+      <Button title={t(isEditing ? 'common.saveChanges' : 'accountForm.create')} onPress={save} style={styles.save} />
       {isEditing && (
-        <Button title={archived ? 'Kembalikan dari arsip' : 'Arsipkan akun'} variant="outline" onPress={toggleArchive} />
+        <Button title={t(archived ? 'accountForm.unarchive' : 'accountForm.archive')} variant="outline" onPress={toggleArchive} />
       )}
     </ScrollView>
   );

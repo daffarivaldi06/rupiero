@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 import { addMonths, type Month } from '../../domain/dates';
 import type { CurrencyCode } from '../../domain/money';
 import type { CurrencyTotals } from '../../domain/types';
@@ -68,11 +69,11 @@ export interface CategorySpending {
 
 /**
  * The month's spending per category and currency, largest first, with transfer fees as their own
- * "Biaya transfer" line, so each currency adds up to getMonthSummary's expense.
+ * "Biaya transfer" / "Transfer fee" line (active language), so each currency adds up to getMonthSummary's expense.
  */
 export async function getCategoryBreakdown(db: Db, month: Month): Promise<CategorySpending[]> {
   return db.getAllAsync<CategorySpending>(
-    `SELECT a.currency AS currency, l.category_id AS categoryId, COALESCE(c.name, 'Biaya transfer') AS name,
+    `SELECT a.currency AS currency, l.category_id AS categoryId, COALESCE(c.name, ?) AS name,
             SUM(-l.signed_minor) AS expenseMinor
      FROM ledger l
      JOIN accounts a ON a.id = l.account_id
@@ -81,6 +82,7 @@ export async function getCategoryBreakdown(db: Db, month: Month): Promise<Catego
        AND ((l.kind = 'tx' AND l.signed_minor < 0) OR l.kind = 'transfer_fee')
      GROUP BY a.currency, l.category_id
      ORDER BY a.currency, expenseMinor DESC, name`,
+    t('common.transferFee'),
     month,
   );
 }

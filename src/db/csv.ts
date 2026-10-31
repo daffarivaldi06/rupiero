@@ -1,16 +1,14 @@
 // Transactions as CSV for spreadsheets: one row per ledger movement, oldest first, amounts as plain
 // signed decimals with a dot ("-12.50") so any spreadsheet locale can parse them.
 import { CURRENCIES, type CurrencyCode } from '../domain/money';
+import { t } from '../i18n';
 import type { Db } from './client';
 import { listLedger, type LedgerItem } from './repos/ledger';
 
-const HEADER = ['Tanggal', 'Jenis', 'Akun', 'Mata uang', 'Kategori', 'Jumlah', 'Catatan', 'Akun lawan'];
+// Headers and kinds follow the UI language; amounts and dates stay machine-readable.
+const header = () => (['date', 'kind', 'account', 'currency', 'category', 'amount', 'note', 'counterparty'] as const).map((key) => t(`csv.${key}`));
 
-const KIND: Record<Exclude<LedgerItem['kind'], 'tx'>, string> = {
-  transfer_out: 'Transfer keluar',
-  transfer_in: 'Transfer masuk',
-  transfer_fee: 'Biaya transfer',
-};
+const KIND = { transfer_out: 'csv.transferOut', transfer_in: 'csv.transferIn', transfer_fee: 'csv.transferFee' } as const;
 
 /** -1250 EUR → "-12.50", 3420000 IDR → "3420000". */
 export function decimalAmount(minor: number, currency: CurrencyCode): string {
@@ -28,7 +26,7 @@ const field = (value: string) => (/[",\r\n]/.test(value) ? `"${value.replace(/"/
 export function ledgerCsv(items: LedgerItem[]): string {
   const rows = items.map((item) => [
     item.date,
-    item.kind === 'tx' ? (item.signedMinor > 0 ? 'Pemasukan' : 'Pengeluaran') : KIND[item.kind],
+    item.kind === 'tx' ? t(item.signedMinor > 0 ? 'csv.income' : 'csv.expense') : t(KIND[item.kind]),
     item.accountName,
     item.currency,
     item.categoryName ?? '',
@@ -37,7 +35,7 @@ export function ledgerCsv(items: LedgerItem[]): string {
     item.counterpartyName ?? '',
   ]);
   // The BOM makes Excel read the file as UTF-8 (€, accented names).
-  return '﻿' + [HEADER, ...rows].map((row) => row.map(field).join(',')).join('\r\n') + '\r\n';
+  return '﻿' + [header(), ...rows].map((row) => row.map(field).join(',')).join('\r\n') + '\r\n';
 }
 
 /** Every movement on every account, oldest first. */

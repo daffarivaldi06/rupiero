@@ -14,14 +14,25 @@ import { Txt } from '../components/Txt';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import type { RootNavigation } from '../navigation/types';
 import { usePrivacy } from '../privacy/PrivacyProvider';
+import { useI18n } from '../i18n/I18nProvider';
+import { LANGUAGE_PREFERENCES, resolveLocale, type LanguagePreference } from '../i18n/locale';
+import { systemLanguageCodes } from '../i18n/system';
+import type { MessageKey } from '../i18n';
 
 const LINKS = [
-  { route: 'Accounts', title: 'Akun', description: 'Tambah, ganti nama, saldo awal, arsip' },
-  { route: 'Categories', title: 'Kategori', description: 'Daftar kategori dan arsip' },
-  { route: 'Budget', title: 'Budget', description: 'Batas pengeluaran per kategori per bulan' },
-  { route: 'Recurring', title: 'Transaksi berulang', description: 'Harian, mingguan, bulanan, tahunan' },
-  { route: 'Subscriptions', title: 'Langganan', description: 'Pengeluaran rutin dan totalnya per bulan' },
+  { route: 'Accounts', key: 'accounts' },
+  { route: 'Categories', key: 'categories' },
+  { route: 'Budget', key: 'budget' },
+  { route: 'Recurring', key: 'recurring' },
+  { route: 'Subscriptions', key: 'subscriptions' },
 ] as const;
+
+/** Each language is named in itself, so it can be found whatever the current language is. */
+const LANGUAGE_LABEL: Record<LanguagePreference, MessageKey> = {
+  system: 'settings.languageSystem',
+  id: 'settings.languageId',
+  en: 'settings.languageEn',
+};
 
 export default function SettingsScreen() {
   const db = useSQLiteContext();
@@ -29,6 +40,8 @@ export default function SettingsScreen() {
   const styles = useThemedStyles(makeStyles);
   const { color } = useTheme();
   const privacy = usePrivacy();
+  const { t, preference, setPreference } = useI18n();
+  const systemLocale = resolveLocale('system', systemLanguageCodes());
   const [schemaVersion, setSchemaVersion] = useState<number>();
 
   useFocusEffect(
@@ -44,7 +57,7 @@ export default function SettingsScreen() {
       await action();
     } catch (e) {
       console.error(e);
-      Alert.alert('Gagal', failure);
+      Alert.alert(t('common.failed'), failure);
     }
   };
 
@@ -54,7 +67,7 @@ export default function SettingsScreen() {
       text = await pickBackupText();
     } catch (e) {
       console.error(e);
-      Alert.alert('Gagal', 'File tidak dapat dibaca');
+      Alert.alert(t('common.failed'), t('settings.fileUnreadable'));
       return;
     }
     if (text === null) return;
@@ -62,38 +75,42 @@ export default function SettingsScreen() {
       const backup = parseBackup(text, await getUserVersion(db));
       const exportedOn = backup.exportedAt.slice(0, 10);
       Alert.alert(
-        'Pulihkan dari backup?',
-        `Semua data di perangkat ini diganti dengan backup ${exportedOn}: ${backup.accounts.length} akun, ` +
-          `${backup.transactions.length} transaksi, ${backup.transfers.length} transfer. Pengaturan perangkat tetap.`,
+        t('settings.restoreTitle'),
+        t('settings.restoreMessage', {
+          date: exportedOn,
+          accounts: backup.accounts.length,
+          transactions: backup.transactions.length,
+          transfers: backup.transfers.length,
+        }),
         [
-          { text: 'Batal', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           {
-            text: 'Pulihkan',
+            text: t('settings.restore'),
             style: 'destructive',
             onPress: async () => {
               try {
                 await importBackup(db, backup);
-                Alert.alert('Selesai', 'Data dipulihkan dari backup.');
+                Alert.alert(t('settings.restoreDoneTitle'), t('settings.restoreDone'));
               } catch (e) {
-                Alert.alert('Backup ditolak', e instanceof BackupError ? e.message : 'Data tidak dapat dipulihkan');
+                Alert.alert(t('settings.backupRejected'), e instanceof BackupError ? e.message : t('settings.restoreFailed'));
               }
             },
           },
         ],
       );
     } catch (e) {
-      Alert.alert('Backup ditolak', e instanceof BackupError ? e.message : 'File tidak dapat dibaca');
+      Alert.alert(t('settings.backupRejected'), e instanceof BackupError ? e.message : t('settings.fileUnreadable'));
     }
   };
 
   const handleReset = (seed: boolean) => {
     Alert.alert(
-      seed ? 'Reset & isi data contoh' : 'Reset ke kosong',
-      'Semua data akan dihapus dan database dibuat ulang. Lanjutkan?',
+      t(seed ? 'settings.resetSample' : 'settings.resetEmpty'),
+      t('settings.resetMessage'),
       [
-        { text: 'Batal', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Reset',
+          text: t('settings.reset'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -101,7 +118,7 @@ export default function SettingsScreen() {
               navigation.popToTop();
             } catch (e) {
               console.error(e);
-              Alert.alert('Gagal', 'Database tidak dapat di-reset');
+              Alert.alert(t('common.failed'), t('settings.resetFailed'));
             }
           }
         }
@@ -115,50 +132,78 @@ export default function SettingsScreen() {
         {LINKS.map((link) => (
           <Pressable key={link.route} onPress={() => navigation.navigate(link.route)} style={styles.row} accessibilityRole="button">
             <View style={styles.rowText}>
-              <Txt variant="bodyStrong">{link.title}</Txt>
-              <Txt variant="caption" tone="inkMuted">{link.description}</Txt>
+              <Txt variant="bodyStrong">{t(`settings.links.${link.key}.title`)}</Txt>
+              <Txt variant="caption" tone="inkMuted">{t(`settings.links.${link.key}.description`)}</Txt>
             </View>
             <Txt tone="inkMuted">›</Txt>
           </Pressable>
         ))}
       </View>
 
-      <Txt variant="label" tone="inkMuted" style={styles.sectionLabel}>Privasi</Txt>
+      <Txt variant="label" tone="inkMuted" style={styles.sectionLabel}>{t('settings.language')}</Txt>
+      <View style={styles.list} accessibilityRole="radiogroup">
+        {LANGUAGE_PREFERENCES.map((option) => {
+          const selected = preference === option;
+          return (
+            <Pressable
+              key={option}
+              onPress={() => setPreference(option)}
+              style={styles.row}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+            >
+              <View style={styles.rowText}>
+                <Txt variant="bodyStrong">{t(LANGUAGE_LABEL[option])}</Txt>
+                {option === 'system' && (
+                  <Txt variant="caption" tone="inkMuted">
+                    {t('settings.languageSystemHint', { language: t(LANGUAGE_LABEL[systemLocale]) })}
+                  </Txt>
+                )}
+              </View>
+              <View style={[styles.radio, selected && styles.radioSelected]}>
+                {selected && <View style={styles.radioDot} />}
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <Txt variant="label" tone="inkMuted" style={styles.sectionLabel}>{t('settings.privacy')}</Txt>
       <View style={styles.list}>
         <View style={styles.row}>
           <View style={styles.rowText}>
-            <Txt variant="bodyStrong">Sembunyikan saldo</Txt>
-            <Txt variant="caption" tone="inkMuted">Nominal tampil sebagai € •••• / Rp ••••. Juga lewat ikon mata di Dashboard.</Txt>
+            <Txt variant="bodyStrong">{t('header.hideBalances')}</Txt>
+            <Txt variant="caption" tone="inkMuted">{t('settings.hideBalancesHint')}</Txt>
           </View>
           <Switch
             value={privacy.hidden}
             onValueChange={privacy.toggleHidden}
             trackColor={{ false: color.line, true: color.ink }}
             thumbColor={color.surface}
-            accessibilityLabel="Sembunyikan saldo"
+            accessibilityLabel={t('header.hideBalances')}
           />
         </View>
         <View style={styles.row}>
           <View style={styles.rowText}>
-            <Txt variant="bodyStrong">Ikut sembunyikan di widget</Txt>
-            <Txt variant="caption" tone="inkMuted">Widget layar utama ikut tersamarkan selama saldo disembunyikan.</Txt>
+            <Txt variant="bodyStrong">{t('settings.hideInWidget')}</Txt>
+            <Txt variant="caption" tone="inkMuted">{t('settings.hideInWidgetHint')}</Txt>
           </View>
           <Switch
             value={privacy.hideInWidget}
             onValueChange={privacy.setHideInWidget}
             trackColor={{ false: color.line, true: color.ink }}
             thumbColor={color.surface}
-            accessibilityLabel="Ikut sembunyikan di widget"
+            accessibilityLabel={t('settings.hideInWidget')}
           />
         </View>
       </View>
 
-      <Txt variant="label" tone="inkMuted" style={styles.sectionLabel}>Data</Txt>
+      <Txt variant="label" tone="inkMuted" style={styles.sectionLabel}>{t('settings.data')}</Txt>
       <View style={styles.list}>
         {[
-          { title: 'Ekspor backup (JSON)', description: 'Semua akun, transaksi, transfer, budget dan aturan berulang', onPress: () => run(() => shareJsonBackup(db), 'Backup tidak dapat dibuat') },
-          { title: 'Ekspor transaksi (CSV)', description: 'Untuk spreadsheet; jumlah memakai titik desimal', onPress: () => run(() => shareLedgerCsv(db), 'CSV tidak dapat dibuat') },
-          { title: 'Pulihkan dari backup', description: 'Ganti semua data dengan file backup JSON', onPress: handleImport },
+          { title: t('settings.exportJson'), description: t('settings.exportJsonHint'), onPress: () => run(() => shareJsonBackup(db), t('settings.exportJsonFailed')) },
+          { title: t('settings.exportCsv'), description: t('settings.exportCsvHint'), onPress: () => run(() => shareLedgerCsv(db), t('settings.exportCsvFailed')) },
+          { title: t('settings.importJson'), description: t('settings.importJsonHint'), onPress: handleImport },
         ].map((item) => (
           <Pressable key={item.title} onPress={item.onPress} style={styles.row} accessibilityRole="button">
             <View style={styles.rowText}>
@@ -172,12 +217,12 @@ export default function SettingsScreen() {
 
       {SHOW_DEV_TOOLS && (
         <Card style={styles.devCard}>
-          <Txt variant="heading" tone="expense">Alat Pengembang</Txt>
+          <Txt variant="heading" tone="expense">{t('settings.devTools')}</Txt>
           <Txt variant="caption" tone="inkMuted" style={styles.devDescription}>
-            Hanya tampil di build development. Skema database: v{schemaVersion ?? '?'}
+            {t('settings.devToolsHint', { version: schemaVersion ?? '?' })}
           </Txt>
-          <Button title="Reset & isi data contoh" variant="danger" onPress={() => handleReset(true)} />
-          <Button title="Reset ke kosong" variant="outline" onPress={() => handleReset(false)} />
+          <Button title={t('settings.resetSample')} variant="danger" onPress={() => handleReset(true)} />
+          <Button title={t('settings.resetEmpty')} variant="outline" onPress={() => handleReset(false)} />
         </Card>
       )}
     </ScrollView>
@@ -209,6 +254,24 @@ const makeStyles = ({ color, space }: Theme) =>
     sectionLabel: {
       marginTop: space.xl,
       marginBottom: space.xs,
+    },
+    radio: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      borderWidth: 2,
+      borderColor: color.lineStrong,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    radioSelected: {
+      borderColor: color.ink,
+    },
+    radioDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: color.ink,
     },
     devCard: {
       marginTop: space.xxl,

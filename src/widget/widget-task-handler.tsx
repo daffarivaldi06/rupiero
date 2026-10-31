@@ -2,6 +2,7 @@ import type { WidgetTaskHandlerProps } from 'react-native-android-widget';
 import { getDatabase } from '../db/DatabaseProvider';
 import { materializeDue } from '../db/repos/recurring';
 import { todayLocal } from '../domain/dates';
+import { loadLocale } from '../i18n/system';
 import { widgetData, type WidgetData } from './data';
 import { budgetWidgetRepresentation } from './Widget';
 
@@ -10,6 +11,8 @@ import { budgetWidgetRepresentation } from './Widget';
 async function loadWidgetData(): Promise<WidgetData | null> {
   try {
     const db = await getDatabase();
+    // The phone's language may have changed since the database was opened.
+    await loadLocale(db);
     const today = todayLocal();
     await materializeDue(db, today);
     return await widgetData(db, today);

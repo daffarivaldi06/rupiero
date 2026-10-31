@@ -5,6 +5,7 @@ import { exportBackup } from '../db/backup';
 import type { Db } from '../db/client';
 import { exportLedgerCsv } from '../db/csv';
 import { todayLocal } from '../domain/dates';
+import { t } from '../i18n';
 
 async function shareText(name: string, text: string, mimeType: string): Promise<void> {
   const file = new File(Paths.cache, name);
@@ -21,7 +22,7 @@ export async function shareJsonBackup(db: Db): Promise<void> {
 }
 
 export async function shareLedgerCsv(db: Db): Promise<void> {
-  await shareText(`rupiero-transaksi-${todayLocal()}.csv`, await exportLedgerCsv(db), 'text/csv');
+  await shareText(`rupiero-${t('csv.fileName')}-${todayLocal()}.csv`, await exportLedgerCsv(db), 'text/csv');
 }
 
 /** Lets the user pick a backup file; null if cancelled. */

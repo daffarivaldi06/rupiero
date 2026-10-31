@@ -15,6 +15,7 @@ const LEGACY_TABLES = ['transactions', 'categories', 'settings'];
 
 export class SchemaTooNewError extends Error {
   constructor(found: number, supported: number) {
+    // i18n-ignore: logged; the start-up error screen explains it to the user.
     super(`Database schema v${found} is newer than this app supports (v${supported}). Update the app.`);
     this.name = 'SchemaTooNewError';
   }

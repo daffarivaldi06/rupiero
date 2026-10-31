@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 import type { CurrencyCode } from '../../domain/money';
 import type { LocalDate } from '../../domain/dates';
 import type { Account, AccountWithBalance, CurrencyBalance } from '../../domain/types';
@@ -115,7 +116,7 @@ export async function accountHasActivity(db: Db, id: number): Promise<boolean> {
 
 export class AccountCurrencyLockedError extends Error {
   constructor() {
-    super('Mata uang akun yang sudah punya transaksi tidak bisa diganti');
+    super(t('errors.currencyLocked'));
     this.name = 'AccountCurrencyLockedError';
   }
 }

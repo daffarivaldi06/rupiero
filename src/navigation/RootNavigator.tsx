@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 
 import { navigationTheme, useTheme } from '../theme/ThemeProvider';
+import { useI18n } from '../i18n/I18nProvider';
 import AccountFormScreen from '../screens/AccountFormScreen';
 import AccountsScreen from '../screens/AccountsScreen';
 import BudgetFormScreen from '../screens/BudgetFormScreen';
@@ -27,6 +28,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export function RootNavigator() {
   const theme = useTheme();
   const { color } = theme;
+  const { t } = useI18n();
 
   return (
     <NavigationContainer theme={navigationTheme(theme)}>
@@ -46,37 +48,37 @@ export function RootNavigator() {
           name="CategoryForm"
           component={CategoryFormScreen}
           options={({ route }) => ({
-            title: route.params?.categoryId !== undefined ? 'Ubah Kategori' : 'Kategori Baru',
+            title: t(route.params?.categoryId !== undefined ? 'nav.editCategory' : 'nav.newCategory'),
             presentation: 'modal',
           })}
         />
         <Stack.Screen
           name="CategoryReassign"
           component={CategoryReassignScreen}
-          options={{ title: 'Pindahkan transaksi', presentation: 'modal' }}
+          options={{ title: t('nav.reassign'), presentation: 'modal' }}
         />
-        <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Pengaturan' }} />
-        <Stack.Screen name="Accounts" component={AccountsScreen} options={{ title: 'Akun' }} />
-        <Stack.Screen name="Budget" component={BudgetScreen} options={{ title: 'Budget' }} />
-        <Stack.Screen name="Insights" component={InsightsScreen} options={{ title: 'Grafik' }} />
-        <Stack.Screen name="Categories" component={CategoriesScreen} options={{ title: 'Kategori' }} />
-        <Stack.Screen name="Subscriptions" component={SubscriptionsScreen} options={{ title: 'Langganan' }} />
-        <Stack.Screen name="Recurring" component={RecurringListScreen} options={{ title: 'Transaksi Berulang' }} />
+        <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: t('nav.settings') }} />
+        <Stack.Screen name="Accounts" component={AccountsScreen} options={{ title: t('nav.accounts') }} />
+        <Stack.Screen name="Budget" component={BudgetScreen} options={{ title: t('nav.budget') }} />
+        <Stack.Screen name="Insights" component={InsightsScreen} options={{ title: t('nav.insights') }} />
+        <Stack.Screen name="Categories" component={CategoriesScreen} options={{ title: t('nav.categories') }} />
+        <Stack.Screen name="Subscriptions" component={SubscriptionsScreen} options={{ title: t('nav.subscriptions') }} />
+        <Stack.Screen name="Recurring" component={RecurringListScreen} options={{ title: t('nav.recurring') }} />
         <Stack.Screen
           name="RecurringForm"
           component={RecurringFormScreen}
           options={({ route }) => ({
-            title: route.params?.ruleId !== undefined ? 'Ubah Transaksi Berulang' : 'Transaksi Berulang Baru',
+            title: t(route.params?.ruleId !== undefined ? 'nav.editRecurring' : 'nav.newRecurring'),
             presentation: 'modal',
           })}
         />
-        <Stack.Screen name="BudgetForm" component={BudgetFormScreen} options={{ title: 'Budget', presentation: 'modal' }} />
-        <Stack.Screen name="Transactions" component={TransactionListScreen} options={{ title: 'Transaksi' }} />
+        <Stack.Screen name="BudgetForm" component={BudgetFormScreen} options={{ title: t('nav.budget'), presentation: 'modal' }} />
+        <Stack.Screen name="Transactions" component={TransactionListScreen} options={{ title: t('nav.transactions') }} />
         <Stack.Screen
           name="TransferForm"
           component={TransferFormScreen}
           options={({ route }) => ({
-            title: route.params?.transferId !== undefined ? 'Ubah Transfer' : 'Transfer',
+            title: t(route.params?.transferId !== undefined ? 'nav.editTransfer' : 'nav.transfer'),
             presentation: 'modal',
           })}
         />
@@ -84,7 +86,7 @@ export function RootNavigator() {
           name="AccountForm"
           component={AccountFormScreen}
           options={({ route }) => ({
-            title: route.params?.accountId !== undefined ? 'Ubah Akun' : 'Akun Baru',
+            title: t(route.params?.accountId !== undefined ? 'nav.editAccount' : 'nav.newAccount'),
             presentation: 'modal',
           })}
         />

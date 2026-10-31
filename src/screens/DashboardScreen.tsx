@@ -25,6 +25,8 @@ import { useIntro } from '../intro/IntroProvider';
 import { useDataRevision } from '../data/DataProvider';
 import { useQuickAdd } from '../quickadd/QuickAddProvider';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useI18n } from '../i18n/I18nProvider';
+import { renderMessage } from '../i18n/rich';
 import type { RootNavigation } from '../navigation/types';
 
 export default function DashboardScreen() {
@@ -32,6 +34,7 @@ export default function DashboardScreen() {
   const navigation = useNavigation<RootNavigation>();
   const { color } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const { t } = useI18n();
   const { ready: introReady, roll } = useIntro();
   const quickAdd = useQuickAdd();
   const { revision } = useDataRevision();
@@ -97,7 +100,7 @@ export default function DashboardScreen() {
   const monthLabel = formatMonthLabel(selectedMonth);
   // Hidden until an ECB rate has been fetched at least once.
   const combined = referenceRate && balances.length > 1 ? combinedTotal(balances, baseCurrency, referenceRate.rateMicro) : null;
-  const fees = totals.filter((t) => t.feeMinor > 0);
+  const fees = totals.filter((total) => total.feeMinor > 0);
   // Only budgets that need attention (≥ 80 %) are shown here; the budget screen has the rest.
   const budgetAlerts = budgets
     .map((line) => ({ line, status: budgetStatus(line.spentMinor, line.limitMinor) }))
@@ -114,22 +117,24 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={color.ink} />}
       >
-        <BalanceHero label={isCurrentMonth ? 'Saldo saat ini' : `Saldo akhir ${monthLabel}`} balances={balances} roll={roll} />
+        <BalanceHero label={isCurrentMonth ? t('dashboard.balanceNow') : t('dashboard.balanceEnd', { month: monthLabel })} balances={balances} roll={roll} />
         {combined !== null && referenceRate && (
           <Txt variant="caption" tone="inkMuted" style={styles.combined}>
-            ≈ <Money minor={combined} currency={baseCurrency} variant="caption" tone="inkMuted" /> total · kurs ECB{' '}
-            {formatDayMonth(referenceRate.date)}
+            {renderMessage('dashboard.combined', {
+              amount: <Money minor={combined} currency={baseCurrency} variant="caption" tone="inkMuted" />,
+              date: formatDayMonth(referenceRate.date),
+            })}
           </Txt>
         )}
 
         <View style={styles.section}>
-          <MonthFlow title={`Arus ${monthLabel}`} totals={totals} />
+          <MonthFlow title={t('dashboard.flow', { month: monthLabel })} totals={totals} />
           <Pressable
             onPress={() => navigation.navigate('Transactions', { month: selectedMonth })}
             style={styles.row}
             accessibilityRole="button"
           >
-            <Txt variant="bodyStrong" style={styles.rowText}>Semua transaksi</Txt>
+            <Txt variant="bodyStrong" style={styles.rowText}>{t('dashboard.allTransactions')}</Txt>
             <Txt tone="inkMuted" style={styles.chevron}>›</Txt>
           </Pressable>
           <Pressable
@@ -137,26 +142,26 @@ export default function DashboardScreen() {
             style={styles.row}
             accessibilityRole="button"
           >
-            <Txt variant="bodyStrong" style={styles.rowText}>Grafik pengeluaran</Txt>
+            <Txt variant="bodyStrong" style={styles.rowText}>{t('dashboard.charts')}</Txt>
             <Txt tone="inkMuted" style={styles.chevron}>›</Txt>
           </Pressable>
         </View>
 
         <View style={styles.sectionHeader}>
-          <Txt variant="title" style={styles.rowText}>Budget</Txt>
+          <Txt variant="title" style={styles.rowText}>{t('common.budget')}</Txt>
           <Pressable
             onPress={() => navigation.navigate('Budget', { month: selectedMonth })}
             style={styles.headerLink}
             accessibilityRole="button"
           >
-            <Txt variant="bodyStrong">{budgets.length === 0 ? 'Atur' : 'Semua'}</Txt>
+            <Txt variant="bodyStrong">{t(budgets.length === 0 ? 'common.set' : 'common.all')}</Txt>
           </Pressable>
         </View>
         <View style={styles.list}>
           {budgets.length === 0 ? (
-            <Txt tone="inkMuted" style={styles.note}>Belum ada budget bulan ini.</Txt>
+            <Txt tone="inkMuted" style={styles.note}>{t('dashboard.noBudgets')}</Txt>
           ) : budgetAlerts.length === 0 ? (
-            <Txt tone="inkMuted" style={styles.note}>Semua kategori masih di bawah 80% budget.</Txt>
+            <Txt tone="inkMuted" style={styles.note}>{t('dashboard.budgetsFine')}</Txt>
           ) : (
             budgetAlerts.map(({ line, status }) => (
               <Pressable
@@ -173,12 +178,12 @@ export default function DashboardScreen() {
         </View>
 
         <View style={styles.sectionHeader}>
-          <Txt variant="title" style={styles.rowText}>Akun</Txt>
+          <Txt variant="title" style={styles.rowText}>{t('nav.accounts')}</Txt>
           <Pressable onPress={() => navigation.navigate('TransferForm')} style={styles.headerLink} accessibilityRole="button">
-            <Txt variant="bodyStrong">Transfer</Txt>
+            <Txt variant="bodyStrong">{t('common.transfer')}</Txt>
           </Pressable>
           <Pressable onPress={() => navigation.navigate('Accounts')} style={styles.headerLink} accessibilityRole="button">
-            <Txt variant="bodyStrong">Kelola</Txt>
+            <Txt variant="bodyStrong">{t('common.manage')}</Txt>
           </Pressable>
         </View>
         <View style={styles.list}>
@@ -204,10 +209,10 @@ export default function DashboardScreen() {
           ))}
         </View>
 
-        <Txt variant="title" style={styles.sectionTitle}>Kategori</Txt>
+        <Txt variant="title" style={styles.sectionTitle}>{t('nav.categories')}</Txt>
         <View style={styles.list}>
           {categories.map((cat) => {
-            const catTotals = categoryTotals.filter((t) => t.categoryId === cat.id);
+            const catTotals = categoryTotals.filter((total) => total.categoryId === cat.id);
             return (
               <Pressable
                 key={cat.id}
@@ -217,8 +222,8 @@ export default function DashboardScreen() {
               >
                 <Txt style={styles.rowText} numberOfLines={1}>{cat.name}</Txt>
                 <View style={styles.rowTotals}>
-                  {catTotals.map((t) => (
-                    <Money key={t.currency} minor={t.netMinor} currency={t.currency} variant="label" tone="signed" sign />
+                  {catTotals.map((total) => (
+                    <Money key={total.currency} minor={total.netMinor} currency={total.currency} variant="label" tone="signed" sign />
                   ))}
                 </View>
                 <Txt tone="inkMuted" style={styles.chevron}>›</Txt>
@@ -227,17 +232,17 @@ export default function DashboardScreen() {
           })}
           {fees.length > 0 && (
             <View style={styles.row}>
-              <Txt style={styles.rowText} numberOfLines={1}>Biaya transfer</Txt>
+              <Txt style={styles.rowText} numberOfLines={1}>{t('common.transferFee')}</Txt>
               <View style={styles.rowTotals}>
-                {fees.map((t) => (
-                  <Money key={t.currency} minor={-t.feeMinor} currency={t.currency} variant="label" tone="expense" />
+                {fees.map((fee) => (
+                  <Money key={fee.currency} minor={-fee.feeMinor} currency={fee.currency} variant="label" tone="expense" />
                 ))}
               </View>
               <View style={styles.chevronSpace} />
             </View>
           )}
           <Pressable onPress={() => navigation.navigate('CategoryForm')} style={styles.row} accessibilityRole="button">
-            <Txt variant="bodyStrong">+ Tambah kategori</Txt>
+            <Txt variant="bodyStrong">{t('categories.add')}</Txt>
           </Pressable>
         </View>
       </ScrollView>
@@ -245,7 +250,7 @@ export default function DashboardScreen() {
         onPress={() => quickAdd.open()}
         style={[styles.fab, { bottom: insets.bottom + 16 }]}
         accessibilityRole="button"
-        accessibilityLabel="Catat transaksi"
+        accessibilityLabel={t('dashboard.add')}
       >
         <Txt variant="title" tone="onInk">+</Txt>
       </Pressable>

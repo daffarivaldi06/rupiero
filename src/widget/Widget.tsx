@@ -3,6 +3,7 @@ import { FlexWidget, SvgWidget, TextWidget } from 'react-native-android-widget';
 import { buildMarkSvg, markColors } from '../brand/mark';
 import { palettes, type ColorScheme, type Palette } from '../theme/tokens';
 import { fontFamily } from '../theme/typography';
+import { t } from '../i18n';
 import type { WidgetData, WidgetLine } from './data';
 
 /** Deep link that opens quick-add for an account (see linking/quickAddLink.ts). */
@@ -24,7 +25,7 @@ export function BudgetWidget({ data, scheme }: BudgetWidgetProps) {
   return (
     <FlexWidget
       clickAction="OPEN_APP"
-      accessibilityLabel="Buka Rupiero"
+      accessibilityLabel={t('widget.open')}
       style={{
         flexDirection: 'column',
         backgroundColor: hex(color.bg),
@@ -47,7 +48,7 @@ export function BudgetWidget({ data, scheme }: BudgetWidgetProps) {
 
       {data === null ? (
         <TextWidget
-          text="Buka aplikasi untuk memulai"
+          text={t('widget.empty')}
           style={{ fontSize: 14, fontFamily: fontFamily.regular, color: hex(color.inkMuted), marginTop: 12 }}
         />
       ) : (
@@ -65,7 +66,7 @@ export function BudgetWidget({ data, scheme }: BudgetWidgetProps) {
             <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', width: 'match_parent' }}>
               <TextWidget text={line.currency} style={{ fontSize: 11, fontFamily: fontFamily.mono, color: codeColor(line.currency) }} />
               <TextWidget
-                text={line.label}
+                text={t(line.kind === 'budget' ? 'widget.budgetLeft' : 'widget.balance')}
                 style={{ fontSize: 11, fontFamily: fontFamily.regular, color: hex(color.inkMuted), marginLeft: 6 }}
               />
               <FlexWidget style={{ flex: 1 }} />
@@ -87,7 +88,7 @@ export function BudgetWidget({ data, scheme }: BudgetWidgetProps) {
               key={button.currency}
               clickAction="OPEN_URI"
               clickActionData={{ uri: quickAddUri(button.accountId) }}
-              accessibilityLabel={`Catat transaksi ${button.currency}`}
+              accessibilityLabel={t('widget.add', { currency: button.currency })}
               style={{
                 flex: 1,
                 height: 34,
@@ -115,7 +116,7 @@ export function BudgetWidget({ data, scheme }: BudgetWidgetProps) {
 const levelColor = (level: NonNullable<WidgetLine['budget']>['level'], color: Palette) =>
   hex(level === 'over' ? color.expense : level === 'warning' ? color.idrText : color.ink);
 
-/** A thin ledger bar of what is spent, then "dari € 300,00". Widgets have no percentage widths, so flex weights split the track. */
+/** A thin ledger bar of what is spent, then "dari € 300,00" / "of €300.00". Widgets have no percentage widths, so flex weights split the track. */
 function BudgetRow({ budget, color }: { budget: NonNullable<WidgetLine['budget']>; color: Palette }) {
   const filled = Math.min(Math.max(budget.percent, 0), 100);
   const tint = levelColor(budget.level, color);

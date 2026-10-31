@@ -14,6 +14,7 @@ import { Txt } from '../components/Txt';
 import { useDataRevision } from '../data/DataProvider';
 import type { RootStackParamList } from '../navigation/types';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useI18n } from '../i18n/I18nProvider';
 
 // Shades of the currency colour, largest share first; neighbours are also split by a gap.
 const OPACITIES = [1, 0.75, 0.55, 0.4, 0.28, 0.18];
@@ -24,6 +25,7 @@ export default function InsightsScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'Insights'>>();
   const { color } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const { t } = useI18n();
   const { revision } = useDataRevision();
 
   const [month, setMonth] = useState<Month>(route.params?.month ?? currentMonth());
@@ -58,16 +60,16 @@ export default function InsightsScreen() {
 
   // idrText rather than idr: a graphic on bg needs ≥ 3:1 too.
   const hue = (currency: CurrencyCode) => (currency === 'EUR' ? color.eur : color.idrText);
-  const currencies = CURRENCY_CODES.filter((c) => trend.some((t) => t.currency === c)).sort();
+  const currencies = CURRENCY_CODES.filter((c) => trend.some((point) => point.currency === c)).sort();
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.monthRow}>
-        <Pressable onPress={() => changeMonth(addMonths(month, -1))} style={styles.monthButton} accessibilityRole="button" accessibilityLabel="Bulan sebelumnya">
+        <Pressable onPress={() => changeMonth(addMonths(month, -1))} style={styles.monthButton} accessibilityRole="button" accessibilityLabel={t('common.previousMonth')}>
           <Txt variant="title">‹</Txt>
         </Pressable>
         <Txt variant="heading">{formatMonthLabel(month)}</Txt>
-        <Pressable onPress={() => changeMonth(addMonths(month, 1))} style={styles.monthButton} accessibilityRole="button" accessibilityLabel="Bulan berikutnya">
+        <Pressable onPress={() => changeMonth(addMonths(month, 1))} style={styles.monthButton} accessibilityRole="button" accessibilityLabel={t('common.nextMonth')}>
           <Txt variant="title">›</Txt>
         </Pressable>
       </View>
@@ -78,16 +80,16 @@ export default function InsightsScreen() {
           .map((b) => ({ key: b.categoryId ?? 0, label: b.name, value: b.expenseMinor }));
         const shares = topShares(items, TOP);
         const total = items.reduce((sum, i) => sum + i.value, 0);
-        const points = trend.filter((t) => t.currency === currency).map((t) => ({ month: t.month, value: t.expenseMinor }));
+        const points = trend.filter((point) => point.currency === currency).map((point) => ({ month: point.month, value: point.expenseMinor }));
         return (
           <View key={currency} style={styles.section}>
             <Txt variant="code" tone={currency === 'EUR' ? 'eur' : 'idrText'}>{currency}</Txt>
-            <Txt variant="label" tone="inkMuted">Pengeluaran {formatMonthLabel(month)}</Txt>
+            <Txt variant="label" tone="inkMuted">{t('categorySummary.expenseIn', { month: formatMonthLabel(month) })}</Txt>
             <Money minor={total} currency={currency} variant="display" />
             <View style={styles.topRule} />
 
             {shares.length === 0 ? (
-              <Txt tone="inkMuted" style={styles.empty}>Belum ada pengeluaran bulan ini.</Txt>
+              <Txt tone="inkMuted" style={styles.empty}>{t('insights.empty')}</Txt>
             ) : (
               <View style={styles.breakdown}>
                 <DonutChart
@@ -117,8 +119,8 @@ export default function InsightsScreen() {
               </View>
             )}
 
-            <Txt variant="label" tone="inkMuted" style={styles.trendTitle}>6 bulan terakhir</Txt>
-            <TrendBars points={points} color={hue(currency)} selected={month} onSelect={changeMonth} />
+            <Txt variant="label" tone="inkMuted" style={styles.trendTitle}>{t('insights.trend')}</Txt>
+            <TrendBars points={points} currency={currency} color={hue(currency)} selected={month} onSelect={changeMonth} />
           </View>
         );
       })}

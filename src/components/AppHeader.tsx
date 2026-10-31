@@ -8,6 +8,7 @@ import { usePrivacy } from '../privacy/PrivacyProvider';
 import { EyeIcon } from './EyeIcon';
 import { SettingsIcon } from './SettingsIcon';
 import { Txt } from './Txt';
+import { useI18n } from '../i18n/I18nProvider';
 
 interface AppHeaderProps {
   month: Month;
@@ -21,6 +22,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ month, onChangeMonth, onPr
   const { color } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const { hidden, toggleHidden } = usePrivacy();
+  const { t, locale } = useI18n();
   // Below ~380 dp the name would push the icons off screen.
   const compact = useWindowDimensions().width < 380;
 
@@ -33,7 +35,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ month, onChangeMonth, onPr
           onPress={() => onChangeMonth(addMonths(month, -1))}
           style={styles.monthButton}
           accessibilityRole="button"
-          accessibilityLabel="Bulan sebelumnya"
+          accessibilityLabel={t('common.previousMonth')}
         >
           <Txt variant="title">‹</Txt>
         </Pressable>
@@ -42,15 +44,15 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ month, onChangeMonth, onPr
           style={styles.monthLabel}
           numberOfLines={1}
           adjustsFontSizeToFit
-          accessibilityLabel={formatMonthLabel(month)}
+          accessibilityLabel={formatMonthLabel(month, locale)}
         >
-          {formatMonthShort(month)}
+          {formatMonthShort(month, locale)}
         </Txt>
         <Pressable
           onPress={() => onChangeMonth(addMonths(month, 1))}
           style={styles.monthButton}
           accessibilityRole="button"
-          accessibilityLabel="Bulan berikutnya"
+          accessibilityLabel={t('common.nextMonth')}
         >
           <Txt variant="title">›</Txt>
         </Pressable>
@@ -60,11 +62,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ month, onChangeMonth, onPr
         style={styles.iconButton}
         accessibilityRole="switch"
         accessibilityState={{ checked: hidden }}
-        accessibilityLabel="Sembunyikan saldo"
+        accessibilityLabel={t('header.hideBalances')}
       >
         <EyeIcon closed={hidden} color={color.ink} />
       </Pressable>
-      <Pressable onPress={onPressSettings} style={styles.iconButton} accessibilityRole="button" accessibilityLabel="Pengaturan">
+      <Pressable onPress={onPressSettings} style={styles.iconButton} accessibilityRole="button" accessibilityLabel={t('header.settings')}>
         <SettingsIcon color={color.ink} />
       </Pressable>
     </View>

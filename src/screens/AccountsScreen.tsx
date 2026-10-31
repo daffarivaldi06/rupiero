@@ -9,11 +9,13 @@ import { Money } from '../components/Money';
 import { Txt } from '../components/Txt';
 import type { RootNavigation } from '../navigation/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useI18n } from '../i18n/I18nProvider';
 
 export default function AccountsScreen() {
   const db = useSQLiteContext();
   const navigation = useNavigation<RootNavigation>();
   const styles = useThemedStyles(makeStyles);
+  const { t } = useI18n();
   const [accounts, setAccounts] = useState<AccountWithBalance[]>([]);
 
   useFocusEffect(
@@ -48,18 +50,18 @@ export default function AccountsScreen() {
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <Txt tone="inkMuted" style={styles.description}>
-        Setiap akun memakai satu mata uang. Saldo tidak dicampur antar mata uang.
+        {t('accounts.description')}
       </Txt>
       <View style={styles.list}>
         {active.map(row)}
         <Pressable onPress={() => navigation.navigate('AccountForm')} style={styles.row} accessibilityRole="button">
-          <Txt variant="bodyStrong">+ Tambah akun</Txt>
+          <Txt variant="bodyStrong">{t('accounts.add')}</Txt>
         </Pressable>
       </View>
 
       {archived.length > 0 && (
         <>
-          <Txt variant="label" tone="inkMuted" style={styles.sectionLabel}>Diarsipkan</Txt>
+          <Txt variant="label" tone="inkMuted" style={styles.sectionLabel}>{t('common.archived')}</Txt>
           <View style={styles.list}>{archived.map(row)}</View>
         </>
       )}

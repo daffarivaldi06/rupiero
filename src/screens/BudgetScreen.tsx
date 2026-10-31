@@ -13,12 +13,14 @@ import { Button } from '../components/Button';
 import { Txt } from '../components/Txt';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useI18n } from '../i18n/I18nProvider';
 
 export default function BudgetScreen() {
   const db = useSQLiteContext();
   const navigation = useNavigation<RootNavigation>();
   const route = useRoute<RouteProp<RootStackParamList, 'Budget'>>();
   const styles = useThemedStyles(makeStyles);
+  const { t } = useI18n();
 
   const [month, setMonth] = useState(route.params?.month ?? currentMonth());
   const [categories, setCategories] = useState<Category[]>([]);
@@ -43,27 +45,27 @@ export default function BudgetScreen() {
   const copyPrevious = async () => {
     try {
       const added = await copyBudgetsFromPreviousMonth(db, month);
-      if (added === 0) Alert.alert('Tidak ada yang disalin', `Budget ${formatMonthName(addMonths(month, -1))} kosong atau sudah ada di bulan ini.`);
+      if (added === 0) Alert.alert(t('budget.nothingCopiedTitle'), t('budget.nothingCopied', { month: formatMonthName(addMonths(month, -1)) }));
       await load();
     } catch (e) {
       console.error(e);
-      Alert.alert('Gagal', 'Budget tidak dapat disalin');
+      Alert.alert(t('common.failed'), t('budget.copyFailed'));
     }
   };
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.monthRow}>
-        <Pressable onPress={() => setMonth(addMonths(month, -1))} style={styles.monthButton} accessibilityRole="button" accessibilityLabel="Bulan sebelumnya">
+        <Pressable onPress={() => setMonth(addMonths(month, -1))} style={styles.monthButton} accessibilityRole="button" accessibilityLabel={t('common.previousMonth')}>
           <Txt variant="title">‹</Txt>
         </Pressable>
         <Txt variant="heading">{formatMonthLabel(month)}</Txt>
-        <Pressable onPress={() => setMonth(addMonths(month, 1))} style={styles.monthButton} accessibilityRole="button" accessibilityLabel="Bulan berikutnya">
+        <Pressable onPress={() => setMonth(addMonths(month, 1))} style={styles.monthButton} accessibilityRole="button" accessibilityLabel={t('common.nextMonth')}>
           <Txt variant="title">›</Txt>
         </Pressable>
       </View>
 
-      <Button title={`Salin dari ${formatMonthName(addMonths(month, -1))}`} variant="outline" onPress={copyPrevious} />
+      <Button title={t('budget.copyFrom', { month: formatMonthName(addMonths(month, -1)) })} variant="outline" onPress={copyPrevious} />
 
       <View style={styles.list}>
         {categories.map((category) => {
@@ -77,7 +79,7 @@ export default function BudgetScreen() {
             >
               <View style={styles.rowHeader}>
                 <Txt variant="bodyStrong" style={styles.rowTitle} numberOfLines={1}>{category.name}</Txt>
-                <Txt tone="inkMuted">{lines.length === 0 ? 'Atur ›' : '›'}</Txt>
+                <Txt tone="inkMuted">{lines.length === 0 ? t('common.setMore') : '›'}</Txt>
               </View>
               {lines.map((line) => (
                 <BudgetBar key={line.currency} status={budgetStatus(line.spentMinor, line.limitMinor)} currency={line.currency} />

@@ -5,17 +5,18 @@ import { getHideBalances, getHideBalancesInWidget } from '../db/repos/settings';
 import { budgetStatus, type BudgetLevel } from '../domain/budget';
 import { formatMonthLabel, monthOf, type LocalDate } from '../domain/dates';
 import { formatMoneyDisplay, type CurrencyCode } from '../domain/money';
+import { t } from '../i18n';
 
 export interface WidgetLine {
   currency: CurrencyCode;
   /** What the amount is: left of this month's budgets, or the balance when the currency has none. */
-  label: 'Sisa budget' | 'Saldo';
+  kind: 'budget' | 'balance';
   /** Formatted, or masked while balances are hidden. */
   amount: string;
   negative: boolean;
-  /** Only for "Sisa budget": spent against the summed limits, as in the budget screen. */
+  /** Only for kind 'budget': spent against the summed limits, as in the budget screen. */
   budget?: {
-    /** "dari € 300,00" (masked while balances are hidden). */
+    /** "dari € 300,00" / "of €300.00" (masked while balances are hidden). */
     limit: string;
     /** Whole percent spent; may exceed 100. */
     percent: number;
@@ -50,7 +51,7 @@ export async function widgetData(db: Db, today: LocalDate): Promise<WidgetData> 
     if (ofCurrency.length === 0) {
       return {
         currency,
-        label: 'Saldo',
+        kind: 'balance',
         amount: formatMoneyDisplay(balanceMinor, currency, { hidden }),
         negative: !hidden && balanceMinor < 0,
       };
@@ -60,12 +61,12 @@ export async function widgetData(db: Db, today: LocalDate): Promise<WidgetData> 
     const status = budgetStatus(spentMinor, limitMinor);
     return {
       currency,
-      label: 'Sisa budget',
+      kind: 'budget',
       amount: formatMoneyDisplay(status.remainingMinor, currency, { hidden }),
       negative: !hidden && status.remainingMinor < 0,
       // Like the app's budget bars, the proportion stays visible when amounts are hidden.
       budget: {
-        limit: `dari ${formatMoneyDisplay(limitMinor, currency, { hidden })}`,
+        limit: t('widget.of', { limit: formatMoneyDisplay(limitMinor, currency, { hidden }) }),
         percent: status.percent,
         level: status.level,
       },

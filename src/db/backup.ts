@@ -1,5 +1,6 @@
 // JSON backup of everything except device settings. Import validates the file completely before
 // touching the database, then replaces all data in one transaction: it fully succeeds or changes nothing.
+import { t } from '../i18n';
 import { getUserVersion, type Db, type SQLParam } from './client';
 import { notifyDataChanged } from './events';
 
@@ -111,28 +112,28 @@ export function parseBackup(text: string, currentVersion: number): BackupData {
   try {
     data = JSON.parse(text);
   } catch {
-    throw new BackupError('File bukan JSON yang valid.');
+    throw new BackupError(t('backup.notJson'));
   }
   const backup = data as Partial<BackupData> | null;
   if (!backup || typeof backup !== 'object' || backup.format !== BACKUP_FORMAT) {
-    throw new BackupError('File ini bukan backup Rupiero.');
+    throw new BackupError(t('backup.notRupiero'));
   }
-  if (!Number.isInteger(backup.schemaVersion)) throw new BackupError('Versi backup tidak dikenali.');
+  if (!Number.isInteger(backup.schemaVersion)) throw new BackupError(t('backup.unknownVersion'));
   if (backup.schemaVersion! > currentVersion) {
-    throw new BackupError('Backup ini dibuat oleh versi Rupiero yang lebih baru. Perbarui aplikasi dulu.');
+    throw new BackupError(t('backup.newerApp'));
   }
   if (backup.schemaVersion! < currentVersion) {
-    throw new BackupError(`Backup versi ${backup.schemaVersion} tidak didukung (versi sekarang ${currentVersion}).`);
+    throw new BackupError(t('backup.unsupportedVersion', { found: backup.schemaVersion!, current: currentVersion }));
   }
   for (const table of TABLE_NAMES) {
     const rows = backup[table];
-    if (!Array.isArray(rows)) throw new BackupError(`Bagian "${table}" tidak ada di backup.`);
+    if (!Array.isArray(rows)) throw new BackupError(t('backup.missingSection', { table }));
     const columns = TABLES[table] as Record<string, Kind>;
     rows.forEach((row: unknown, index) => {
-      if (!row || typeof row !== 'object') throw new BackupError(`Baris ${index + 1} di "${table}" rusak.`);
+      if (!row || typeof row !== 'object') throw new BackupError(t('backup.brokenRow', { row: index + 1, table }));
       for (const [column, kind] of Object.entries(columns)) {
         if (!valid(kind, (row as Row)[column])) {
-          throw new BackupError(`Nilai "${column}" di baris ${index + 1} bagian "${table}" tidak valid.`);
+          throw new BackupError(t('backup.invalidValue', { column, row: index + 1, table }));
         }
       }
     });
@@ -156,7 +157,7 @@ export async function importBackup(db: Db, backup: BackupData): Promise<void> {
   } catch (e) {
     if (e instanceof BackupError) throw e;
     // Constraint failures (e.g. a transaction pointing at a missing account): nothing was changed.
-    throw new BackupError(`Isi backup tidak konsisten, data tidak diubah. (${e instanceof Error ? e.message : String(e)})`);
+    throw new BackupError(t('backup.inconsistent', { detail: e instanceof Error ? e.message : String(e) }));
   }
   notifyDataChanged();
 }

@@ -4,6 +4,7 @@ import { useTheme } from '../theme/ThemeProvider';
 import { textVariants, type TextVariant } from '../theme/typography';
 import { moneyDisplay, type CurrencyCode } from '../domain/money';
 import { usePrivacy } from '../privacy/PrivacyProvider';
+import { useI18n } from '../i18n/I18nProvider';
 import { useCountUp, type RollSpec } from './countUp';
 import type { TextTone } from './Txt';
 
@@ -47,9 +48,12 @@ export const Money: React.FC<MoneyProps> = ({
   reveal = false,
 }) => {
   const { color } = useTheme();
+  const { locale } = useI18n();
   const hidden = usePrivacy().hidden && !reveal;
   const shownMinor = useCountUp(minor, hidden ? null : roll);
-  const { sign: signChar, symbol, amount, accessibilityLabel } = moneyDisplay(shownMinor, currency, { sign, hidden });
+  const { sign: signChar, symbol, gap, amount } = moneyDisplay(shownMinor, currency, { sign, hidden, locale });
+  // Spoken as the final amount, not the frame the count-up is on.
+  const { accessibilityLabel } = moneyDisplay(minor, currency, { sign, hidden, locale });
 
   // Hidden amounts drop income/expense colours too: red or green would still tell the direction.
   const directional = tone === 'signed' || tone === 'expense' || tone === 'incomeText';
@@ -79,7 +83,7 @@ export const Money: React.FC<MoneyProps> = ({
     >
       {signChar}
       {symbol}
-      {NBSP}
+      {gap}
       {amount}
       {showCode && (
         <Text style={[textVariants.code, { color: color.inkMuted }]}>

@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 import type { LocalDate, Month } from '../../domain/dates';
 import { impliedRate, type CurrencyCode, type ExchangeRate } from '../../domain/money';
 import type { Db, SQLParam } from '../client';
@@ -85,7 +86,7 @@ export class TransferError extends Error {
 
 async function validate(db: Db, transfer: NewTransfer) {
   if (transfer.fromAccountId === transfer.toAccountId) {
-    throw new TransferError('Akun asal dan tujuan harus berbeda');
+    throw new TransferError(t('errors.sameAccount'));
   }
   const rows = await db.getAllAsync<{ id: number; currency: CurrencyCode }>(
     'SELECT id, currency FROM accounts WHERE id IN (?, ?)',
@@ -95,10 +96,10 @@ async function validate(db: Db, transfer: NewTransfer) {
   const currency = (id: number) => rows.find((r) => r.id === id)?.currency;
   const from = currency(transfer.fromAccountId);
   const to = currency(transfer.toAccountId);
-  if (!from || !to) throw new TransferError('Akun tidak ditemukan');
+  if (!from || !to) throw new TransferError(t('errors.accountNotFound'));
   // Within one currency nothing is exchanged, so what leaves is what arrives.
   if (from === to && transfer.fromAmountMinor !== transfer.toAmountMinor) {
-    throw new TransferError('Transfer dalam mata uang yang sama harus bernilai sama di kedua akun');
+    throw new TransferError(t('errors.sameCurrencyAmounts'));
   }
 }
 
