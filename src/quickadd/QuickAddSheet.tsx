@@ -130,6 +130,7 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle, QuickAddSheetProps>
         setDate(today);
         setNote('');
       }
+      setOpen(true);
       sheetRef.current?.present();
     },
   }));
@@ -225,7 +226,6 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle, QuickAddSheetProps>
   return (
     <BottomSheetModal
       ref={sheetRef}
-      onChange={(index) => setOpen(index >= 0)}
       onDismiss={() => setOpen(false)}
       backdropComponent={renderBackdrop}
       backgroundStyle={styles.sheet}
