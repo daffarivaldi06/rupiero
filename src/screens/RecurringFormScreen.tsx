@@ -51,6 +51,7 @@ export default function RecurringFormScreen() {
   const [endDate, setEndDate] = useState<LocalDate | null>(null);
   const [note, setNote] = useState('');
   const [paused, setPaused] = useState(false);
+  const [lastGeneratedDate, setLastGeneratedDate] = useState<LocalDate | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -73,6 +74,7 @@ export default function RecurringFormScreen() {
       setEndDate(rule.endDate);
       setNote(rule.note);
       setPaused(rule.paused);
+      setLastGeneratedDate(rule.lastGeneratedDate);
     })().catch(console.error);
   }, [db, ruleId]);
 
@@ -80,7 +82,7 @@ export default function RecurringFormScreen() {
   const intervalCount = Number(intervalText);
   const intervalValid = Number.isInteger(intervalCount) && intervalCount >= 1 && intervalCount <= 365;
   const next = intervalValid
-    ? nextDueDate({ frequency, interval: intervalCount, startDate, endDate, paused }, todayLocal())
+    ? nextDueDate({ frequency, interval: intervalCount, startDate, endDate, paused, lastGeneratedDate }, todayLocal())
     : null;
 
   const finish = async () => {

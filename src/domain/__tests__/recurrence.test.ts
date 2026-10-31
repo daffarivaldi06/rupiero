@@ -110,6 +110,12 @@ describe('nextDueDate', () => {
     expect(nextDueDate(rule({ frequency: 'daily', interval: 2, startDate: '2026-10-30' }), '2026-10-31')).toBe('2026-11-01');
   });
 
+  it('skips occurrences already recorded today', () => {
+    expect(nextDueDate(rule({ startDate: '2026-10-31', lastGeneratedDate: '2026-10-31' }), '2026-10-31')).toBe('2026-11-30');
+    expect(nextDueDate(rule({ startDate: '2026-10-31', lastGeneratedDate: '2026-10-30' }), '2026-10-31')).toBe('2026-10-31');
+    expect(nextDueDate(rule({ startDate: '2026-10-31', lastGeneratedDate: '2026-10-31', endDate: '2026-11-15' }), '2026-10-31')).toBeNull();
+  });
+
   it('is null when paused or ended', () => {
     expect(nextDueDate(rule({ paused: true }), '2026-10-31')).toBeNull();
     expect(nextDueDate(rule({ endDate: '2026-10-30' }), '2026-10-31')).toBeNull();

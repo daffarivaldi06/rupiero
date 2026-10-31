@@ -15,6 +15,8 @@ export interface RecurrenceRule {
   /** Last day an occurrence may fall on (inclusive); null = no end. */
   endDate: LocalDate | null;
   paused: boolean;
+  /** Occurrences up to this day already exist as transactions; "next" starts after it. */
+  lastGeneratedDate?: LocalDate | null;
 }
 
 /** Guards against runaway loops (e.g. a daily rule scanned over decades). */
@@ -69,10 +71,14 @@ export function occurrences(rule: RecurrenceRule, from: LocalDate, to: LocalDate
   return dates;
 }
 
-/** The first occurrence on or after `today`, or null when paused or past the end date. */
+/**
+ * The first occurrence on or after `today` that has not been recorded yet, or null when paused or
+ * past the end date.
+ */
 export function nextDueDate(rule: RecurrenceRule, today: LocalDate): LocalDate | null {
   if (rule.paused) return null;
-  const next = occurrenceAt(rule, firstIndexFrom(rule, today));
+  const from = rule.lastGeneratedDate && rule.lastGeneratedDate >= today ? addDays(rule.lastGeneratedDate, 1) : today;
+  const next = occurrenceAt(rule, firstIndexFrom(rule, from));
   return rule.endDate !== null && next > rule.endDate ? null : next;
 }
 
