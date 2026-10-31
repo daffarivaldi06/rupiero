@@ -10,8 +10,8 @@
 |---|---|---|
 | 0 | ✅ selesai (tag `phase-0-done`) | Build debug Android dengan package id baru berhasil |
 | 1 | ✅ selesai (tag `phase-1-done`) | Uji manual di perangkat lolos (2026-10-31) |
-| 1.5 | ✅ kode selesai, **menunggu cek visual** di perangkat | 139 test lolos (termasuk kontras), setiap commit lolos typecheck + test, font ter-embed, bundle Hermes berhasil. Tag `phase-1.5-done` setelah cek visual |
-| 1.6 | ✅ kode selesai, **menunggu review screenshot** | 149 test lolos, typecheck + lint bersih, build debug & release (x86_64) jalan di emulator. Tag `phase-1.6-done` setelah review |
+| 1.5 | ✅ selesai (tag `phase-1.5-done`) | Disetujui bersama review Fase 1.6 (2026-10-31) |
+| 1.6 | ✅ selesai (tag `phase-1.6-done`) | Review screenshot + 5 perbaikan (2026-10-31): count-up saldo, detail kategori bergaya ledger, ringkasan tanpa minus, subtotal harian hanya jika >1 transaksi, ikon adaptif lebih besar |
 | 2–5 | belum dimulai | |
 | 6 | backlog | Belum dijadwalkan; tiap item butuh persetujuan sendiri |
 
@@ -36,6 +36,10 @@ Penyimpangan dari rencana (Fase 1.6):
 - `tsconfig.json`: `allowImportingTsExtensions` + `noEmit`, supaya `scripts/render-brand-assets.ts` bisa dijalankan langsung oleh Node 22.18 dan tetap ikut typecheck.
 - Ringkasan bulan di Dashboard menjadi tabel kecil "Arus {bulan}" (`MonthFlow`); `MonthSummaryCard` tetap dipakai di detail kategori.
 - Tanda minus masih tanda hubung ASCII dari `formatMoneyParts` (belum diubah ke "−").
+- Hasil review: angka saldo **menghitung naik dari 0** (tidak pernah melewati target, tepat di akhir) alih-alih digit odometer;
+  detail kategori memakai nama kategori sebagai judul header dan ringkasan bergaris tanpa kartu ("Pengeluaran Oktober € 178,70",
+  baris nol disembunyikan); subtotal harian hanya jika hari itu punya >1 transaksi; ikon adaptif ~24% lebih besar dengan sudut bingkai
+  lebih bulat (radius 18) agar tetap di lingkaran aman, bilah €/Rp lebih tebal.
 
 ## Prinsip kerja
 
