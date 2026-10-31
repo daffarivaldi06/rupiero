@@ -3,10 +3,11 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SQLiteProvider } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
-import { Pressable, Text } from 'react-native';
+import { Pressable } from 'react-native';
 
 import { DATABASE_NAME, initDb } from './src/db/init';
 import { ThemeProvider, navigationTheme, useTheme } from './src/theme/ThemeProvider';
+import { Txt } from './src/components/Txt';
 import type { TransactionType } from './src/domain/types';
 
 import DashboardScreen from './src/screens/DashboardScreen';
@@ -57,7 +58,7 @@ function RootNavigator() {
             title: 'BudgetApp',
             headerRight: () => (
               <Pressable onPress={() => navigation.navigate('Settings')} accessibilityRole="button" hitSlop={12}>
-                <Text style={{ color: color.ink, fontSize: 16, fontWeight: '500' }}>Pengaturan</Text>
+                <Txt variant="bodyStrong">Pengaturan</Txt>
               </Pressable>
             ),
           })}

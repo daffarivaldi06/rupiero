@@ -2,6 +2,7 @@ import React, { createContext, useContext, useMemo } from 'react';
 import { StyleSheet, useColorScheme } from 'react-native';
 import { DarkTheme, DefaultTheme, type Theme as NavigationTheme } from '@react-navigation/native';
 import { palettes, radius, space, type ColorScheme, type Palette } from './tokens';
+import { fontFamily } from './typography';
 
 export interface Theme {
   scheme: ColorScheme;
@@ -48,6 +49,12 @@ export function navigationTheme(theme: Theme): NavigationTheme {
       text: theme.color.ink,
       border: theme.color.line,
       notification: theme.color.expense,
+    },
+    fonts: {
+      regular: { fontFamily: fontFamily.regular, fontWeight: '400' },
+      medium: { fontFamily: fontFamily.medium, fontWeight: '500' },
+      bold: { fontFamily: fontFamily.semibold, fontWeight: '600' },
+      heavy: { fontFamily: fontFamily.bold, fontWeight: '700' },
     },
   };
 }
