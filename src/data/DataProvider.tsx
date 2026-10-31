@@ -1,16 +1,16 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AppState } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
+import { onDataChanged } from '../db/events';
 import { materializeDue } from '../db/repos/recurring';
 import { todayLocal } from '../domain/dates';
 
 interface DataContextValue {
-  /** Bumps whenever data changes without a navigation (sheet saves, recurring transactions created). */
+  /** Bumps after every repo write (see db/events), so screens can reload without a navigation. */
   revision: number;
-  dataChanged: () => void;
 }
 
-const DataContext = createContext<DataContextValue>({ revision: 0, dataChanged: () => {} });
+const DataContext = createContext<DataContextValue>({ revision: 0 });
 
 export const useDataRevision = () => useContext(DataContext);
 
@@ -21,20 +21,20 @@ export const useDataRevision = () => useContext(DataContext);
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const db = useSQLiteContext();
   const [revision, setRevision] = useState(0);
-  const dataChanged = useCallback(() => setRevision((r) => r + 1), []);
+  const bump = useCallback(() => setRevision((r) => r + 1), []);
+
+  useEffect(() => onDataChanged(bump), [bump]);
 
   useEffect(() => {
-    const materialize = () =>
-      materializeDue(db, todayLocal())
-        .then((created) => created > 0 && dataChanged())
-        .catch(console.error);
+    // materializeDue reports its own changes through db/events.
+    const materialize = () => materializeDue(db, todayLocal()).catch(console.error);
     materialize();
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') materialize();
     });
     return () => subscription.remove();
-  }, [db, dataChanged]);
+  }, [db]);
 
-  const value = useMemo(() => ({ revision, dataChanged }), [revision, dataChanged]);
+  const value = useMemo(() => ({ revision }), [revision]);
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

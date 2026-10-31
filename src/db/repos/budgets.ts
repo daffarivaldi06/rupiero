@@ -1,6 +1,7 @@
 import { addMonths, type Month } from '../../domain/dates';
 import type { CurrencyCode } from '../../domain/money';
 import type { Db } from '../client';
+import { notifyDataChanged } from '../events';
 
 export interface BudgetKey {
   categoryId: number;
@@ -25,6 +26,7 @@ export async function setBudget(db: Db, budget: BudgetKey & { limitMinor: number
     budget.currency,
     budget.limitMinor,
   );
+  notifyDataChanged();
 }
 
 export async function deleteBudget(db: Db, key: BudgetKey): Promise<void> {
@@ -34,6 +36,7 @@ export async function deleteBudget(db: Db, key: BudgetKey): Promise<void> {
     key.month,
     key.currency,
   );
+  notifyDataChanged();
 }
 
 const SELECT_LINES = `
@@ -65,5 +68,6 @@ export async function copyBudgetsFromPreviousMonth(db: Db, month: Month): Promis
     month,
     addMonths(month, -1),
   );
+  notifyDataChanged();
   return result.changes;
 }

@@ -1,5 +1,6 @@
 import { isCurrencyCode, type CurrencyCode } from '../../domain/money';
 import type { Db } from '../client';
+import { notifyDataChanged } from '../events';
 
 export async function getSetting(db: Db, key: string): Promise<string | null> {
   const row = await db.getFirstAsync<{ value: string }>('SELECT value FROM settings WHERE key = ?', key);
@@ -43,6 +44,8 @@ async function getFlag(db: Db, key: string): Promise<boolean> {
 
 async function setFlag(db: Db, key: string, value: boolean): Promise<void> {
   await setSetting(db, key, value ? '1' : '0');
+  // Hiding balances changes what the widget shows.
+  notifyDataChanged();
 }
 
 /** Show amounts as "€ ••••" everywhere in the app. */

@@ -1,5 +1,6 @@
 import type { Category } from '../../domain/types';
 import type { Db } from '../client';
+import { notifyDataChanged } from '../events';
 
 interface CategoryRow {
   id: number;
@@ -45,12 +46,14 @@ export async function createCategory(db: Db, name: string): Promise<number> {
      VALUES (?, (SELECT COALESCE(MAX(sort_order) + 1, 0) FROM categories))`,
     name.trim(),
   );
+  notifyDataChanged();
   return result.lastInsertRowId;
 }
 
 /** Transactions point at the id, so a rename touches one row. Throws on a duplicate name. */
 export async function renameCategory(db: Db, id: number, name: string): Promise<void> {
   await db.runAsync('UPDATE categories SET name = ? WHERE id = ?', name.trim(), id);
+  notifyDataChanged();
 }
 
 /** How many transactions use the category (all time). */
@@ -62,6 +65,7 @@ export async function countCategoryTransactions(db: Db, id: number): Promise<num
 /** Deletes an unused category. Throws (FOREIGN KEY) while transactions still use it. */
 export async function deleteCategory(db: Db, id: number): Promise<void> {
   await db.runAsync('DELETE FROM categories WHERE id = ?', id);
+  notifyDataChanged();
 }
 
 /** Moves every transaction to `targetId`, then deletes the category, all or nothing. */
@@ -71,9 +75,11 @@ export async function reassignAndDeleteCategory(db: Db, id: number, targetId: nu
     await db.runAsync("UPDATE transactions SET category_id = ?, updated_at = datetime('now') WHERE category_id = ?", targetId, id);
     await db.runAsync('DELETE FROM categories WHERE id = ?', id);
   });
+  notifyDataChanged();
 }
 
 /** Hides the category from lists and pickers; its transactions keep it. */
 export async function setCategoryArchived(db: Db, id: number, archived: boolean): Promise<void> {
   await db.runAsync('UPDATE categories SET archived = ? WHERE id = ?', archived ? 1 : 0, id);
+  notifyDataChanged();
 }

@@ -1,5 +1,6 @@
 import { SEED_SAMPLE_DATA } from '../config/dev';
 import { setUserVersion, type Db } from './client';
+import { notifyDataChanged } from './events';
 import { migrate } from './migrations';
 import { seedSampleData } from './seed';
 
@@ -40,4 +41,5 @@ export async function resetDatabase(db: Db, options: InitOptions = { seed: true 
     await db.execAsync('PRAGMA foreign_keys = ON');
   }
   await initDb(db, options);
+  notifyDataChanged();
 }

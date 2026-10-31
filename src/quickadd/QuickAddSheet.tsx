@@ -57,13 +57,8 @@ export interface QuickAddSheetHandle {
   open: (options?: QuickAddOptions) => Promise<void>;
 }
 
-interface QuickAddSheetProps {
-  /** After a save or delete, so screens can reload. */
-  onChanged: () => void;
-}
-
 /** Add or edit a transaction: type, account, keypad amount (with calculator), category, date and note. */
-export const QuickAddSheet = forwardRef<QuickAddSheetHandle, QuickAddSheetProps>(function QuickAddSheet({ onChanged }, ref) {
+export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSheet(_props, ref) {
   const db = useSQLiteContext();
   const { color } = useTheme();
   const styles = useThemedStyles(makeStyles);
@@ -184,7 +179,6 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle, QuickAddSheetProps>
       await setLastAccountId(db, account.id);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       sheetRef.current?.dismiss();
-      onChanged();
     } catch (e) {
       console.error(e);
       Alert.alert('Gagal', 'Transaksi tidak dapat disimpan');
@@ -202,7 +196,6 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle, QuickAddSheetProps>
           try {
             await deleteTransaction(db, editingId);
             sheetRef.current?.dismiss();
-            onChanged();
           } catch (e) {
             console.error(e);
             Alert.alert('Gagal', 'Transaksi tidak dapat dihapus');

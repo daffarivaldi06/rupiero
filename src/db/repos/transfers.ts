@@ -1,6 +1,7 @@
 import type { LocalDate, Month } from '../../domain/dates';
 import { impliedRate, type CurrencyCode, type ExchangeRate } from '../../domain/money';
 import type { Db, SQLParam } from '../client';
+import { notifyDataChanged } from '../events';
 
 export interface Transfer {
   id: number;
@@ -114,6 +115,7 @@ export async function createTransfer(db: Db, transfer: NewTransfer): Promise<num
     transfer.date,
     transfer.note?.trim() ?? '',
   );
+  notifyDataChanged();
   return result.lastInsertRowId;
 }
 
@@ -132,10 +134,12 @@ export async function updateTransfer(db: Db, id: number, transfer: NewTransfer):
     transfer.note?.trim() ?? '',
     id,
   );
+  notifyDataChanged();
 }
 
 export async function deleteTransfer(db: Db, id: number): Promise<void> {
   await db.runAsync('DELETE FROM transfers WHERE id = ?', id);
+  notifyDataChanged();
 }
 
 export async function getTransfer(db: Db, id: number): Promise<TransferDetail | null> {

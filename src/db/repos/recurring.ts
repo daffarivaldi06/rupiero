@@ -3,6 +3,7 @@ import type { CurrencyCode } from '../../domain/money';
 import { occurrences, type Frequency, type RecurrenceRule } from '../../domain/recurrence';
 import type { TransactionType } from '../../domain/types';
 import type { Db } from '../client';
+import { notifyDataChanged } from '../events';
 
 export interface RecurringRule extends RecurrenceRule {
   id: number;
@@ -91,6 +92,7 @@ export async function createRecurringRule(db: Db, rule: NewRecurringRule): Promi
     rule.startDate,
     rule.endDate ?? null,
   );
+  notifyDataChanged();
   return result.lastInsertRowId;
 }
 
@@ -115,10 +117,12 @@ export async function updateRecurringRule(db: Db, id: number, rule: NewRecurring
     rule.endDate ?? null,
     id,
   );
+  notifyDataChanged();
 }
 
 export async function setRecurringRulePaused(db: Db, id: number, paused: boolean): Promise<void> {
   await db.runAsync('UPDATE recurring_rules SET paused = ? WHERE id = ?', paused ? 1 : 0, id);
+  notifyDataChanged();
 }
 
 /** No occurrences after `today`. A rule that has not started yet is paused instead (end may not precede start). */
@@ -133,11 +137,13 @@ export async function stopRecurringRule(db: Db, id: number, today: LocalDate): P
     today,
     id,
   );
+  notifyDataChanged();
 }
 
 /** Generated transactions stay (their link is cleared). */
 export async function deleteRecurringRule(db: Db, id: number): Promise<void> {
   await db.runAsync('DELETE FROM recurring_rules WHERE id = ?', id);
+  notifyDataChanged();
 }
 
 export async function getRecurringRule(db: Db, id: number): Promise<RecurringRuleDetail | null> {
@@ -183,5 +189,6 @@ export async function materializeDue(db: Db, today: LocalDate): Promise<number> 
       await db.runAsync('UPDATE recurring_rules SET last_generated_date = ? WHERE id = ?', today, rule.id);
     }
   });
+  if (created > 0) notifyDataChanged();
   return created;
 }

@@ -24,7 +24,6 @@ import { CategoryChips } from '../components/CategoryChips';
 import { DateChip } from '../components/DateChip';
 import { Input } from '../components/Input';
 import { Txt } from '../components/Txt';
-import { useDataRevision } from '../data/DataProvider';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 
@@ -35,7 +34,6 @@ export default function RecurringFormScreen() {
   const navigation = useNavigation<RootNavigation>();
   const route = useRoute<RouteProp<RootStackParamList, 'RecurringForm'>>();
   const styles = useThemedStyles(makeStyles);
-  const { dataChanged } = useDataRevision();
   const ruleId = route.params?.ruleId;
   const isEditing = ruleId !== undefined;
 
@@ -87,7 +85,6 @@ export default function RecurringFormScreen() {
 
   const finish = async () => {
     await materializeDue(db, todayLocal());
-    dataChanged();
     navigation.goBack();
   };
 

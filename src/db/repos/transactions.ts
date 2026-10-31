@@ -3,6 +3,7 @@ import type { CurrencyCode } from '../../domain/money';
 import { addDays } from '../../domain/dates';
 import type { Category, TransactionDetail, TransactionType } from '../../domain/types';
 import type { Db, SQLParam } from '../client';
+import { notifyDataChanged } from '../events';
 
 interface TransactionDetailRow {
   id: number;
@@ -52,6 +53,7 @@ export async function createTransaction(db: Db, tx: NewTransaction): Promise<num
     tx.date,
     tx.note?.trim() ?? '',
   );
+  notifyDataChanged();
   return result.lastInsertRowId;
 }
 
@@ -117,10 +119,12 @@ export async function updateTransaction(db: Db, id: number, tx: NewTransaction):
     tx.note?.trim() ?? '',
     id,
   );
+  notifyDataChanged();
 }
 
 export async function deleteTransaction(db: Db, id: number): Promise<void> {
   await db.runAsync('DELETE FROM transactions WHERE id = ?', id);
+  notifyDataChanged();
 }
 
 /**

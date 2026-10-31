@@ -2,6 +2,7 @@ import type { CurrencyCode } from '../../domain/money';
 import type { LocalDate } from '../../domain/dates';
 import type { Account, AccountWithBalance, CurrencyBalance } from '../../domain/types';
 import type { Db } from '../client';
+import { notifyDataChanged } from '../events';
 
 interface AccountRow {
   id: number;
@@ -96,6 +97,7 @@ export async function createAccount(db: Db, account: NewAccount): Promise<number
     account.currency,
     account.openingBalanceMinor ?? 0,
   );
+  notifyDataChanged();
   return result.lastInsertRowId;
 }
 
@@ -132,9 +134,11 @@ export async function updateAccount(db: Db, id: number, account: NewAccount): Pr
     account.openingBalanceMinor ?? 0,
     id,
   );
+  notifyDataChanged();
 }
 
 /** Archived accounts leave pickers and balances; their history stays. */
 export async function setAccountArchived(db: Db, id: number, archived: boolean): Promise<void> {
   await db.runAsync('UPDATE accounts SET archived = ? WHERE id = ?', archived ? 1 : 0, id);
+  notifyDataChanged();
 }
