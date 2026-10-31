@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { DATABASE_NAME, initDb } from './src/db/init';
+import { FxProvider } from './src/fx/FxProvider';
 import { IntroProvider } from './src/intro/IntroProvider';
 import { ThemeProvider, navigationTheme, useTheme } from './src/theme/ThemeProvider';
 import type { TransactionType } from './src/domain/types';
@@ -32,7 +33,9 @@ export default function App() {
       <ThemeProvider>
         <IntroProvider>
           <SQLiteProvider databaseName={DATABASE_NAME} onInit={initDb}>
-            <RootNavigator />
+            <FxProvider>
+              <RootNavigator />
+            </FxProvider>
           </SQLiteProvider>
         </IntroProvider>
       </ThemeProvider>
