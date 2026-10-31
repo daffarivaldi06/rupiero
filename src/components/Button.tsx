@@ -1,15 +1,25 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, StyleProp, ViewStyle, TextStyle } from 'react-native';
-import { colors } from '../theme/colors';
+import { TouchableOpacity, StyleSheet, ActivityIndicator, StyleProp, ViewStyle, TextStyle } from 'react-native';
+import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { Txt, type TextTone } from './Txt';
+
+type ButtonVariant = 'primary' | 'income' | 'danger' | 'outline';
 
 interface ButtonProps {
   title: string;
   onPress: () => void;
   loading?: boolean;
-  variant?: 'primary' | 'danger' | 'outline';
+  variant?: ButtonVariant;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
 }
+
+const TEXT_TONE: Record<ButtonVariant, TextTone> = {
+  primary: 'onInk',
+  income: 'onIncome',
+  danger: 'onExpense',
+  outline: 'ink',
+};
 
 export const Button: React.FC<ButtonProps> = ({
   title,
@@ -19,54 +29,50 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   textStyle,
 }) => {
-  const getBackgroundColor = () => {
-    if (variant === 'outline') return 'transparent';
-    if (variant === 'danger') return colors.danger;
-    return colors.primary;
-  };
-
-  const getTextColor = () => {
-    if (variant === 'outline') return colors.text;
-    if (variant === 'danger') return colors.text;
-    return '#121212'; // dark text for primary green
-  };
+  const { color } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const tone = TEXT_TONE[variant];
 
   return (
     <TouchableOpacity
       activeOpacity={0.8}
-      style={[
-        styles.container,
-        { backgroundColor: getBackgroundColor() },
-        variant === 'outline' && styles.outline,
-        style,
-      ]}
+      style={[styles.container, styles[variant], style]}
       onPress={onPress}
       disabled={loading}
+      accessibilityRole="button"
+      accessibilityState={{ busy: loading }}
     >
       {loading ? (
-        <ActivityIndicator color={getTextColor()} />
+        <ActivityIndicator color={color[tone]} />
       ) : (
-        <Text style={[styles.text, { color: getTextColor() }, textStyle]}>{title}</Text>
+        <Txt variant="bodyStrong" tone={tone} style={textStyle}>{title}</Txt>
       )}
     </TouchableOpacity>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginVertical: 10,
-  },
-  outline: {
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  text: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
+const makeStyles = ({ color, radius, space }: Theme) =>
+  StyleSheet.create({
+    container: {
+      minHeight: 48,
+      borderRadius: radius.sm,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: space.lg,
+      marginVertical: space.sm,
+    },
+    primary: {
+      backgroundColor: color.ink,
+    },
+    income: {
+      backgroundColor: color.income,
+    },
+    danger: {
+      backgroundColor: color.expense,
+    },
+    outline: {
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: color.lineStrong,
+    },
+  });

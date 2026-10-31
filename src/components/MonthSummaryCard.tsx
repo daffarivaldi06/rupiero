@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Card } from './Card';
-import { colors } from '../theme/colors';
-import { formatMoney } from '../domain/money';
+import { View, StyleSheet } from 'react-native';
+import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import type { CurrencyTotals } from '../domain/types';
+import { Card } from './Card';
+import { Money } from './Money';
+import { Txt } from './Txt';
 
 interface MonthSummaryCardProps {
   title: string;
@@ -11,76 +12,48 @@ interface MonthSummaryCardProps {
 }
 
 /** Net, income and expense for a period, one block per currency (currencies are never added up). */
-export const MonthSummaryCard: React.FC<MonthSummaryCardProps> = ({ title, totals }) => (
-  <Card style={styles.card}>
-    <Text style={styles.title}>{title}</Text>
-    {totals.length === 0 && <Text style={styles.empty}>Belum ada akun</Text>}
-    {totals.map((t, index) => (
-      <View key={t.currency} style={[styles.block, index > 0 && styles.blockDivider]}>
-        <Text style={styles.net}>{formatMoney(t.incomeMinor - t.expenseMinor, t.currency)}</Text>
-        <View style={styles.row}>
-          <View style={styles.item}>
-            <Text style={styles.label}>Pemasukan</Text>
-            <Text style={[styles.value, { color: colors.primary }]}>
-              {formatMoney(t.incomeMinor, t.currency, { sign: true })}
-            </Text>
-          </View>
-          <View style={styles.item}>
-            <Text style={styles.label}>Pengeluaran</Text>
-            <Text style={[styles.value, { color: colors.danger }]}>{formatMoney(-t.expenseMinor, t.currency)}</Text>
+export const MonthSummaryCard: React.FC<MonthSummaryCardProps> = ({ title, totals }) => {
+  const styles = useThemedStyles(makeStyles);
+  return (
+    <Card>
+      <Txt variant="label" tone="inkMuted">{title}</Txt>
+      {totals.length === 0 && <Txt tone="inkMuted">Belum ada akun</Txt>}
+      {totals.map((t, index) => (
+        <View key={t.currency} style={[styles.block, index > 0 && styles.blockDivider]}>
+          <Txt variant="code" tone={t.currency === 'EUR' ? 'eur' : 'idrText'}>{t.currency}</Txt>
+          <Money minor={t.incomeMinor - t.expenseMinor} currency={t.currency} variant="display" />
+          <View style={styles.row}>
+            <View style={styles.item}>
+              <Txt variant="caption" tone="inkMuted">Pemasukan</Txt>
+              <Money minor={t.incomeMinor} currency={t.currency} variant="label" tone="incomeText" sign />
+            </View>
+            <View style={styles.item}>
+              <Txt variant="caption" tone="inkMuted">Pengeluaran</Txt>
+              <Money minor={-t.expenseMinor} currency={t.currency} variant="label" tone="expense" />
+            </View>
           </View>
         </View>
-      </View>
-    ))}
-  </Card>
-);
+      ))}
+    </Card>
+  );
+};
 
-const styles = StyleSheet.create({
-  card: {
-    alignItems: 'center',
-    paddingVertical: 24,
-    borderColor: colors.border,
-  },
-  title: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  empty: {
-    color: colors.textSecondary,
-  },
-  block: {
-    alignItems: 'center',
-    width: '100%',
-  },
-  blockDivider: {
-    marginTop: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  net: {
-    color: colors.text,
-    fontSize: 30,
-    fontWeight: 'bold',
-  },
-  row: {
-    flexDirection: 'row',
-    width: '100%',
-    marginTop: 12,
-  },
-  item: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  label: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    marginBottom: 4,
-    textTransform: 'uppercase',
-  },
-  value: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-});
+const makeStyles = ({ color, space }: Theme) =>
+  StyleSheet.create({
+    block: {
+      marginTop: space.md,
+    },
+    blockDivider: {
+      marginTop: space.lg,
+      paddingTop: space.lg,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: color.line,
+    },
+    row: {
+      flexDirection: 'row',
+      marginTop: space.sm,
+    },
+    item: {
+      flex: 1,
+    },
+  });

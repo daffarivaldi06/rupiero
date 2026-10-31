@@ -1,28 +1,26 @@
 import React from 'react';
 import { View, StyleSheet, StyleProp, ViewStyle } from 'react-native';
-import { colors } from '../theme/colors';
+import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 
 interface CardProps {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }
 
+/** Reserved for the one or two key elements of a screen (e.g. balances). Lists use ledger rows. */
 export const Card: React.FC<CardProps> = ({ children, style }) => {
+  const styles = useThemedStyles(makeStyles);
   return <View style={[styles.card, style]}>{children}</View>;
 };
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 20,
-    marginVertical: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
-    borderWidth: 1,
-    borderColor: colors.glassBorder,
-  },
-});
+const makeStyles = ({ color, radius, space }: Theme) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: color.surface,
+      borderRadius: radius.md,
+      padding: space.lg,
+      marginVertical: space.sm,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: color.line,
+    },
+  });
