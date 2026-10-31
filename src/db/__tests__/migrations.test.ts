@@ -29,7 +29,8 @@ describe('migrate', () => {
     await migrate(db);
 
     expect(await getUserVersion(db)).toBe(LATEST);
-    expect(await tableNames()).toEqual(['accounts', 'categories', 'fx_rates', 'settings', 'transactions', 'transfers']);
+    expect(await tableNames()).toEqual(['accounts', 'budgets', 'categories', 'fx_rates', 'recurring_rules', 'settings', 'transactions', 'transfers']);
+    expect(await columnNames('transactions')).toContain('recurring_rule_id');
     expect(await db.getAllAsync("SELECT name FROM sqlite_master WHERE type = 'view'")).toEqual([{ name: 'ledger' }]);
     expect(await db.getFirstAsync("SELECT value FROM settings WHERE key = 'base_currency'")).toEqual({ value: 'EUR' });
     expect(await columnNames('transactions')).toEqual(
@@ -102,6 +103,83 @@ describe('migrate', () => {
     await expect(migrate(db, failing)).rejects.toThrow('boom');
     expect(await getUserVersion(db)).toBe(0);
     expect(await tableNames()).toEqual([]);
+  });
+});
+
+describe('v2 → v3', () => {
+  it('keeps existing data and adds budgets, recurring rules and the rule link', async () => {
+    await migrate(db, MIGRATIONS.slice(0, 2));
+    expect(await getUserVersion(db)).toBe(2);
+    const eur = (await db.getFirstAsync<{ id: number }>("SELECT id FROM accounts WHERE currency = 'EUR'"))!.id;
+    const cat = (await db.runAsync("INSERT INTO categories (name) VALUES ('Sewa')")).lastInsertRowId;
+    await db.runAsync(
+      "INSERT INTO transactions (account_id, category_id, type, amount_minor, date) VALUES (?, ?, 'expense', 65000, '2026-10-03')",
+      eur,
+      cat,
+    );
+
+    await migrate(db);
+
+    expect(await getUserVersion(db)).toBe(3);
+    expect(await db.getAllAsync('SELECT amount_minor, recurring_rule_id FROM transactions')).toEqual([
+      { amount_minor: 65000, recurring_rule_id: null },
+    ]);
+    const rule = await db.runAsync(
+      `INSERT INTO recurring_rules (account_id, category_id, type, amount_minor, frequency, interval_count, start_date)
+       VALUES (?, ?, 'expense', 65000, 'daily', 2, '2026-10-30')`,
+      eur,
+      cat,
+    );
+    const insertOccurrence = () =>
+      db.runAsync(
+        "INSERT INTO transactions (account_id, category_id, type, amount_minor, date, recurring_rule_id) VALUES (?, ?, 'expense', 65000, '2026-10-30', ?)",
+        eur,
+        cat,
+        rule.lastInsertRowId,
+      );
+    await insertOccurrence();
+    await expect(insertOccurrence()).rejects.toThrow(/UNIQUE/);
+  });
+
+  it('enforces the new constraints', async () => {
+    await migrate(db);
+    const eur = (await db.getFirstAsync<{ id: number }>("SELECT id FROM accounts WHERE currency = 'EUR'"))!.id;
+    const cat = (await db.runAsync("INSERT INTO categories (name) VALUES ('Sewa')")).lastInsertRowId;
+    const rule = (frequency: string, end: string | null = null) =>
+      db.runAsync(
+        `INSERT INTO recurring_rules (account_id, category_id, type, amount_minor, frequency, start_date, end_date)
+         VALUES (?, ?, 'expense', 100, ?, '2026-10-01', ?)`,
+        eur,
+        cat,
+        frequency,
+        end,
+      );
+    await expect(rule('hourly')).rejects.toThrow(/CHECK/);
+    await expect(rule('monthly', '2026-09-30')).rejects.toThrow(/CHECK/);
+    const budget = (limit: number) =>
+      db.runAsync("INSERT INTO budgets (category_id, month, currency, limit_minor) VALUES (?, '2026-10', 'EUR', ?)", cat, limit);
+    await expect(budget(0)).rejects.toThrow(/CHECK/);
+    await budget(30000);
+    await expect(budget(20000)).rejects.toThrow(/UNIQUE/);
+  });
+
+  it('unlinks generated transactions when their rule is deleted', async () => {
+    await migrate(db);
+    const eur = (await db.getFirstAsync<{ id: number }>("SELECT id FROM accounts WHERE currency = 'EUR'"))!.id;
+    const cat = (await db.runAsync("INSERT INTO categories (name) VALUES ('Sewa')")).lastInsertRowId;
+    const rule = await db.runAsync(
+      "INSERT INTO recurring_rules (account_id, category_id, type, amount_minor, frequency, start_date) VALUES (?, ?, 'expense', 100, 'monthly', '2026-10-01')",
+      eur,
+      cat,
+    );
+    await db.runAsync(
+      "INSERT INTO transactions (account_id, category_id, type, amount_minor, date, recurring_rule_id) VALUES (?, ?, 'expense', 100, '2026-10-01', ?)",
+      eur,
+      cat,
+      rule.lastInsertRowId,
+    );
+    await db.runAsync('DELETE FROM recurring_rules WHERE id = ?', rule.lastInsertRowId);
+    expect(await db.getAllAsync('SELECT recurring_rule_id FROM transactions')).toEqual([{ recurring_rule_id: null }]);
   });
 });
 

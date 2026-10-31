@@ -1,13 +1,14 @@
 import { getUserVersion, setUserVersion, type Db } from '../client';
 import { migration001 } from './001_initial';
 import { migration002 } from './002_transfers_fx';
+import { migration003 } from './003_budgets_recurring';
 
 export interface Migration {
   version: number;
   up(db: Db): Promise<void>;
 }
 
-export const MIGRATIONS: Migration[] = [migration001, migration002];
+export const MIGRATIONS: Migration[] = [migration001, migration002, migration003];
 
 /** Tables of the unversioned pre-overhaul schema. Its data was test-only and is not migrated. */
 const LEGACY_TABLES = ['transactions', 'categories', 'settings'];
