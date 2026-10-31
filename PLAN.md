@@ -13,9 +13,10 @@
 | 1.5 | ✅ selesai (tag `phase-1.5-done`) | Disetujui bersama review Fase 1.6 (2026-10-31) |
 | 1.6 | ✅ selesai (tag `phase-1.6-done`) | Review screenshot + 5 perbaikan (2026-10-31): count-up saldo, detail kategori bergaya ledger, ringkasan tanpa minus, subtotal harian hanya jika >1 transaksi, ikon adaptif lebih besar |
 | 2 | ✅ selesai (tag `phase-2-done`) | Uji di HP lolos (2026-10-31) |
-| 2.1 | ✅ kode selesai, **menunggu uji manual** | Sembunyikan saldo; diuji di emulator. Tag `phase-2.1-done` setelah uji di HP |
-| 3 | ✅ kode selesai, **menunggu uji manual** | 260 test lolos; typecheck + lint bersih; diuji di emulator (budget + salin, berulang harian/bulanan, langganan, arsip kategori). Tag `phase-3-done` setelah uji di HP |
-| 4–5 | belum dimulai | |
+| 2.1 | ✅ selesai (tag `phase-2.1-done`) | Uji di HP lolos (2026-10-31) |
+| 3 | ✅ selesai (tag `phase-3-done`) | Uji di HP lolos (2026-10-31) |
+| 4 | ✅ kode selesai, **menunggu uji manual** | 285 test lolos; typecheck + lint bersih; diuji di emulator (widget light/dark + update setelah simpan, deep link dingin/hangat/id tak dikenal, grafik, ekspor JSON/CSV, impor valid & rusak). Tag `phase-4-done` setelah uji di HP |
+| 5 | belum dimulai | |
 | 6 | backlog | Belum dijadwalkan; tiap item butuh persetujuan sendiri |
 
 Penyimpangan dari rencana (Fase 0–1):
@@ -65,6 +66,22 @@ Penyimpangan dari rencana (Fase 2.1 & 3):
   layar Budget bisa dibuka dari Dashboard dan Pengaturan.
 - Toggle "Ulangi" di quick-add memakai interval 1; interval lain lewat form Transaksi Berulang.
 - Catatan dev: file watcher Metro di mesin ini sering tidak menangkap perubahan; jalankan `npx expo start --clear` ulang bila UI tidak berubah.
+
+Penyimpangan dari rencana (Fase 4):
+- Deep link utama `rupiero://add?account=<id>&category=<id>`; `budgetapp://` (nama di rencana) tetap diterima. Ditangani di `QuickAddProvider`
+  (bukan `linking` navigator) karena targetnya sheet, bukan layar.
+- **Satu koneksi database per proses** (`src/db/DatabaseProvider.tsx`, menggantikan `SQLiteProvider`). Task widget berjalan di runtime JS app;
+  expo-sqlite berbagi koneksi native per nama file, jadi koneksi kedua yang ditutup ikut melepas koneksi app (query gagal "released shared object").
+  `busy_timeout` dipasang paling awal.
+- Plugin `plugins/with-latest-intent.js`: `MainActivity.onNewIntent` memanggil `setIntent`, agar tap widget yang menyalakan ulang proses yang mati
+  tetap membuka quick-add.
+- Grafik digambar sendiri dengan `react-native-svg` (`DonutChart`, `TrendBars`) di layar baru **Grafik**; `react-native-gifted-charts` dihapus
+  (bar chart-nya butuh modul gradien native). Legenda dan tabel memakai bayangan warna mata uang (`eur` / `idrText`), bukan warna-warni.
+- Pengeluaran di grafik = pengeluaran transaksi + biaya transfer (sama dengan ringkasan bulanan); biaya transfer tampil sebagai "Biaya transfer".
+- Backup JSON: `format: "rupiero-backup"`; impor hanya menerima `schemaVersion` yang sama dengan app (versi lain ditolak dengan pesan).
+  Pengaturan perangkat (`settings`) tidak ikut diekspor/diganti. File dipilih lewat `expo-document-picker` (dependensi baru).
+- CSV: satu baris per pergerakan (transaksi, transfer keluar/masuk, biaya), jumlah desimal bertitik, BOM UTF-8 untuk Excel.
+- Widget: label "Sisa budget" per mata uang yang punya budget bulan ini, selain itu "Saldo"; tampilan light/dark mengikuti sistem.
 
 ## Prinsip kerja
 
