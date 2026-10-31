@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 import { useSQLiteContext } from '../db/DatabaseProvider';
+import { onDataChanged } from '../db/events';
 import { getLatestReferenceRate } from '../db/repos/fxRates';
 import type { ReferenceRate } from '../domain/fx';
 import { syncReferenceRate } from './sync';
@@ -29,8 +30,15 @@ export function FxProvider({ children }: { children: React.ReactNode }) {
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') refresh();
     });
-    return () => subscription.remove();
-  }, [refresh]);
+    // A reset or a restored backup replaces fx_rates too: re-read what is stored (no network).
+    const unsubscribe = onDataChanged(() => {
+      getLatestReferenceRate(db).then(setRate).catch(console.error);
+    });
+    return () => {
+      subscription.remove();
+      unsubscribe();
+    };
+  }, [db, refresh]);
 
   return <FxContext.Provider value={rate}>{children}</FxContext.Provider>;
 }
