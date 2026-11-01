@@ -1,20 +1,20 @@
-# Build release Rupiero untuk HP
+# Building a Rupiero release for the phone
 
-Panduan memasang Rupiero sebagai app harian (tanpa Metro, tanpa data contoh) dan memperbaruinya nanti **tanpa kehilangan data**.
+How to install Rupiero as an everyday app (no Metro, no sample data) and update it later **without losing data**.
 
-## Yang perlu diketahui dulu
+## What to know first
 
-- **Data hanya ada di HP**, di database app. Data hilang jika app di-uninstall atau "Hapus data" di Pengaturan Android.
-  Jadi sebelum langkah berisiko apa pun: Pengaturan → Data → **Ekspor backup (JSON)**, simpan di Drive/Files.
-- **Kunci tanda tangan** ada di `C:\Users\daffa\.rupiero\rupiero-release.jks`. Password-nya ada di `BACA-SAYA.txt` di folder yang sama
-  dan di `C:\Users\daffa\.gradle\gradle.properties`. Android hanya mau memasang update di atas app yang ditandatangani kunci yang **sama**.
-  Simpan salinan file `.jks` dan password-nya di luar laptop (password manager + cloud pribadi).
-  Kalau kunci hilang, update baru hanya bisa dipasang setelah uninstall (data hilang, kecuali dipulihkan dari backup).
-- Build release **tidak** punya data contoh dan **tidak** menampilkan Alat Pengembang (reset database).
+- **The data lives only on the phone**, in the app's database. It is lost if the app is uninstalled or its data is cleared ("Clear data" in Android Settings).
+  So before any risky step: Settings → Data → **Export backup (JSON)**, and keep it in Drive/Files.
+- **The signing key** is in `C:\Users\daffa\.rupiero\rupiero-release.jks`. Its passwords are in `BACA-SAYA.txt` in the same folder
+  and in `C:\Users\daffa\.gradle\gradle.properties`. Android only installs an update over an app signed with the **same** key.
+  Keep a copy of the `.jks` file and its passwords off the laptop (password manager + personal cloud).
+  If the key is lost, a new version can only be installed after uninstalling (data lost, unless restored from a backup).
+- A release build has **no** sample data and does **not** show the Developer tools (database reset).
 
-## Membuat APK release
+## Building the release APK
 
-Dari folder proyek, di Git Bash:
+From the project folder, in Git Bash:
 
 ```bash
 npx expo prebuild --platform android --no-install
@@ -22,52 +22,52 @@ cd android
 ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a
 ```
 
-Hasilnya: `android/app/build/outputs/apk/release/app-release.apk` (±35 MB). `arm64-v8a` cukup untuk HP Android modern;
-tambahkan `,x86_64` jika juga ingin memasangnya di emulator.
+The result: `android/app/build/outputs/apk/release/app-release.apk` (±35 MB). `arm64-v8a` is enough for modern Android phones;
+add `,x86_64` to install it on an emulator as well.
 
-Cek APK ditandatangani kunci Rupiero (SHA-256 harus `5B:1C:BF:A1:…:15:55:53`):
+Check that the APK is signed with the Rupiero key (the SHA-256 must be `5B:1C:BF:A1:…:15:55:53`):
 
 ```bash
 "$LOCALAPPDATA/Android/Sdk/build-tools/"*/apksigner.bat verify --print-certs app/build/outputs/apk/release/app-release.apk
 ```
 
-## Pemasangan pertama
+## First installation
 
-Build debug yang sekarang ada di HP ditandatangani kunci debug, jadi release **tidak bisa** dipasang di atasnya.
-Debug harus di-uninstall dulu, dan ini **menghapus data di HP** (saat ini data uji).
+The debug build currently on the phone is signed with the debug key, so the release build **cannot** be installed over it.
+The debug build has to be uninstalled first, and that **deletes the data on the phone** (currently test data).
 
-1. Jika ada data di HP yang ingin dibawa: Pengaturan → Data → Ekspor backup (JSON).
-2. Uninstall Rupiero dari HP (tahan ikon → Uninstall), atau `adb uninstall com.daffarivaldi.budgetapp`.
-3. Pasang release:
-   - Lewat kabel: `adb install android/app/build/outputs/apk/release/app-release.apk`, atau
-   - Tanpa kabel: kirim APK ke HP (Drive, Quick Share), buka file, izinkan "Instal app tidak dikenal" untuk app tersebut.
-4. Buka Rupiero. Database baru dibuat kosong dengan dua akun default. Jika perlu, Pengaturan → Data → Pulihkan dari backup.
-5. Pasang ulang widget (widget lama ikut terhapus saat uninstall).
+1. If there is data on the phone worth keeping: Settings → Data → Export backup (JSON).
+2. Uninstall Rupiero from the phone (long-press the icon → Uninstall), or `adb uninstall com.daffarivaldi.budgetapp`.
+3. Install the release:
+   - By cable: `adb install android/app/build/outputs/apk/release/app-release.apk`, or
+   - Without a cable: send the APK to the phone (Drive, Quick Share), open the file and allow "Install unknown apps" for that app.
+4. Open Rupiero. A new, empty database is created with two default accounts. If needed: Settings → Data → Restore from backup.
+5. Add the widget again (the old one is removed with the uninstall).
 
-## Memperbarui ke versi baru (data tetap)
+## Updating to a new version (data kept)
 
-1. **Backup dulu**: Pengaturan → Data → Ekspor backup (JSON). Ini jaring pengaman, bukan karena update menghapus data.
-2. Naikkan versi di `app.json`: `"version"` (mis. `1.1.0`) dan **`android.versionCode` +1** (mis. `1` → `2`).
-   Android menolak versionCode yang lebih kecil dari yang terpasang.
-3. Buat APK release seperti di atas (kunci yang sama dipakai otomatis dari `gradle.properties`).
-4. Pasang **di atas** versi lama, jangan uninstall:
-   - `adb install -r android/app/build/outputs/apk/release/app-release.apk`, atau
-   - buka APK di HP → Android menampilkan **"Update"** (bukan "Install"). Jika muncul pesan konflik paket/tanda tangan, **berhenti**:
-     artinya kuncinya berbeda. Jangan uninstall; cek kunci dulu.
-5. Buka app. Jika versi baru membawa perubahan skema, migrasi database berjalan otomatis sekali saat dibuka (`PRAGMA user_version`),
-   tanpa menghapus data.
+1. **Back up first**: Settings → Data → Export backup (JSON). This is a safety net; updating does not delete data.
+2. Raise the version in `app.json`: `"version"` (e.g. `1.1.0`) and **`android.versionCode` +1** (e.g. `1` → `2`).
+   Android refuses a versionCode lower than the installed one.
+3. Build the release APK as above (the same key is picked up automatically from `gradle.properties`).
+4. Install it **over** the old version; do not uninstall:
+   - `adb install -r android/app/build/outputs/apk/release/app-release.apk`, or
+   - open the APK on the phone → Android shows **"Update"** (not "Install"). If it reports a package or signature conflict, **stop**:
+     the key is different. Do not uninstall; check the key first.
+5. Open the app. If the new version changes the schema, the database migration runs once, automatically, on opening (`PRAGMA user_version`),
+   without deleting data.
 
-## Riwayat versi
+## Version history
 
-| Versi | versionCode | Isi |
+| Version | versionCode | Contents |
 |---|---|---|
-| 1.0.0 | 1 | Fase 0–4 |
-| 1.0.1 | 2 | Fase 5: bahasa Indonesia/Inggris, tema, a11y, validasi inline, toast + undo. Tanpa perubahan skema (tetap v3). **Jangan dipakai:** form terpotong setelah keyboard ditutup |
-| 1.0.2 | 3 | Perbaikan keyboard di form (Android 15+ edge-to-edge). Tanpa perubahan skema |
+| 1.0.0 | 1 | Phases 0–4 |
+| 1.0.1 | 2 | Phase 5: Indonesian/English UI, theme setting, accessibility, inline validation, toasts + undo. No schema change (still v3). **Do not use:** forms stay cut off after the keyboard closes |
+| 1.0.2 | 3 | Keyboard handling in forms fixed (Android 15+ edge-to-edge). No schema change |
 
-## Jangan pernah
+## Never
 
-- Uninstall app atau "Hapus data" tanpa backup terbaru.
-- Mengganti `android.package` (`com.daffarivaldi.budgetapp`) di `app.json`: Android menganggapnya app lain, data tidak ikut.
-- Membuat kunci baru atau menghapus `rupiero-release.jks`.
-- Memasang build debug di atas release (kunci berbeda, akan ditolak).
+- Uninstall the app or clear its data without a recent backup.
+- Change `android.package` (`com.daffarivaldi.budgetapp`) in `app.json`: Android treats it as a different app and the data does not carry over.
+- Create a new key or delete `rupiero-release.jks`.
+- Install a debug build over the release (different key; it will be refused).
