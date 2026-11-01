@@ -16,7 +16,7 @@
 | 2.1 | ✅ selesai (tag `phase-2.1-done`) | Uji di HP lolos (2026-10-31) |
 | 3 | ✅ selesai (tag `phase-3-done`) | Uji di HP lolos (2026-10-31) |
 | 4 | ✅ selesai (tag `phase-4-done`) | Uji di HP lolos (2026-10-31), plus revisi widget (bar budget, warna peringatan, ukuran 3×2). Build release pertama 1.0.0 (versionCode 1), lihat [docs/RELEASE.md](docs/RELEASE.md) |
-| 5 | ✅ selesai, menunggu uji di HP | Bahasa id/en, tema terang/gelap, kategori default, date picker bertema, a11y, validasi inline, toast + undo. Rilis 1.0.1 (versionCode 2) |
+| 5 | ✅ selesai, menunggu uji di HP | Bahasa id/en, tema terang/gelap, kategori default, date picker bertema, a11y, validasi inline, toast + undo. Rilis 1.0.2 (versionCode 3; 1.0.1 ditarik karena bug keyboard di form) |
 | 6 | backlog | Belum dijadwalkan; tiap item butuh persetujuan sendiri |
 
 Penyimpangan dari rencana (Fase 0–1):
@@ -660,7 +660,10 @@ Penyimpangan dari rencana (Fase 5):
 - Konfirmasi tindakan destruktif (hapus kategori/transfer/aturan, pulihkan backup, reset) tetap dialog; hapus transaksi tanpa dialog, bisa di-undo.
 - Ditemukan saat uji: transaksi bertumpuk pada koneksi bersama (app + task widget menjalankan `materializeDue` bersamaan saat start)
   → `serializeTransactions` (`src/db/serialize.ts`). Deskripsi widget di pemilih widget kini Inggris + terjemahan `values-in`.
-- Showcase Inggris: `docs/showcase/en/` (screens, carousel 10 slide + PDF, video 15,8 s). Link GitHub di slide terakhir masih placeholder.
+- Keyboard di form: Android 15+ (edge-to-edge) tidak lagi me-resize jendela, dan KeyboardAvoidingView di Android mendorong form dua kali
+  lalu menyisakan padding setelah keyboard ditutup. `FormScroll` kini memendekkan area scroll sebesar tinggi keyboard dan menggulir
+  field aktif ke atas keyboard (Android); KeyboardAvoidingView hanya di iOS. Ditemukan saat membuat showcase; dirilis sebagai 1.0.2.
+- Showcase Inggris: `docs/showcase/en/` (screens, carousel 9 slide + PDF dengan callout zoom, video 15,8 s).
 
 ## Fase 5: UX & aksesibilitas
 

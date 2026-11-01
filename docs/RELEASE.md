@@ -62,7 +62,8 @@ Debug harus di-uninstall dulu, dan ini **menghapus data di HP** (saat ini data u
 | Versi | versionCode | Isi |
 |---|---|---|
 | 1.0.0 | 1 | Fase 0–4 |
-| 1.0.1 | 2 | Fase 5: bahasa Indonesia/Inggris, tema, a11y, validasi inline, toast + undo. Tanpa perubahan skema (tetap v3) |
+| 1.0.1 | 2 | Fase 5: bahasa Indonesia/Inggris, tema, a11y, validasi inline, toast + undo. Tanpa perubahan skema (tetap v3). **Jangan dipakai:** form terpotong setelah keyboard ditutup |
+| 1.0.2 | 3 | Perbaikan keyboard di form (Android 15+ edge-to-edge). Tanpa perubahan skema |
 
 ## Jangan pernah
 
