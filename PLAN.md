@@ -16,7 +16,7 @@
 | 2.1 | ✅ done (tag `phase-2.1-done`) | Phone test passed (2026-10-31) |
 | 3 | ✅ done (tag `phase-3-done`) | Phone test passed (2026-10-31) |
 | 4 | ✅ done (tag `phase-4-done`) | Phone test passed (2026-10-31), plus widget revisions (budget bar, warning color, 3×2 size). First release build 1.0.0 (versionCode 1), see [docs/RELEASE.md](docs/RELEASE.md) |
-| 5 | ✅ done (tag `phase-5-done`) | Phone test of 1.0.2 passed (2026-11-01), including the keyboard in forms.  id/en languages, light/dark theme, default categories, themed date picker, a11y, inline validation, toast + undo. Release 1.0.2 (versionCode 3; 1.0.1 was pulled because of a keyboard bug in forms) |
+| 5 | ✅ done (tag `phase-5-done`) | Phone test of 1.0.2 passed (2026-11-01), including the keyboard in forms. id/en languages, light/dark theme, default categories, themed date picker, a11y, inline validation, toast + undo. Release 1.0.2 (versionCode 3; 1.0.1 was pulled because of a keyboard bug in forms) |
 | 6 | backlog | Not scheduled yet; each item needs its own approval |
 
 Deviations from the plan (Phase 0–1):
