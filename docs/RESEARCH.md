@@ -1,159 +1,159 @@
-# Riset Overhaul BudgetApp: Referensi Aplikasi, Multi-Mata Uang, Prioritas Fitur & Arah Visual
+# BudgetApp Overhaul Research: Reference Apps, Multi-Currency, Feature Priorities & Visual Direction
 
-Inti jawabannya: rencana overhaul Anda (akun bermata uang tunggal, nilai integer, transfer yang menyimpan jumlah kirim dan terima) sudah sama dengan praktik terbaik aplikasi multi-mata uang terkuat (Wallet by BudgetBakers, Bluecoins, Toshl, Lunch Money). Tiga hal yang paling menentukan aplikasi ini dipakai terus atau ditinggal ada di luar rencana itu: input transaksi kurang dari 5 detik (termasuk dari widget), tampilan saldo EUR dan IDR terpisah dengan estimasi gabungan sebagai info sekunder, dan identitas visual yang benar-benar dipilih, bukan dark mode bawaan.
+The short answer: your overhaul plan (single-currency accounts, integer amounts, transfers that store both the sent and received amounts) already matches the best practice of the strongest multi-currency apps (Wallet by BudgetBakers, Bluecoins, Toshl, Lunch Money). The three things that most decide whether this app keeps being used or gets abandoned lie outside that plan: entering a transaction in under 5 seconds (including from the widget), showing separate EUR and IDR balances with a combined estimate as secondary info, and a visual identity that is actually chosen rather than a default dark mode.
 
 ## TL;DR
-- **Multi-mata uang:** pertahankan satu mata uang per akun. Tampilkan total EUR dan IDR **terpisah** sebagai angka utama, lalu estimasi gabungan dalam "mata uang dasar" sebagai baris kecil. Kurs pasar (ECB via Frankfurter) cukup untuk estimasi. Kurs transfer nyata Anda (kirim vs. terima) adalah sumber kebenaran untuk biaya konversi.
-- **Fitur yang membuat orang bertahan:** input cepat (keypad sendiri, kategori 1 tap, template/favorit, quick-add dari widget), pengingat harian, review bulanan. Alasan utama orang berhenti pakai app budget adalah *lupa mencatat* dan proses mencatat yang terlalu lambat, bukan kurang fitur.
-- **Arah visual:** tinggalkan hitam pekat + aksen neon. Rekomendasi saya **"Buku Kas" (kertas hangat + angka tebal tabular + aksen kunyit/indigo khas Indonesia)** dengan mode gelap "tinta" (bukan #000), plus opsi Material You untuk pengguna yang mau.
+- **Multi-currency:** keep one currency per account. Show the EUR and IDR totals **separately** as the main figures, then a combined estimate in a "base currency" as a small line. Market rates (ECB via Frankfurter) are enough for estimates. Your real transfer rates (sent vs. received) are the source of truth for conversion costs.
+- **Features that make people stay:** fast entry (custom keypad, 1-tap categories, templates/favourites, quick-add from the widget), daily reminders, monthly review. The main reason people stop using budget apps is *forgetting to log* and logging being too slow, not missing features.
+- **Visual direction:** drop pitch black + neon accents. My recommendation is **"Buku Kas" (Indonesian for "cash ledger"; warm paper + bold tabular figures + distinctly Indonesian turmeric/indigo accents)** with an "ink" dark mode (not #000), plus a Material You option for users who want it.
 
 ---
 
-## 1. Aplikasi Referensi: Apa yang Layak Ditiru
+## 1. Reference Apps: What Is Worth Copying
 
-| Aplikasi | Konsep | Yang menonjol | Multi-mata uang |
+| App | Concept | What stands out | Multi-currency |
 |---|---|---|---|
-| **YNAB** | Zero-based / amplop ("Give every dollar a job")\[1\] | Targets dengan progress bar berwarna, metrik *Age of Money*\[2\]\[3\] | **Tidak ada.** Satu currency per plan; YNAB sendiri menyarankan plan terpisah per mata uang\[4\]\[5\] |
-| **Monarch Money** | Tracking + net worth (bank sync AS)\[6\] | Desain bersih, kolaborasi pasangan | **Tidak ada.** Semua ditampilkan dengan simbol "$" tanpa konversi; hanya AS/Kanada\[7\]\[8\] |
-| **Copilot Money** | Tracking + kategori AI (iOS saja)\[9\] | Desain dianggap terbaik di kategorinya; FAQ resminya: "Apple Design Award Finalist (2024) and Apple Editor's Choice in Personal Finance", juga pemenang Webby dengan rating App Store 4,8 dari 29.000+ ulasan; data lokal sehingga responsif | Lemah/tidak relevan (iOS, AS) |
-| **Wallet (BudgetBakers)** | Tracking + budget | Akun, goals, planned payments\[10\] | **Satu mata uang per akun (wajib)**, kurs diperbarui otomatis tiap malam atau diisi manual. Mata uang default tidak bisa diganti setelah diset\[10\]\[11\] |
-| **Spendee** | Tracking berbasis wallet | Visual bersih, shared wallet\[12\] | Mata uang per wallet, kurs per transaksi bisa diatur, overview dalam satu "main currency". Mata uang wallet terkunci setelah ada transaksi\[13\]\[14\] |
-| **Toshl** | Tracking + budget (gaya ceria, monster) | Layar tambah transaksi sekaligus jadi konverter\[15\] | Paling lengkap: kurs per jam, kurs historis harian, kurs kustom, opsi kurs untuk transaksi berulang\[15\]\[16\] |
-| **Bluecoins** (Android) | Akuntansi pribadi (neraca)\[17\] | Transfer dengan biaya, laporan detail\[18\] | Kurs per akun **dan** per transaksi, opsi *Effective Average Conversion Rate* (EACR)\[19\]\[20\] |
-| **Cashew** (open source, Flutter) | Tracking + budget fleksibel\[21\] | Material You, home screen bisa diatur, saran judul transaksi, search & filter, tag, langganan\[22\] | Multi-mata uang dengan kurs otomatis + net worth\[23\] |
-| **Actual Budget** (open source) | Zero-based (amplop), local-first | Gaya YNAB gratis\[24\] | **Belum ada** (dokumentasinya: "currency agnostic", fitur multi-currency masih eksperimental)\[25\]\[26\] |
-| **Money Lover** (populer di ID) | Tracking + budget | Kalkulator bawaan, travel mode\[27\]\[28\] | Mata uang per wallet. Transaksi dalam mata uang lain dikonversi otomatis ke mata uang wallet. Transfer dengan biaya membuat 3 transaksi\[29\]\[30\]\[31\] |
-| **Money Manager (Realbyte)** (populer di ID) | Akuntansi sederhana | Kalender, kalkulator di field jumlah, *bookmark* untuk transaksi rutin\[32\]\[33\] | "Sub-currency" dengan kurs **manual**. Transaksi lama tidak berubah saat kurs diubah\[34\] |
-| **Finku** (Indonesia) | Tracking otomatis | Auto-sync rekening/e-wallet, input AI teks/suara\[35\]\[36\] | Fokus IDR |
+| **YNAB** | Zero-based / envelopes ("Give every dollar a job")\[1\] | Targets with coloured progress bars, the *Age of Money* metric\[2\]\[3\] | **None.** One currency per plan; YNAB itself suggests a separate plan per currency\[4\]\[5\] |
+| **Monarch Money** | Tracking + net worth (US bank sync)\[6\] | Clean design, couples collaboration | **None.** Everything is shown with a "$" symbol without conversion; US/Canada only\[7\]\[8\] |
+| **Copilot Money** | Tracking + AI categories (iOS only)\[9\] | Design considered the best in its category; its official FAQ: "Apple Design Award Finalist (2024) and Apple Editor's Choice in Personal Finance", also a Webby winner with a 4.8 App Store rating from 29,000+ reviews; local data so it feels responsive | Weak/not relevant (iOS, US) |
+| **Wallet (BudgetBakers)** | Tracking + budget | Accounts, goals, planned payments\[10\] | **One currency per account (mandatory)**, rates updated automatically every night or entered manually. The default currency cannot be changed once set\[10\]\[11\] |
+| **Spendee** | Wallet-based tracking | Clean visuals, shared wallets\[12\] | Currency per wallet, per-transaction rate can be set, overview in one "main currency". A wallet's currency is locked once it has transactions\[13\]\[14\] |
+| **Toshl** | Tracking + budget (cheerful style, monsters) | The add-transaction screen doubles as a converter\[15\] | Most complete: hourly rates, daily historical rates, custom rates, rate options for recurring transactions\[15\]\[16\] |
+| **Bluecoins** (Android) | Personal accounting (balance sheet)\[17\] | Transfers with fees, detailed reports\[18\] | Rates per account **and** per transaction, an *Effective Average Conversion Rate* (EACR) option\[19\]\[20\] |
+| **Cashew** (open source, Flutter) | Tracking + flexible budgets\[21\] | Material You, customisable home screen, transaction title suggestions, search & filter, tags, subscriptions\[22\] | Multi-currency with automatic rates + net worth\[23\] |
+| **Actual Budget** (open source) | Zero-based (envelopes), local-first | Free YNAB-style\[24\] | **Not yet** (its docs: "currency agnostic", the multi-currency feature is still experimental)\[25\]\[26\] |
+| **Money Lover** (popular in ID) | Tracking + budget | Built-in calculator, travel mode\[27\]\[28\] | Currency per wallet. Transactions in another currency are automatically converted to the wallet's currency. A transfer with a fee creates 3 transactions\[29\]\[30\]\[31\] |
+| **Money Manager (Realbyte)** (popular in ID) | Simple accounting | Calendar, calculator in the amount field, *bookmarks* for routine transactions\[32\]\[33\] | "Sub-currency" with a **manual** rate. Old transactions do not change when the rate is changed\[34\] |
+| **Finku** (Indonesia) | Automatic tracking | Auto-sync of bank accounts/e-wallets, AI text/voice input\[35\]\[36\] | IDR-focused |
 
-**Pola UX yang paling layak dipinjam:**
-- **Kalkulator di field jumlah** (Money Lover, Money Manager): orang sering menjumlah struk di kepala, jadi `12,5+3,2` harus bisa langsung diketik.
-- **Bookmark/template** (Money Manager), **saran judul otomatis** (Cashew): kebanyakan transaksi mahasiswa berulang (Carrefour, Crous, Navigo/Ilévia, transfer ke orang tua).
-- **Kalender bulanan** (Money Manager): cocok untuk melihat "hari boros".
-- **Layar tambah transaksi sebagai konverter** (Toshl): saat mengetik EUR, tampilkan juga perkiraan IDR, dan sebaliknya.\[15\]
-- **Home screen yang bisa diatur** (Cashew): README GitHub Cashew mencantumkan "Customizable Home Screen: Tailor the home screen layout and widgets" serta "App Links: Automatically create transactions with pre-filled data", model yang bisa langsung ditiru untuk quick-add via deep link `budgetapp://add`.
-- **Target dengan progress bar berwarna** (YNAB): untuk tabungan seperti "tiket pulang Jakarta".\[2\]
+**The UX patterns most worth borrowing:**
+- **A calculator in the amount field** (Money Lover, Money Manager): people often add up receipts in their heads, so `12,5+3,2` should be typeable directly.
+- **Bookmarks/templates** (Money Manager), **automatic title suggestions** (Cashew): most of a student's transactions repeat (Carrefour, Crous, Navigo/Ilévia, transfers to parents).
+- **Monthly calendar** (Money Manager): good for spotting "big-spending days".
+- **The add-transaction screen as a converter** (Toshl): while typing EUR, also show the approximate IDR, and vice versa.\[15\]
+- **A customisable home screen** (Cashew): Cashew's GitHub README lists "Customizable Home Screen: Tailor the home screen layout and widgets" and "App Links: Automatically create transactions with pre-filled data", a model that can be copied directly for quick-add via the `budgetapp://add` deep link.
+- **Targets with coloured progress bars** (YNAB): for savings such as "a ticket home to Jakarta".\[2\]
 
-## 2. Multi-Mata Uang: Praktik Terbaik
+## 2. Multi-Currency: Best Practices
 
-**Model data.** Rencana Anda sudah benar. Wallet by BudgetBakers bahkan *sengaja* menghapus akun multi-mata-uang supaya fitur ganti mata uang dasar bisa jalan.\[37\] Spendee mengunci mata uang wallet begitu ada transaksi.\[14\] Tambahan yang perlu:
-1. **Simpan kurs di level transaksi, bukan di laporan.** Bluecoins menegaskan multi-currency berjalan untuk transfer dan laporan campuran "because the rate is attached to the entry, not to the report".\[19\] Untuk transaksi biasa simpan `fx_rate_to_base` + `fx_date`. Untuk transfer, kurs implisit = `received / sent`.
-2. **Biaya transfer sebagai entitas sendiri.** Money Lover dan Bluecoins memisahkan fee dari transfer.\[18\]\[29\] Dari data Anda bisa dihitung *biaya konversi nyata* = (kurs pasar − kurs implisit) × jumlah + fee eksplisit. Ini insight paling berharga untuk mahasiswa yang rutin menerima atau mengirim uang EUR↔IDR (Wise, transfer bank, dsb.).
-3. **Kurs historis untuk laporan lama.** Lunch Money dan Toshl memakai kurs pada tanggal transaksi.\[15\] Untuk budget bulanan, Lunch Money memakai kurs tanggal 1 bulan itu supaya angka budget stabil.\[38\] Pola ini bagus ditiru.
+**Data model.** Your plan is already right. Wallet by BudgetBakers even *deliberately* removed multi-currency accounts so that changing the base currency could work.\[37\] Spendee locks a wallet's currency as soon as it has transactions.\[14\] Additions needed:
+1. **Store the rate at the transaction level, not in the report.** Bluecoins stresses that multi-currency works for transfers and mixed reports "because the rate is attached to the entry, not to the report".\[19\] For regular transactions store `fx_rate_to_base` + `fx_date`. For transfers, the implied rate = `received / sent`.
+2. **Transfer fees as their own entity.** Money Lover and Bluecoins separate the fee from the transfer.\[18\]\[29\] From your data you can compute the *real conversion cost* = (market rate − implied rate) × amount + explicit fee. This is the most valuable insight for a student who regularly receives or sends money EUR↔IDR (Wise, bank transfers, etc.).
+3. **Historical rates for old reports.** Lunch Money and Toshl use the rate on the transaction date.\[15\] For monthly budgets, Lunch Money uses the rate on the 1st of that month so budget figures stay stable.\[38\] This pattern is worth copying.
 
-**Cara menampilkan saldo:**
-- **Angka utama dipisah per mata uang** ("EUR 1.240,50" dan "Rp 3.450.000"), karena Anda *hidup* dalam dua mata uang dan tidak ingin angka berubah hanya karena kurs bergerak.
-- **Estimasi gabungan sebagai baris sekunder** ("≈ €1.437 total · kurs ECB 30 Okt"), selalu dengan tanda "≈" dan tanggal kurs. Pengguna Bluecoins menyebut opsi EACR (nilai berdasarkan kurs rata-rata pembelian vs. kurs hari ini) penting karena keduanya menjawab pertanyaan berbeda.\[39\]
-- **Budget per kategori per mata uang** (sudah ada di rencana) lebih jujur daripada satu budget yang dikonversi. Tambahkan opsi "budget gabungan" yang memakai kurs awal bulan.
+**How to show balances:**
+- **Main figures split per currency** ("EUR 1.240,50" and "Rp 3.450.000"), because you *live* in two currencies and do not want the numbers to change just because the rate moves.
+- **The combined estimate as a secondary line** ("≈ €1.437 total · ECB rate 30 Oct"), always with the "≈" sign and the rate date. Bluecoins users call the EACR option (value based on the average purchase rate vs. today's rate) important because the two answer different questions.\[39\]
+- **Budgets per category per currency** (already in the plan) are more honest than a single converted budget. Add a "combined budget" option that uses the start-of-month rate.
 
-**Sumber kurs (offline-first):** **Frankfurter** (`api.frankfurter.dev`) gratis, tanpa API key, open source, dan menyediakan kurs referensi ECB. Halaman kurs referensi ECB menyatakan "The reference rates are usually updated at around 16:00 CET every working day, except on TARGET closing days". IDR ada dalam daftarnya (30 Oktober 2026: EUR 1 = IDR 20275,17), dan ECB sendiri memperingatkan "Using the rates for transaction purposes is strongly discouraged", jadi cocok untuk estimasi, bukan pengganti kurs transfer nyata Anda. Ambil sekali sehari saat online, simpan di tabel `fx_rates(date, base, quote, rate)`, dan pakai kurs terakhir bila offline (Lunch Money juga fallback ke hari terdekat).\[40\]
+**Rate source (offline-first):** **Frankfurter** (`api.frankfurter.dev`) is free, needs no API key, is open source, and serves the ECB reference rates. The ECB reference rates page states "The reference rates are usually updated at around 16:00 CET every working day, except on TARGET closing days". IDR is on the list (30 October 2026: EUR 1 = IDR 20275.17), and the ECB itself warns "Using the rates for transaction purposes is strongly discouraged", so it is suited to estimates, not as a replacement for your real transfer rates. Fetch once a day when online, store in a `fx_rates(date, base, quote, rate)` table, and use the latest rate when offline (Lunch Money also falls back to the nearest day).\[40\]
 
-**Jebakan yang harus dihindari:**
-- **Desimal berbeda:** IDR praktis tanpa sen, EUR 2 desimal. Simpan `minor_unit` per mata uang dan jangan hardcode ×100. PR multi-currency Actual Budget justru tersandung asumsi "bagi 100 untuk semua mata uang".\[26\]
-- **Format angka:** id-ID dan fr-FR sama-sama memakai titik/spasi untuk ribuan dan koma untuk desimal, berbeda dari en-US. Gunakan `Intl.NumberFormat` dengan locale eksplisit, dan tentukan format satu kali di pengaturan.
-- **Ganti mata uang dasar:** Toshl memberi 3 opsi (kurs historis/kurs tunggal/hanya ganti simbol) dan memperingatkan bahwa kurs kustom bisa hilang.\[16\]\[41\] Simpan kurs asli dan *jangan pernah* menimpanya saat base diganti.
-- **Transfer jangan dihitung sebagai pengeluaran/pemasukan** (Bluecoins dan Money Lover mengecualikannya dari laporan).\[18\]\[29\]
-- **Monarch sebagai anti-contoh:** menampilkan 10.000 CAD + 10.000 USD sebagai "$20,000".\[7\]
+**Pitfalls to avoid:**
+- **Different decimals:** IDR is practically without cents, EUR has 2 decimals. Store `minor_unit` per currency and do not hardcode ×100. Actual Budget's multi-currency PR tripped over exactly the "divide by 100 for every currency" assumption.\[26\]
+- **Number format:** id-ID and fr-FR both use dots/spaces for thousands and commas for decimals, unlike en-US. Use `Intl.NumberFormat` with an explicit locale, and set the format once in settings.
+- **Changing the base currency:** Toshl offers 3 options (historical rates/single rate/change the symbol only) and warns that custom rates can be lost.\[16\]\[41\] Store the original rates and *never* overwrite them when the base is changed.
+- **Do not count transfers as expenses/income** (Bluecoins and Money Lover exclude them from reports).\[18\]\[29\]
+- **Monarch as an anti-example:** it shows 10,000 CAD + 10,000 USD as "$20,000".\[7\]
 
-**Siapa paling baik?** Untuk *tracking*: Toshl (paling dalam) dan Lunch Money (kurs historis per transaksi).\[42\] Untuk *model akun* yang mirip rencana Anda: Bluecoins (kurs per akun + per transaksi + fee transfer) dan Wallet.
+**Who does it best?** For *tracking*: Toshl (the deepest) and Lunch Money (historical rates per transaction).\[42\] For an *account model* similar to your plan: Bluecoins (rates per account + per transaction + transfer fees) and Wallet.
 
-## 3. Prioritas Fitur: Apa yang Membuat Orang Bertahan
+## 3. Feature Priorities: What Makes People Stay
 
-**Temuan utama dari diskusi Reddit (dirangkum oleh beberapa blog app):** keluhan terbesar bukan kekurangan fitur, melainkan "I gave up because I forgot to log" serta proses mencatat yang terlalu lambat atau terlalu banyak langkah. Keluhan lain: langganan mahal dan aplikasi cloud yang tutup atau berubah arah.\[43\]\[44\] Sejak Intuit menutup Mint pada 23 Maret 2024 dan memindahkan penggunanya ke Credit Karma (menurut NerdWallet, "setting monthly budgets and customized categories didn't make the cut"), sebagian pengguna justru sengaja memilih pencatatan **manual**, karena tindakan mencatat itulah yang menciptakan kesadaran belanja. *Catatan sumber: ringkasan ini berasal dari blog vendor aplikasi (Vento, Hunter Vault) yang punya kepentingan, jadi anggap sebagai indikasi, bukan data survei.*
+**Main finding from Reddit discussions (summarised by several app blogs):** the biggest complaint is not missing features but "I gave up because I forgot to log" and logging that is too slow or takes too many steps. Other complaints: expensive subscriptions and cloud apps that shut down or change direction.\[43\]\[44\] Since Intuit shut down Mint on 23 March 2024 and moved its users to Credit Karma (according to NerdWallet, "setting monthly budgets and customized categories didn't make the cut"), some users have deliberately chosen **manual** logging, because the act of logging is what creates spending awareness. *Source note: this summary comes from app vendor blogs (Vento, Hunter Vault) that have a vested interest, so treat it as an indication, not survey data.*
 
-**Dinilai bernilai tinggi:**
-1. Input sangat cepat: keypad sendiri, kategori 1 tap, akun default terakhir.
-2. Widget + quick-add dari home screen/notifikasi.
-3. Transaksi berulang & langganan (Cashew, Copilot, Money Lover menonjolkan ini).\[45\]\[46\]\[47\]
-4. Peringatan budget mendekati batas (Finku, Sribuu, Cashew).\[35\]\[48\]\[49\]
-5. Search, filter, tag.
-6. Backup yang dapat dipercaya (Cashew: Google Drive otomatis).\[22\]\[50\]
+**Rated as high value:**
+1. Very fast entry: custom keypad, 1-tap categories, last-used account as default.
+2. Widget + quick-add from the home screen/notifications.
+3. Recurring transactions & subscriptions (Cashew, Copilot, Money Lover highlight this).\[45\]\[46\]\[47\]
+4. Alerts when a budget nears its limit (Finku, Sribuu, Cashew).\[35\]\[48\]\[49\]
+5. Search, filter, tags.
+6. Trustworthy backup (Cashew: automatic Google Drive).\[22\]\[50\]
 
-**Sering dianggap bloat untuk konteks Anda:** bank sync (tidak realistis untuk BNI/BCA + bank Prancis, dan bertentangan dengan offline-first), chatbot AI, investasi/kripto, gamifikasi berlebihan, laporan akuntansi (neraca/laba-rugi).
+**Often considered bloat for your context:** bank sync (unrealistic for BNI/BCA + French banks, and at odds with offline-first), AI chatbots, investments/crypto, excessive gamification, accounting reports (balance sheet/profit and loss).
 
-**Fitur yang belum ada di rencana dan layak ditambah:**
-- **Quick-add dari widget dan notifikasi persisten** (paling penting).
-- **Template/favorit** + saran judul berdasarkan riwayat.
-- **Kalkulator di field jumlah.**
-- **Search + filter + tag** (mis. #liburan, #kampus).
-- **Savings goals** (tiket pulang, deposit apartemen/CAF).
-- **Tampilan langganan** (Spotify, Free Mobile, asuransi) dari recurring rules, dengan total per bulan per mata uang.
-- **Review bulanan** (layar ringkas setiap tanggal 1: total per mata uang, 3 kategori terbesar, biaya konversi bulan ini, budget tercapai/tidak).
-- **Pengingat harian opsional** ("Belum ada catatan hari ini") via `expo-notifications`.
-- **Lampiran foto struk**: prioritas rendah (menambah ukuran backup).
+**Features not yet in the plan that are worth adding:**
+- **Quick-add from the widget and a persistent notification** (most important).
+- **Templates/favourites** + title suggestions based on history.
+- **A calculator in the amount field.**
+- **Search + filter + tags** (e.g. #holiday, #campus).
+- **Savings goals** (ticket home, apartment deposit/CAF).
+- **A subscriptions view** (Spotify, Free Mobile, insurance) from recurring rules, with a monthly total per currency.
+- **Monthly review** (a short screen on the 1st of every month: totals per currency, top 3 categories, this month's conversion cost, budgets met or not).
+- **An optional daily reminder** ("Nothing logged today yet") via `expo-notifications`.
+- **Receipt photo attachments**: low priority (increases backup size).
 
-## 4. Arah Visual: Keluar dari "AI Slop"
+## 4. Visual Direction: Getting Away from "AI Slop"
 
-**Ciri UI "AI slop" yang perlu dihindari** (dirangkum dari panduan desainer dan alat audit open source seperti *avoid-ai-design* dan *Hallmark*):\[51\]\[52\]
-- Gradien ungu→biru/indigo, teks bergradien, blob bercahaya.\[52\]\[53\]
-- **Dark mode permanen secara refleks** dengan border kartu neon/glow.\[54\]
-- Inter/Poppins/Geist di semua tempat tanpa pasangan yang dipilih.\[54\]
-- Radius sudut seragam di semua elemen; kartu bersarang; deretan "3 kartu fitur".\[51\]\[55\]\[56\]
-- Garis warna 3–4 px di sisi kiri kartu.\[54\]
-- Glassmorphism di mana-mana; ikon emoji; ikon garis tipis generik.\[52\]
-- **Peringatan penting:** "default yang terlihat berselera" kini juga dianggap slop, misalnya **krem + terakota**, Instrument Serif/Fraunces/Space Grotesk, serta caption mono huruf kapital di atas setiap judul.\[52\]\[53\] Solusinya bukan menghindari daftar, tetapi membuat **keputusan spesifik untuk konteks Anda** dan memakai warna **secara semantik** (warna = makna: EUR, IDR, pengeluaran, peringatan), bukan dekorasi.\[53\]\[55\]
+**Traits of "AI slop" UI to avoid** (summarised from designer guides and open-source audit tools such as *avoid-ai-design* and *Hallmark*):\[51\]\[52\]
+- Purple→blue/indigo gradients, gradient text, glowing blobs.\[52\]\[53\]
+- **Reflexively permanent dark mode** with neon/glowing card borders.\[54\]
+- Inter/Poppins/Geist everywhere with no deliberately chosen pairing.\[54\]
+- Uniform corner radius on every element; nested cards; rows of "3 feature cards".\[51\]\[55\]\[56\]
+- A 3–4 px colour stripe on the left side of cards.\[54\]
+- Glassmorphism everywhere; emoji icons; generic thin line icons.\[52\]
+- **Important warning:** "defaults that look tasteful" are now also considered slop, e.g. **cream + terracotta**, Instrument Serif/Fraunces/Space Grotesk, and an uppercase mono caption above every heading.\[52\]\[53\] The fix is not to avoid a list but to make **specific decisions for your context** and to use colour **semantically** (colour = meaning: EUR, IDR, expense, warning), not as decoration.\[53\]\[55\]
 
-**Tipografi angka.** Di React Native, `fontVariant: ['tabular-nums']` didokumentasikan sebagai style prop tanpa label khusus iOS,\[57\] tetapi hanya berfungsi bila file font memiliki fitur OpenType `tnum`, jadi uji di perangkat Android. Font Google yang terkonfirmasi punya tabular figures: **IBM Plex Sans**, **Source Sans 3** (fitur angka paling lengkap), Roboto, Noto Sans, dan **JetBrains Mono** (monospace).\[58\]\[59\]\[60\] **DM Sans hanya punya angka proporsional**, jadi hindari untuk kolom angka.\[61\] Semuanya tersedia via `@expo-google-fonts/*`.
+**Number typography.** In React Native, `fontVariant: ['tabular-nums']` is documented as a style prop without an iOS-only label,\[57\] but it only works if the font file has the OpenType `tnum` feature, so test on an Android device. Google fonts confirmed to have tabular figures: **IBM Plex Sans**, **Source Sans 3** (the most complete numeral features), Roboto, Noto Sans, and **JetBrains Mono** (monospace).\[58\]\[59\]\[60\] **DM Sans only has proportional figures**, so avoid it for number columns.\[61\] All are available via `@expo-google-fonts/*`.
 
-### Opsi A: "Buku Kas" (rekomendasi)
-Konsep: buku tabungan/buku kas kertas, editorial, angka besar sebagai pahlawan.
-- **Terang:** latar `#F4F1EA` (kertas, sedikit dingin agar tidak jadi krem-terakota klise), permukaan `#FBFAF6`, tinta `#1C1B19`, garis `#D9D4C7`.
-- **Gelap:** latar `#16181D` (tinta biru-arang, **bukan** `#000`), permukaan `#1F232A`, teks `#ECE8DF`.
-- **Aksen semantik:** EUR = indigo `#2E4A8B` (indigo batik), IDR = kunyit `#C98A0B`, pengeluaran = merah bata `#B23A2E`, pemasukan = hijau daun `#2F7D4F`.
-- **Tipografi:** IBM Plex Sans (UI + angka `tnum`, bobot 600–700 untuk saldo besar 40–56 pt), IBM Plex Mono untuk kode mata uang kecil (`EUR`, `IDR`) atau sebaliknya. Hindari serif "tren".
-- **Komposisi:** daftar transaksi berupa *baris bergaris* seperti buku kas (garis tipis, tanpa kartu), dikelompokkan per tanggal dengan subtotal harian. Kartu hanya untuk 1–2 elemen utama. Radius kecil (4–8 px) dan konsisten.
-- **Grafik:** donut tipis (stroke tebal, tanpa label di dalam) dengan legenda tabel di bawahnya. Tren 6 bulan sebagai bar sederhana dua warna (EUR/IDR) tanpa gradien.
-- **Kelebihan:** paling khas, mudah dibaca di siang hari, cocok untuk budaya "mencatat", mudah diimplementasikan. **Kekurangan:** perlu disiplin tipografi; mode gelap perlu dirancang terpisah agar tidak terasa "dibalik".
+### Option A: "Buku Kas" (recommended)
+Concept: a paper passbook/cash ledger, editorial, with big numbers as the hero.
+- **Light:** background `#F4F1EA` (paper, slightly cool so it does not become the cream-terracotta cliché), surface `#FBFAF6`, ink `#1C1B19`, rules `#D9D4C7`.
+- **Dark:** background `#16181D` (blue-charcoal ink, **not** `#000`), surface `#1F232A`, text `#ECE8DF`.
+- **Semantic accents:** EUR = indigo `#2E4A8B` (batik indigo), IDR = turmeric `#C98A0B`, expense = brick red `#B23A2E`, income = leaf green `#2F7D4F`.
+- **Typography:** IBM Plex Sans (UI + `tnum` figures, weight 600–700 for large 40–56 pt balances), IBM Plex Mono for small currency codes (`EUR`, `IDR`) or the other way round. Avoid "trendy" serifs.
+- **Composition:** the transaction list as *ruled rows* like a cash ledger (thin rules, no cards), grouped by date with daily subtotals. Cards only for 1–2 main elements. Small (4–8 px), consistent radius.
+- **Charts:** a thin donut (thick stroke, no labels inside) with a table legend below it. The 6-month trend as simple two-colour bars (EUR/IDR) without gradients.
+- **Pros:** the most distinctive, easy to read in daylight, fits the "logging" culture, easy to implement. **Cons:** needs typographic discipline; the dark mode needs to be designed separately so it does not feel "inverted".
 
-### Opsi B: Material You (dynamic color)
-- Warna diambil dari wallpaper (Android 12+), dengan fallback *seed color* (mis. `#2E4A8B`).\[62\]
-- **Implementasi di SDK 54:** `react-native-material-you-colors` (`getMaterialYouPalette`, `generatePaletteFromColor`). Pembacaan palet sistem hanya berfungsi di production/dev build, bukan Expo Go.\[63\] Mulai SDK 55, Expo Router menyediakan `Color.android.dynamic.*`, dan `@expo/ui` menyediakan `useMaterialColors` (seedColor) di versi SDK yang lebih baru, jadi relevan bila nanti Anda upgrade.\[62\]\[64\]
-- **Kelebihan:** terasa native Android dan personal, light/dark gratis, dan Cashew membuktikan pendekatan ini disukai; README GitHub-nya mencatat "Cashew was featured on Google Play's Editorial 'New Apps We Love' (November 2023)!" dan "Cashew was featured in the Material You Apps List!". **Kekurangan:** identitas app ikut wallpaper; warna EUR/IDR harus tetap statis agar maknanya tidak hilang.
+### Option B: Material You (dynamic color)
+- Colours are taken from the wallpaper (Android 12+), with a *seed color* fallback (e.g. `#2E4A8B`).\[62\]
+- **Implementation on SDK 54:** `react-native-material-you-colors` (`getMaterialYouPalette`, `generatePaletteFromColor`). Reading the system palette only works in production/dev builds, not Expo Go.\[63\] From SDK 55, Expo Router provides `Color.android.dynamic.*`, and `@expo/ui` provides `useMaterialColors` (seedColor) in newer SDK versions, so it is relevant if you upgrade later.\[62\]\[64\]
+- **Pros:** feels native to Android and personal, light/dark for free, and Cashew proves this approach is well liked; its GitHub README notes "Cashew was featured on Google Play's Editorial 'New Apps We Love' (November 2023)!" and "Cashew was featured in the Material You Apps List!". **Cons:** the app's identity follows the wallpaper; the EUR/IDR colours must stay static so their meaning is not lost.
 
-### Opsi C: "Kartu Pos Lille–Jakarta" (berani, berkarakter)
-- Dua dunia: biru-abu Flandria `#3B5368` + bata Lille `#A4483A` di satu sisi, hijau-tosca tropis `#1F7A6E` + kunyit `#D9A21B` di sisi lain, di atas latar putih hangat `#FAF8F4` / gelap `#14171A`.
-- Ilustrasi datar sederhana (ikon kategori custom bergaya cap pos/stiker, bukan emoji), header saldo dengan blok warna solid besar, satu blok per mata uang.
-- **Kelebihan:** paling personal dan berkesan. **Kekurangan:** butuh aset ilustrasi/ikon custom dan berisiko ramai; lebih sulit dibuat konsisten.
+### Option C: "Lille–Jakarta Postcard" (bold, characterful)
+- Two worlds: Flanders blue-grey `#3B5368` + Lille brick `#A4483A` on one side, tropical teal-green `#1F7A6E` + turmeric `#D9A21B` on the other, on a warm white `#FAF8F4` / dark `#14171A` background.
+- Simple flat illustrations (custom category icons styled like postmarks/stickers, not emoji), a balance header with large solid colour blocks, one block per currency.
+- **Pros:** the most personal and memorable. **Cons:** needs custom illustration/icon assets and risks being busy; harder to keep consistent.
 
-**Motion (semua opsi):** angka saldo "menggulung" saat berubah, keypad dengan haptic ringan per tap, sheet tambah transaksi muncul dengan spring pendek (< 250 ms), progress budget mengisi saat layar dibuka. Hindari animasi dekoratif terus-menerus.
+**Motion (all options):** balance figures "roll" when they change, a keypad with light haptics per tap, the add-transaction sheet appears with a short spring (< 250 ms), budget progress fills when the screen opens. Avoid continuous decorative animation.
 
-## 5. Rekomendasi Library (Expo SDK 54 / RN 0.81)
+## 5. Library Recommendations (Expo SDK 54 / RN 0.81)
 
-| Kebutuhan | Pilihan | Catatan |
+| Need | Choice | Notes |
 |---|---|---|
-| Grafik | **Tetap `react-native-gifted-charts`** | Berbasis SVG, jalan di Expo Go, cukup untuk donut + bar 6 bulan. Pindah ke **Victory Native (XL, Skia)** hanya bila butuh gesture/scrubbing; perlu dev build dan versi Skia/Reanimated harus cocok dengan SDK\[65\]\[66\] |
-| Bottom sheet | **`@gorhom/bottom-sheet` v5.2.x** | Kompatibel dengan Reanimated 4.1 + worklets di SDK 54, **asal** `babel.config.js` memakai `react-native-worklets/plugin` (bukan plugin Reanimated lama) dan app dibungkus `GestureHandlerRootView`. Banyak laporan "sheet tidak terbuka" setelah upgrade ke SDK 54 berasal dari sini.\[67\]\[68\]\[69\] `@expo/ui` BottomSheet (API kompatibel gorhom, berbasis Jetpack Compose) baru ada di SDK yang lebih baru\[70\]\[71\] |
-| Animasi | **Reanimated 4** (bawaan SDK 54) | Untuk angka bergulung, progress, layout transitions |
-| Haptics | **`expo-haptics`** | `selectionAsync` per tap keypad, `notificationAsync(Success)` saat simpan |
-| Keypad angka | **Buat sendiri** (grid `Pressable`) | Lebih cepat daripada keyboard sistem; dukung operator `+ − × ÷`, tombol `000`, dan pemisah desimal yang mengikuti mata uang (IDR tanpa desimal) |
-| Tema | Token sendiri via Context + `useColorScheme` | Simpan token semantik (`bg`, `surface`, `ink`, `eur`, `idr`, `expense`), opsional palet Material You |
-| Font | `expo-font` + `@expo-google-fonts/ibm-plex-sans`, `/ibm-plex-mono` | Set `fontVariant: ['tabular-nums']` di komponen `<Money>` |
-| Widget | `react-native-android-widget` (sudah dipakai) | Tambahkan tombol yang membuka deep link `budgetapp://add?account=eur&category=makan` |
-| Kurs | `fetch` ke Frankfurter + cache SQLite | Sekali sehari, fallback ke kurs terakhir |
-| Notifikasi | `expo-notifications` | Pengingat harian + aksi quick-add |
+| Charts | **Stay with `react-native-gifted-charts`** | SVG-based, runs in Expo Go, enough for a donut + 6-month bars. Move to **Victory Native (XL, Skia)** only if you need gestures/scrubbing; it needs a dev build and the Skia/Reanimated versions must match the SDK\[65\]\[66\] |
+| Bottom sheet | **`@gorhom/bottom-sheet` v5.2.x** | Compatible with Reanimated 4.1 + worklets on SDK 54, **as long as** `babel.config.js` uses `react-native-worklets/plugin` (not the old Reanimated plugin) and the app is wrapped in `GestureHandlerRootView`. Many "sheet won't open" reports after upgrading to SDK 54 come from this.\[67\]\[68\]\[69\] The `@expo/ui` BottomSheet (gorhom-compatible API, built on Jetpack Compose) only exists in newer SDKs\[70\]\[71\] |
+| Animation | **Reanimated 4** (bundled with SDK 54) | For rolling numbers, progress, layout transitions |
+| Haptics | **`expo-haptics`** | `selectionAsync` per keypad tap, `notificationAsync(Success)` on save |
+| Number keypad | **Build your own** (a grid of `Pressable`) | Faster than the system keyboard; supports `+ − × ÷` operators, a `000` key, and a decimal separator that follows the currency (IDR without decimals) |
+| Theme | Own tokens via Context + `useColorScheme` | Store semantic tokens (`bg`, `surface`, `ink`, `eur`, `idr`, `expense`), optionally a Material You palette |
+| Fonts | `expo-font` + `@expo-google-fonts/ibm-plex-sans`, `/ibm-plex-mono` | Set `fontVariant: ['tabular-nums']` in the `<Money>` component |
+| Widget | `react-native-android-widget` (already in use) | Add a button that opens the deep link `budgetapp://add?account=eur&category=makan` |
+| Rates | `fetch` to Frankfurter + SQLite cache | Once a day, falling back to the latest rate |
+| Notifications | `expo-notifications` | Daily reminder + quick-add action |
 
-## Rekomendasi: Perubahan Prioritas pada Rencana Overhaul
+## Recommendation: Priority Changes to the Overhaul Plan
 
-1. **(P0) Layar tambah transaksi < 5 detik:** bottom sheet + keypad custom dengan kalkulator, kategori 1 tap (6–8 terbanyak), akun terakhir sebagai default, haptics, dan pratinjau konversi EUR↔IDR (gaya Toshl).
-2. **(P0) Quick-add dari widget dan notifikasi** via deep link; widget menampilkan sisa budget bulan ini per mata uang.
-3. **(P0) Model FX:** tabel `fx_rates` (Frankfurter/ECB, cache harian), `minor_unit` per mata uang, kurs tersimpan per transaksi, fee transfer sebagai field/transaksi terpisah, transfer dikecualikan dari laporan.
-4. **(P0) Sistem visual baru (Opsi A "Buku Kas")**: token warna semantik, IBM Plex Sans + tabular nums, daftar bergaris tanpa kartu, mode gelap arang `#16181D`. Buang hitam pekat dan aksen neon.
-5. **(P1) Home:** dua saldo besar (EUR, IDR) + baris "≈ total" dengan tanggal kurs → progress budget bulan ini → 5 transaksi terakhir. Urutan bisa diatur (gaya Cashew).
-6. **(P1) Template/favorit + saran judul**, **search + filter + tag**.
-7. **(P1) Tampilan langganan** dari recurring rules + **pengingat harian opsional**.
-8. **(P1) Review bulanan** termasuk "biaya konversi bulan ini" (fitur pembeda yang tidak dimiliki kebanyakan app).
-9. **(P2) Savings goals** dengan progress bar (gaya YNAB Targets).
-10. **(P2) Opsi tema Material You** (toggle di pengaturan), dengan warna EUR/IDR tetap statis.
-11. **(P3) Lampiran foto struk, kalender bulanan.**
+1. **(P0) Add-transaction screen in < 5 seconds:** bottom sheet + custom keypad with a calculator, 1-tap categories (the 6–8 most used), last account as the default, haptics, and an EUR↔IDR conversion preview (Toshl-style).
+2. **(P0) Quick-add from the widget and notifications** via deep link; the widget shows this month's remaining budget per currency.
+3. **(P0) FX model:** an `fx_rates` table (Frankfurter/ECB, daily cache), `minor_unit` per currency, a stored rate per transaction, transfer fees as a separate field/transaction, transfers excluded from reports.
+4. **(P0) New visual system (Option A "Buku Kas")**: semantic colour tokens, IBM Plex Sans + tabular nums, ruled list without cards, charcoal `#16181D` dark mode. Drop the pitch black and neon accents.
+5. **(P1) Home:** two big balances (EUR, IDR) + a "≈ total" line with the rate date → this month's budget progress → last 5 transactions. The order is customisable (Cashew-style).
+6. **(P1) Templates/favourites + title suggestions**, **search + filter + tags**.
+7. **(P1) Subscriptions view** from recurring rules + **optional daily reminder**.
+8. **(P1) Monthly review** including "this month's conversion cost" (a differentiating feature most apps lack).
+9. **(P2) Savings goals** with a progress bar (YNAB Targets-style).
+10. **(P2) Material You theme option** (a toggle in settings), with the EUR/IDR colours kept static.
+11. **(P3) Receipt photo attachments, monthly calendar.**
 
-**Arah visual yang direkomendasikan:** Opsi A "Buku Kas", karena paling khas untuk konteks Anda (mahasiswa yang "mencatat" dua mata uang), paling murah dibangun di RN, dan langsung menjawab keluhan "AI slop": latar kertas/arang (bukan hitam), angka tebal tabular sebagai elemen utama, warna yang punya makna (indigo = EUR, kunyit = IDR), dan baris bergaris menggantikan kartu bundar seragam. Material You dijadikan opsi tema, bukan default.
+**Recommended visual direction:** Option A "Buku Kas", because it is the most distinctive for your context (a student "keeping the books" in two currencies), the cheapest to build in RN, and it directly answers the "AI slop" complaint: a paper/charcoal background (not black), bold tabular figures as the main element, colours that carry meaning (indigo = EUR, turmeric = IDR), and ruled rows instead of uniform rounded cards. Material You becomes a theme option, not the default.
 
 ## Caveats
-- Banyak perbandingan multi-currency (Tallyroot, Borderless Budget, Budgero, getfinny) ditulis oleh **pesaing** yang menjual aplikasi multi-currency. Fakta inti sudah dicocokkan dengan dokumentasi resmi (Actual Budget, YNAB, Monarch via kutipan help center, Bluecoins, Wallet, Toshl, Lunch Money, Spendee, Money Lover, Realbyte), tetapi peringkat "terbaik" dari blog tersebut perlu dibaca kritis.
-- Sumber kurs Money Lover tidak terdokumentasi resmi; frekuensi pembaruan kurs Spendee juga tidak terkonfirmasi di halaman resminya saat ini.
-- Cakupan Frankfurter disebut berbeda-beda oleh pihak ketiga (30-an mata uang). Beranda resminya (frankfurter.dev) kini menyebut "a free exchange rates API for 228 currencies from 106 central banks and official sources… You don't need an API key", dengan data khusus ECB di `/v2/providers/ecb/rates`. Untuk EUR/IDR keduanya cukup.
-- Hex dan pasangan font di atas adalah rekomendasi desain saya, bukan hasil riset kuantitatif; uji kontras (WCAG AA) dan fitur `tnum` di perangkat Android nyata sebelum dikunci.
-- Versi library berubah cepat; cek `npx expo install --check` untuk versi yang cocok dengan SDK 54.
+- Many multi-currency comparisons (Tallyroot, Borderless Budget, Budgero, getfinny) are written by **competitors** selling multi-currency apps. The core facts have been checked against official documentation (Actual Budget, YNAB, Monarch via help-center quotes, Bluecoins, Wallet, Toshl, Lunch Money, Spendee, Money Lover, Realbyte), but the "best" rankings from those blogs should be read critically.
+- Money Lover's rate source is not officially documented; Spendee's rate update frequency is also not currently confirmed on its official pages.
+- Frankfurter's coverage is described differently by third parties (30-odd currencies). Its official homepage (frankfurter.dev) now says "a free exchange rates API for 228 currencies from 106 central banks and official sources… You don't need an API key", with ECB-only data at `/v2/providers/ecb/rates`. For EUR/IDR either is enough.
+- The hex values and font pairings above are my design recommendations, not the result of quantitative research; test contrast (WCAG AA) and the `tnum` feature on real Android devices before locking them in.
+- Library versions change quickly; check `npx expo install --check` for the versions that match SDK 54.
 
 ## Sources
 
