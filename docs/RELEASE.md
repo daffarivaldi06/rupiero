@@ -6,8 +6,8 @@ How to install Rupiero as an everyday app (no Metro, no sample data) and update 
 
 - **The data lives only on the phone**, in the app's database. It is lost if the app is uninstalled or its data is cleared ("Clear data" in Android Settings).
   So before any risky step: Settings → Data → **Export backup (JSON)**, and keep it in Drive/Files.
-- **The signing key** is in `C:\Users\daffa\.rupiero\rupiero-release.jks`. Its passwords are in `BACA-SAYA.txt` in the same folder
-  and in `C:\Users\daffa\.gradle\gradle.properties`. Android only installs an update over an app signed with the **same** key.
+- **The signing key** lives outside the repository, e.g. in `~/.rupiero/rupiero-release.jks`. Its passwords are kept in a password manager
+  and in `~/.gradle/gradle.properties` (`RUPIERO_UPLOAD_*`). Android only installs an update over an app signed with the **same** key.
   Keep a copy of the `.jks` file and its passwords off the laptop (password manager + personal cloud).
   If the key is lost, a new version can only be installed after uninstalling (data lost, unless restored from a backup).
 - A release build has **no** sample data and does **not** show the Developer tools (database reset).
