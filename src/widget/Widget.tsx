@@ -116,7 +116,7 @@ export function BudgetWidget({ data, scheme }: BudgetWidgetProps) {
 const levelColor = (level: NonNullable<WidgetLine['budget']>['level'], color: Palette) =>
   hex(level === 'over' ? color.expense : level === 'warning' ? color.idrText : color.ink);
 
-/** A thin ledger bar of what is spent, then "dari € 300,00" / "of €300.00". Widgets have no percentage widths, so flex weights split the track. */
+/** A thin ledger bar of what is spent, then "of €300.00" (or "dari € 300,00" in Indonesian). Widgets have no percentage widths, so flex weights split the track. */
 function BudgetRow({ budget, color }: { budget: NonNullable<WidgetLine['budget']>; color: Palette }) {
   const filled = Math.min(Math.max(budget.percent, 0), 100);
   const tint = levelColor(budget.level, color);

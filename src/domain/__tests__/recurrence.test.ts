@@ -126,7 +126,7 @@ describe('monthlyEquivalent', () => {
   it('spreads weekly, yearly and daily amounts over a month', () => {
     expect(monthlyEquivalent({ frequency: 'weekly', interval: 1, amountMinor: 999 })).toBe(4329); // € 9,99/minggu → € 43,29
     expect(monthlyEquivalent({ frequency: 'yearly', interval: 1, amountMinor: 1_200_000 })).toBe(100_000); // Rp 1,2 jt/tahun
-    expect(monthlyEquivalent({ frequency: 'daily', interval: 1, amountMinor: 100 })).toBe(3042); // € 1/hari → € 30,42
+    expect(monthlyEquivalent({ frequency: 'daily', interval: 1, amountMinor: 100 })).toBe(3042); // €1/day → €30.42
     expect(monthlyEquivalent({ frequency: 'monthly', interval: 1, amountMinor: 65000 })).toBe(65000);
   });
 

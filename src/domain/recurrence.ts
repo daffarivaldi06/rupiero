@@ -96,12 +96,12 @@ export function monthlyEquivalent(rule: { frequency: Frequency; interval: number
 
 const EVERY = { daily: 'recurrence.everyDays', weekly: 'recurrence.everyWeeks', monthly: 'recurrence.everyMonths', yearly: 'recurrence.everyYears' } as const;
 
-/** "Tiap bulan", "Tiap 2 hari". */
+/** "Every month", "Every 2 days" (in the active language). */
 export function describeFrequency(frequency: Frequency, interval: number): string {
   return interval === 1 ? t(`recurrence.${frequency}`) : t(EVERY[frequency], { n: interval });
 }
 
-/** "Tiap bulan · berikutnya 30 Nov", "Tiap 2 hari · dijeda", "Tiap minggu · berhenti". */
+/** "Every month · next 30 Nov", "Every 2 days · paused", "Every week · ended" (in the active language). */
 export function describeSchedule(rule: RecurrenceRule, today: LocalDate): string {
   const next = nextDueDate(rule, today);
   const state = rule.paused ? t('recurrence.paused') : next ? t('recurrence.next', { date: formatDayMonth(next) }) : t('recurrence.ended');

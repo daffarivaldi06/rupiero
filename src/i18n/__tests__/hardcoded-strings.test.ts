@@ -87,7 +87,7 @@ function isIgnored(node: ts.Node, source: ts.SourceFile): boolean {
 
 /**
  * A literal that ends up as rendered text: anywhere inside a JSX child expression, or inside a
- * text prop, e.g. {cond ? 'Hari ini' : 'Kemarin'} or title={x ? 'Ubah' : 'Baru'}.
+ * text prop, e.g. {cond ? 'Today' : 'Yesterday'} or title={x ? 'Edit' : 'New'}.
  */
 function inJsxText(node: ts.Node): boolean {
   if (isTranslationKey(node)) return false;

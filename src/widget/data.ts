@@ -17,7 +17,7 @@ export interface WidgetLine {
   negative: boolean;
   /** Only for kind 'budget': spent against the summed limits, as in the budget screen. */
   budget?: {
-    /** "dari € 300,00" / "of €300.00" (masked while balances are hidden). */
+    /** "of €300.00", or "dari € 300,00" in Indonesian (masked while balances are hidden). */
     limit: string;
     /** Whole percent spent; may exceed 100. */
     percent: number;
