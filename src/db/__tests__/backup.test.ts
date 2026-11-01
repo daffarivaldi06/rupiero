@@ -8,13 +8,16 @@ import { listCategories } from '../repos/categories';
 import { saveReferenceRate } from '../repos/fxRates';
 import { createRecurringRule, materializeDue } from '../repos/recurring';
 import { createTransfer } from '../repos/transfers';
+import { seedSampleData } from '../seed';
 
 let source: TestDb;
 let target: TestDb;
 
 beforeEach(async () => {
   source = await createTestDb();
-  await initDb(source, { seed: true, locale: 'id' });
+  await initDb(source, { seed: false, locale: 'id' });
+  // A fixed date: the sample data covers the three months up to it.
+  await seedSampleData(source, { today: '2026-10-31', locale: 'id' });
   const [eur, idr] = await listAccounts(source);
   const [food] = await listCategories(source);
   await createTransfer(source, { fromAccountId: eur.id, toAccountId: idr.id, fromAmountMinor: 20000, toAmountMinor: 3_420_000, feeMinor: 150, date: '2026-10-30', note: 'Kirim' });
