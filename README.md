@@ -1,112 +1,111 @@
 # Rupiero
 
-A ledger-style budgeting app for a life split between euros and rupiah. Android, offline-first, no account.
+## What it is
 
-<p>
-  <img src="docs/showcase/en/slides/slide-01.png" alt="Rupiero — budgeting in two currencies" width="360">
-  &nbsp;
-  <img src="docs/showcase/en/video/rupiero-demo-en.gif" alt="Demo: launch, quick add 12.5 + 3.2, save, balance updates" width="200">
-</p>
+Rupiero is a local-first budgeting web app for people who manage money in both euros and rupiah, like Indonesian
+students in France. It keeps the two currencies side by side and shows what they add up to.
 
-EUR and IDR balances are kept side by side and never mixed. An approximate combined total is shown at the European
-Central Bank reference rate, and every transfer records what the conversion actually cost.
+**Minimum moment of value:** in under a minute you record one expense in EUR and one in IDR, and the Dashboard shows
+both balances plus your total converted into the currency you choose.
 
-## Features
+Rupiero is an Expo (React Native) app. The same code runs in the browser and on Android. The server only delivers the
+app files; your data stays in your browser or on your device, with no account. Exchange rates are the European Central
+Bank reference rates, fetched through [Frankfurter](https://frankfurter.dev).
 
-- **Two currencies, never mixed.** One currency per account; balances, budgets and charts are per currency.
-  An "≈ total" converts at the latest ECB reference rate and says which day it is from.
-- **Quick add in seconds.** A keypad with a built-in calculator (`12.5+3.2` → €15.70), categories ordered by use,
-  the last account as default, and a live preview in the other currency.
-- **Transfers with the real rate.** Enter what was sent and what arrived; the app shows the implied rate, how far it is
-  from that day's ECB rate, and the fee.
-- **Budgets per category, month and currency**, with a warning from 80% and red once over; copy from last month.
-- **Recurring transactions and subscriptions** (daily, weekly, monthly, yearly, any interval), recorded when due.
-- **Charts:** spending by category and a six-month trend, drawn with `react-native-svg`.
-- **Home-screen widget** with what is left of this month's budget per currency and one-tap quick add.
-- **Privacy in one tap:** hide every amount in the app and, optionally, in the widget.
-- **Indonesian and English**, following the phone or chosen in Settings, with locale-aware numbers
-  (`€ 2.655,38` / `€2,655.38`) and dates. Light, dark or follow the phone.
-- **Accessible:** labels and roles for TalkBack, amounts read out in words, 48 dp touch targets, no clipping at 200% font size.
-- **Backups:** JSON export/restore (validated, all-or-nothing) and CSV export for spreadsheets.
+## Features (user stories)
 
-## Stack
+1. **Add income and expenses in EUR or IDR**, so that all my finances are in one place. *(Already existed.)*
+2. **See my total balance converted into EUR or IDR**, so that I know how much I really have. *(Built in the demo.)*
+3. **A monthly budget per category showing what's left**, so that I don't overspend. *(Already existed.)*
+4. **Use Rupiero in the browser, with sample data to try it**, so that I can see what it does without installing anything. *(Built in the demo.)*
 
-React Native 0.81 with Expo SDK 54 (new architecture, Hermes) · TypeScript (strict) · SQLite via `expo-sqlite` ·
-React Navigation 7 · Reanimated 4 · `@gorhom/bottom-sheet` · `react-native-android-widget` · Jest (320+ tests,
-running the real SQL against an in-memory sql.js database).
+Stories 1 and 3 were built before this final project, with Claude Code working through the phases in [PLAN.md](PLAN.md).
+Before the demo, the app already showed an approximate total in EUR only. Story 2 adds the choice between EUR and IDR.
 
-## Technical decisions
+**Backlog**
+- Date picker on the web (the web build can only record transactions dated today)
+- Backup and CSV export on the web
+- Testing in mobile browsers
+- Using the app in more than one tab at a time
+- A single budget across both currencies (each currency has its own budget today)
 
-- **Money as integer minor units.** Every amount is a safe integer count of cents (EUR) or rupiah (IDR). Parsing and
-  formatting are done by hand, so the output is identical on Hermes and Node, and floats never touch money.
-- **BigInt FX.** Only the EUR→IDR reference rate is stored, as an integer `rate_micro` (rate × 10⁶); IDR→EUR is derived.
-  Conversions multiply and divide in BigInt and round half-up once at the end, so intermediate products may exceed 2⁵³
-  without losing a unit.
-- **Transfers keep both amounts.** A transfer stores what left one account and what arrived in the other, plus an
-  explicit fee, instead of a rounded rate. The actual rate is derived from the two integers and compared with the ECB rate
-  of the transfer date.
-- **Versioned migrations with `PRAGMA user_version`.** Each schema version is a migration; all pending steps run in one
-  transaction, so a failed upgrade leaves the database untouched. A database newer than the app is refused with an
-  explanation instead of being opened.
-- **Idempotent recurring transactions.** Occurrences are computed from the start date (n × interval, so the 31st clamps
-  to 30 April and returns to the 31st). Materialisation runs on start, on returning to the foreground and in the widget
-  task; a unique index on (rule, date) and the rule's `last_generated_date` make it safe to run any number of times.
-- **One database connection per process.** The widget task runs in the app's JS runtime and `expo-sqlite` shares
-  native connections by name, so the app and the widget share a single connection, and transactions on it are queued.
-- **No hard-coded UI text.** All strings go through `src/i18n`; a test walks the TypeScript AST and fails on any
-  user-facing literal outside the dictionaries, and another checks that both languages have the same keys and placeholders.
+## How to run it
 
-## Running it
+**Requirements:** Docker, or Node 22 for development. The Android SDK is needed only to run on Android.
 
-Requirements: Node 22, the Android SDK, and an emulator or a device with USB debugging. The app uses native modules
-(SQLite, widget, date picker), so it runs as a development build rather than in Expo Go.
+**Environment variables:** the web build needs none. `.env.example` lists the optional ones (Android release signing).
+
+**Docker** (the production web build, served by nginx):
+
+```bash
+docker build -t rupiero-web .
+docker run --rm -p 8080:8080 rupiero-web
+```
+
+Then open <http://localhost:8080>.
+
+**Development without Docker** (Node 22):
 
 ```bash
 npm install
-npx expo run:android      # builds the debug app, installs it and starts Metro
+npm run web                # Expo dev server for the browser, at http://localhost:8081
+npx expo run:android       # or: build and run on an Android emulator or device
 ```
 
-In development builds, sample data is added on first launch (turn it off with `EXPO_PUBLIC_SEED_SAMPLE_DATA=false`
-in `.env.local`), and Settings has developer tools to reset the database.
-
-Checks:
+**Tests:**
 
 ```bash
-npm test
+npm test                   # Jest, including the real SQL run against an in-memory database
 npm run typecheck
 npm run lint
 ```
 
-## Release build
+**Public URL:** `https://<service>-<hash>.europe-west1.run.app` *(added after the first Cloud Run deploy)*
 
-Release builds are signed by a local config plugin (`plugins/with-release-signing.js`) that reads the keystore location
-and passwords from Gradle properties outside the repository (`RUPIERO_UPLOAD_*` in `~/.gradle/gradle.properties`).
-Without them, the release build falls back to the debug key.
+## How it was built with AI
 
-```bash
-npx expo prebuild --platform android --no-install
-cd android
-./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a
-```
+### CLAUDE.md
 
-Raise `version` and `android.versionCode` in `app.json` for every release so it installs over the previous one
-without losing data. [docs/RELEASE.md](docs/RELEASE.md) has the full installation and update guide.
+### PLAN.md phases
 
-## Project layout
+### The web feasibility check
 
-```
-src/
-  domain/      pure logic: money, dates, FX, calculator, recurrence, budgets (unit-tested)
-  db/          schema migrations, repositories, backup/CSV, the shared connection
-  i18n/        Indonesian and English dictionaries, locale, spoken amounts
-  screens/     one file per screen
-  components/  ledger-style UI primitives
-  quickadd/    the quick-add sheet
-  widget/      home-screen widget data, layout and task handler
-plugins/       local Expo config plugins (release signing, widget strings, window background, intents)
-modules/       a small local native module (per-app language for native UI)
-docs/          research, release guide and showcase material
-```
+### A real prompt
 
-The development history is documented in [PLAN.md](PLAN.md) (phases, decisions and deviations),
-[BUDGETAPP_REPORT.md](BUDGETAPP_REPORT.md) (review of the original app) and [docs/RESEARCH.md](docs/RESEARCH.md).
+### What went well
+
+### What was hard
+
+## Status and next steps
+
+*To be written after the demo on 13 November 2026.*
+
+Known limits:
+- **Data stays in one browser.** It is stored in that browser profile only. Another device, another browser, a
+  private window or clearing site data each start empty.
+- **One tab at a time.** A second tab cannot open the database while the first one is open.
+- **expo-sqlite on the web is alpha.** Expo labels its web support as alpha and possibly unstable.
+
+---
+
+### Technical notes
+
+- **Stack:** Expo SDK 54, React Native 0.81, TypeScript (strict), SQLite through `expo-sqlite`, React Navigation 7,
+  Reanimated 4, `@gorhom/bottom-sheet`, and Jest (322 tests).
+- **Money as integer minor units.** Every amount is a whole number of cents (EUR) or rupiah (IDR), and floats never
+  hold money. Parsing and formatting are hand-written, so the output is identical on every platform.
+- **Conversion in BigInt.** Only the ECB rate from EUR to IDR is stored, as an integer `rate_micro` (rate × 10⁶);
+  IDR to EUR is derived from it. Conversions round half-up once, at the end.
+- **Transfers keep both amounts.** A transfer stores what left one account, what arrived in the other, and the fee.
+  The rate actually paid is derived from those amounts and compared with that day's ECB rate.
+- **Versioned migrations** using `PRAGMA user_version`. All pending migrations run in one transaction. A database
+  newer than the app is refused instead of being opened.
+- **SQLite on the web** runs as WebAssembly in a Web Worker and is stored in the browser's Origin Private File System.
+  The server must send `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: credentialless`.
+- **No hard-coded UI text.** Every string goes through `src/i18n` (English and Indonesian). A test fails on any
+  hard-coded string, and another fails if the two languages' keys differ.
+- **Layout:** `src/domain` holds pure, tested logic; `src/db` holds migrations and repositories; `src/screens` and
+  `src/components` hold the UI; `src/widget` holds the Android home-screen widget.
+- **Android release builds:** see [docs/RELEASE.md](docs/RELEASE.md).
+- **History:** [PLAN.md](PLAN.md) records the phases, decisions and deviations.
+  [BUDGETAPP_REPORT.md](BUDGETAPP_REPORT.md) is the review of the original app.
