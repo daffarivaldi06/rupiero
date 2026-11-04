@@ -33,6 +33,7 @@ yarn-error.*
 
 # local env files and secrets
 .env*
+!.env.example
 gradle.properties
 local.properties
 
