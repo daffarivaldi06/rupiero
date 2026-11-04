@@ -1,0 +1,17 @@
+{
+  "name": "Rupiero",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:22",
+  // node_modules lives in a volume, so the container's Linux packages never overwrite the host's.
+  "mounts": ["source=rupiero-node_modules,target=${containerWorkspaceFolder}/node_modules,type=volume"],
+  "postCreateCommand": "sudo chown node node_modules && npm ci",
+  // Expo dev server: `npm run web`.
+  "forwardPorts": [8081],
+  "portsAttributes": {
+    "8081": { "label": "Expo web", "onAutoForward": "openBrowser" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["dbaeumer.vscode-eslint"]
+    }
+  }
+}
