@@ -1,0 +1,16 @@
+node_modules
+.env
+.env.*
+
+# Android build output and local native folders
+android
+ios
+modules/*/android/build
+modules/*/android/.cxx
+*.apk
+*.aab
+
+# Local build output and caches
+dist
+.expo
+.git
