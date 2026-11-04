@@ -33,7 +33,8 @@ Before the demo, the app already showed an approximate total in EUR only. Story 
 
 **Requirements:** Docker, or Node 22 for development. The Android SDK is needed only to run on Android.
 
-**Environment variables:** the web build needs none. `.env.example` lists the optional ones (Android release signing).
+**Environment variables:** the web build needs none. [`.env.example`](.env.example) lists the optional ones:
+`EXPO_PUBLIC_SEED_SAMPLE_DATA` (development only) and `ORG_GRADLE_PROJECT_RUPIERO_UPLOAD_*` (Android release signing only).
 
 **Docker** (the production web build, served by nginx):
 
