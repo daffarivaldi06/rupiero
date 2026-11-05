@@ -71,6 +71,19 @@ npm run typecheck
 npm run lint
 ```
 
+**Browser checks** (headless Chrome against the production build, in [`tests/e2e`](tests/e2e)): they need Docker and
+Chrome or Chromium. Chrome is found in its usual place; set `CHROME_PATH` if it is installed elsewhere.
+
+```bash
+npm run test:e2e:docker    # build the Docker image, run it on port 8095, run every check, stop it (about 8 min)
+npm run test:e2e -- http://localhost:8080/    # the same checks against a build that is already running
+npm run screenshots        # regenerate docs/screenshots from a fresh Docker build
+node tests/e2e/pixels.js <baselineUrl> <url> [sample|budgets]   # pixel-compare phone widths with another build
+```
+
+Each check opens its own browser with an empty profile and prints PASS or FAIL per step. Screenshots and pixel diffs
+go to `tests/e2e/output/`, which is not committed.
+
 **Public URL:** `https://<project>.vercel.app` *(added after the first Vercel deploy)*
 
 ## How it was built with AI
@@ -109,7 +122,7 @@ Known limits:
 ### Technical notes
 
 - **Stack:** Expo SDK 54, React Native 0.81, TypeScript (strict), SQLite through `expo-sqlite`, React Navigation 7,
-  Reanimated 4, `@gorhom/bottom-sheet`, and Jest (322 tests).
+  Reanimated 4, `@gorhom/bottom-sheet`, Jest (380 tests) and headless Chrome checks (`tests/e2e`).
 - **Money as integer minor units.** Every amount is a whole number of cents (EUR) or rupiah (IDR), and floats never
   hold money. Parsing and formatting are hand-written, so the output is identical on every platform.
 - **Conversion in BigInt.** Only the ECB rate from EUR to IDR is stored, as an integer `rate_micro` (rate × 10⁶);
