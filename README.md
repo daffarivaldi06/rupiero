@@ -31,6 +31,9 @@ Before the demo, the app already showed an approximate total in EUR only. Story 
 - A single budget across both currencies (each currency has its own budget today)
 - Known issue: on the web, the quick-add note field logs `currentlyFocusedInput is not a function` to the console
   when it loses focus. The error comes from `@gorhom/bottom-sheet`'s `BottomSheetTextInput`, and the note still works.
+- Known issue: on the web, screen readers are not told which option is selected in the Settings radio rows
+  (language, theme, total balance currency). react-native-web renders them with `role="radio"` but without
+  `aria-checked`.
 
 ## How to run it
 
