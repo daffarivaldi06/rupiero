@@ -100,24 +100,139 @@ go to `tests/e2e/output/`, which is not committed.
 
 ## How it was built with AI
 
+I worked with two AIs, both from Anthropic, and reviewed and approved everything both produced:
+
+- **Claude Code** (the coding agent) was the developer. It read the code, proposed plans, wrote the code and the
+  tests, and ran the checks.
+- **Claude** (the chat, on claude.ai) was my planning assistant. It helped me choose the project, write the user
+  stories, the acceptance criteria and the prompts for Claude Code, research the desktop layout
+  ([docs/desktop-web-research.md](docs/desktop-web-research.md)), and decide the deployment: Google Cloud Run
+  first, then Vercel, because the course instructor uses it.
+
+My own role was product owner, reviewer and tester: I decided what to build, approved every plan, and tested every
+feature before it was merged.
+
 ### CLAUDE.md
+
+[CLAUDE.md](CLAUDE.md) is the brief Claude Code reads at the start of every session. The rules that shaped the demo:
+
+- **Branches:** each feature on its own `demo/feature/<name>` branch from `demo/develop`, merged back after my
+  check. `master` holds the Android app and is never touched; demo branches are verified on the web only.
+- **Scope:** build only what a story's acceptance criteria require; anything else goes to the backlog.
+- **Never break Android:** web-only code goes in `.web.tsx` files or behind `Platform.OS` checks, and desktop UI is
+  also gated on the 1024 px breakpoint ([ADR 0001](docs/adr/0001-adapt-not-rebuild.md)).
+- **Money and data:** integer minor units, BigInt conversion, SQL only in `src/db`, one database connection, and
+  every write notifies the screens.
+- **Quality:** no hard-coded UI text, colours only from theme tokens, small Conventional Commits that each pass
+  typecheck and tests, and no AI attribution in commits.
+
+Rules were added when a session showed they were missing: the desktop-UI rule came with ADR 0001, the web-only rule
+for demo branches after an Android test was suggested from a demo branch, and the "headers in both files" rule when
+production moved to Vercel.
 
 ### PLAN.md phases
 
+Before this final project, Rupiero was rebuilt as an Android app in phases 0 to 5 ([PLAN.md](PLAN.md)): the data
+foundation, the "Buku Kas" design system, the Rupiero identity, the core features (quick-add keypad, transfers, ECB
+rates), budgets and recurring transactions, the widget, charts and backup, and finally languages and accessibility.
+Each phase ended with my test on a phone and a `phase-N-done` tag. Stories 1 and 3 come from that work.
+
+### The workflow for the demo
+
+Every demo feature went through the same loop:
+
+1. **Story and criteria**, written by me, often from human testing ("the keypad feels too mobile on a laptop").
+2. **Plan before code.** Claude Code read the relevant code, explained the plan and the files it would touch, and
+   waited. Open questions came as explicit options with a recommendation, for example "A: one shared screen list,
+   B: leave the Android file untouched".
+3. **My approval**, often with changes ("only in the modal", "sorted by percentage used").
+4. **Small commits**, each passing typecheck and the Jest suite (now 380 tests).
+5. **Checks on the real build:** headless Chrome against the Docker build for the new behaviour, a pixel-by-pixel
+   comparison against `demo/develop` at phone widths to prove nothing changed there, and every earlier check again as
+   a regression suite (now in [`tests/e2e`](tests/e2e)).
+6. **My check, then the merge** into `demo/develop`.
+
+Ten feature branches went through this loop: physical keyboard input, web foundation (fonts and breakpoints), the
+base currency, a database fix, the sidebar, sample data and a friendlier second-tab message, the wide Dashboard, the
+quick-add dialog, the transactions table, and the Budget and Charts layouts.
+
 ### The web feasibility check
 
-### A real prompt
+The course requires a web app, but Rupiero was an Android app. Before any code changed, I asked Claude Code to check
+whether it could run in a browser at all. It built the web version in a scratch copy of the project and tested it in
+headless Chrome: the Dashboard rendered, the ECB rate was fetched, and a saved expense was still there after a page
+reload and after restarting the browser. It also listed what each native dependency needed on the web. Only then did
+the first web commits land on `demo/develop` (4 November):
+
+- **SQLite in the browser:** expo-sqlite runs SQLite as WebAssembly in a Web Worker, stored in the browser's Origin
+  Private File System. Metro had to serve `.wasm` files, and every response needs the COOP/COEP headers.
+- **Native-only code fenced off:** the Android widget's task handler is registered only on Android, and the theme
+  preference goes through `Appearance` only on native.
+- **A static production build** (`npx expo export -p web`), served by nginx in Docker with the right headers, so
+  every later check ran against what users get.
+
+Then [docs/desktop-web-research.md](docs/desktop-web-research.md) compared adapting the Expo app with rebuilding the
+web UI in another framework. [ADR 0001](docs/adr/0001-adapt-not-rebuild.md) records the decision: adapt it, with
+web-only layouts for wide screens.
+
+### Real prompts
+
+Three prompts I gave Claude Code, shortened.
+
+**The first demo story**, from human testing. Every feature prompt ended the same way:
+
+> New feature from human testing on web: As a student using Rupiero on a laptop, I want to type amounts with my
+> physical keyboard, so that adding a transaction is as fast as in any web app. […] Before writing any code, explain
+> your plan and which files you will touch, and wait for my approval. Follow CLAUDE.md and don't add anything outside
+> these criteria.
+
+**A database fix with a preferred approach and a way out.** Claude Code found the concrete reason: closing the
+database does not release expo-sqlite's file locks, so it ends the database worker instead, and I approved that.
+
+> Web only (.web file): on pagehide, close the SQLite database; on pageshow with event.persisted (restored from the
+> back/forward cache), reload the page so it reopens cleanly. Prefer this over reopening the database inside the
+> running app, unless you find a concrete reason it doesn't work.
+
+**From research to a rule.** The research became a decision record, and the decision became a rule Claude Code
+follows in every session:
+
+> Save the research report below as docs/desktop-web-research.md, and write docs/adr/0001-adapt-not-rebuild.md
+> (context, options A/B/C, decision: adapt the Expo app with web-only shell changes, consequences). Add the rule
+> "desktop UI only in .web.tsx files or behind Platform.OS === 'web' && wide-breakpoint guards; Android and compact
+> web unchanged" to CLAUDE.md.
 
 ### What went well
 
+- **Plans caught problems before code.** The latest drawer package would have upgraded the navigation libraries the
+  Android app uses; the plan pinned the version that matches instead.
+- **"Unchanged on Android and phones" was measured, not promised.** Every change was compared pixel by pixel at 390,
+  800 and 1023 px against `demo/develop`, in three data states.
+- **Pure logic with unit tests** (the keyboard mapping, budget sorting, the URL config, the ledger text) left the UI
+  work as wiring.
+- **Small commits and one branch per feature** kept every change reviewable and easy to undo.
+
 ### What was hard
 
-- During human testing on the web, the on-screen keypad felt too mobile on a laptop, so we added physical keyboard
-  support to the quick-add sheet.
-- Repeated-load tests sometimes showed "could not open … Invalid VFS state". The cause was the browser's
-  back/forward cache: a page we left stayed frozen in memory, and its expo-sqlite worker kept the database files
-  locked. The web build now ends that worker when the page is hidden and reloads a page restored from the cache. It is
-  a workaround tied to expo-sqlite 16.x (`src/db/pageLifecycle.web.ts`), to recheck on every expo-sqlite upgrade.
+- **COOP/COEP headers.** expo-sqlite needs cross-origin isolation, so the server must send
+  `Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy` on every response. In development, Expo CLI serves
+  the HTML page before Metro's middleware, so only bundles and assets get the headers there. Production sets them in
+  both `docker/nginx.conf` and `vercel.json`.
+- **nginx `add_header`.** A `location` block with its own `add_header` drops every `add_header` from the server
+  block, so the COOP/COEP headers would vanish on exactly the paths that set caching. The config sets the headers in
+  one place and does caching with `expires`.
+- **The back/forward cache lock.** Repeated-load tests sometimes showed "could not open … Invalid VFS state". A page
+  we had left stayed frozen in the browser's back/forward cache, and its expo-sqlite worker kept the database files
+  locked. The web build now ends that worker when the page is hidden and reloads a page restored from the cache. It
+  is a workaround tied to expo-sqlite 16.x (`src/db/pageLifecycle.web.ts`), to recheck on every upgrade.
+- **Esc while typing the note.** In the bottom sheet, Enter in the note field drops its focus, so a following Esc
+  closed the sheet. In the quick-add dialog, react-native-web's `Modal` closes on any Esc in the page, so Esc while
+  typing a note would have closed it; the dialog now checks where the focus is first.
+- **The keypad felt too mobile.** During human testing on the web, the on-screen keypad felt like a phone app on a
+  laptop, so physical keyboard input came first: digits, operators, Enter to save, Esc to close, and later N to open
+  quick-add.
+- **Checks need checking too.** Many failed checks were mistakes in the test scripts (a non-breaking space inside
+  amounts, elements hidden under the navigation stack, a wrong button label). Each failure was investigated before it
+  was called a test bug.
 
 ## Status and next steps
 
