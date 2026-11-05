@@ -46,3 +46,15 @@ export const textVariants: Record<TextVariant, TextStyle> = {
   /** Currency codes (EUR, IDR). */
   code: { fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16, letterSpacing: 0.6 },
 };
+
+export type MoneySize = 'hero' | 'card' | 'row';
+
+/** Amount sizes for wide layouts: medium-weight headline numbers, body-size amounts in tables. */
+export const moneySizes: Record<MoneySize, TextStyle> = {
+  /** Headline balances, e.g. the balance cards at the top of the dashboard. */
+  hero: { fontFamily: fontFamily.medium, fontSize: 32, lineHeight: 40 },
+  /** Amounts inside a card (cash flow, budgets). */
+  card: { fontFamily: fontFamily.medium, fontSize: 20, lineHeight: 28 },
+  /** Amounts in table and list rows. */
+  row: { fontFamily: fontFamily.medium, fontSize: 15, lineHeight: 20 },
+};

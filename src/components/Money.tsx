@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text, type StyleProp, type TextStyle } from 'react-native';
 import { useTheme } from '../theme/ThemeProvider';
-import { textVariants, type TextVariant } from '../theme/typography';
+import { moneySizes, textVariants, type MoneySize, type TextVariant } from '../theme/typography';
 import { moneyDisplay, type CurrencyCode } from '../domain/money';
 import { usePrivacy } from '../privacy/PrivacyProvider';
 import { useI18n } from '../i18n/I18nProvider';
@@ -18,6 +18,8 @@ interface MoneyProps {
   minor: number;
   currency: CurrencyCode;
   variant?: TextVariant;
+  /** An amount size for wide layouts (hero, card, row). Takes the place of `variant` when set. */
+  size?: MoneySize;
   tone?: MoneyTone;
   /** Prefix positive amounts with "+". */
   sign?: boolean;
@@ -40,6 +42,7 @@ export const Money: React.FC<MoneyProps> = ({
   minor,
   currency,
   variant = 'body',
+  size,
   tone = 'neutral',
   sign = false,
   showCode = false,
@@ -76,7 +79,7 @@ export const Money: React.FC<MoneyProps> = ({
 
   return (
     <Text
-      style={[textVariants[variant], TABULAR, { color: textColor }, style]}
+      style={[size ? moneySizes[size] : textVariants[variant], TABULAR, { color: textColor }, style]}
       numberOfLines={1}
       adjustsFontSizeToFit
       minimumFontScale={0.5}
