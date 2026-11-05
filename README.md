@@ -39,7 +39,11 @@ Before the demo, the app already showed an approximate total in EUR only. Story 
 **Environment variables:** the web build needs none. [`.env.example`](.env.example) lists the optional ones:
 `EXPO_PUBLIC_SEED_SAMPLE_DATA` (development only) and `ORG_GRADLE_PROJECT_RUPIERO_UPLOAD_*` (Android release signing only).
 
-**Docker** (the production web build, served by nginx):
+**Production (Vercel):** import the repository into Vercel. [`vercel.json`](vercel.json) sets everything else: the
+build command `npx expo export -p web`, the output folder `dist`, no framework preset, the rewrite that sends every
+route to `index.html`, and the cross-origin isolation and caching headers that expo-sqlite needs.
+
+**Docker** (the same production build on a clean machine, served by nginx):
 
 ```bash
 docker build -t rupiero-web .
@@ -64,7 +68,7 @@ npm run typecheck
 npm run lint
 ```
 
-**Public URL:** `https://<service>-<hash>.europe-west1.run.app` *(added after the first Cloud Run deploy)*
+**Public URL:** `https://<project>.vercel.app` *(added after the first Vercel deploy)*
 
 ## How it was built with AI
 
