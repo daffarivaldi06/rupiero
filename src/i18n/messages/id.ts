@@ -44,6 +44,7 @@ export const id = {
     amountHint: 'Contoh: {example}',
   },
   nav: {
+    dashboard: 'Dasbor',
     settings: 'Pengaturan',
     accounts: 'Akun',
     newAccount: 'Akun Baru',
