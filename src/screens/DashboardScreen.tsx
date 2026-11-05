@@ -17,7 +17,6 @@ import type { CurrencyCode } from '../domain/money';
 import type { AccountWithBalance, Category, CurrencyBalance, CurrencyTotals } from '../domain/types';
 import { AppHeader } from '../components/AppHeader';
 import { BalanceHero } from '../components/BalanceHero';
-import { BudgetBar } from '../components/BudgetBar';
 import { CombinedTotal } from '../components/CombinedTotal';
 import { SampleDataOffer } from '../components/SampleDataOffer';
 import { useToast } from '../feedback/ToastProvider';
@@ -35,6 +34,7 @@ import { space } from '../theme/tokens';
 import { useI18n } from '../i18n/I18nProvider';
 import { renderMessage } from '../i18n/rich';
 import type { RootNavigation } from '../navigation/types';
+import { AccountsSection, BudgetsSection, CategoriesSection } from './dashboard/sections';
 
 export default function DashboardScreen() {
   const db = useSQLiteContext();
@@ -132,7 +132,6 @@ export default function DashboardScreen() {
   const monthLabel = formatMonthLabel(selectedMonth);
   // Hidden until an ECB rate has been fetched at least once.
   const combined = referenceRate && balances.length > 1 ? combinedTotal(balances, baseCurrency, referenceRate.rateMicro) : null;
-  const fees = totals.filter((total) => total.feeMinor > 0);
   // Only budgets that need attention (≥ 80 %) are shown here; the budget screen has the rest.
   const budgetAlerts = budgets
     .map((line) => ({ line, status: budgetStatus(line.spentMinor, line.limitMinor) }))
@@ -190,104 +189,9 @@ export default function DashboardScreen() {
           </Pressable>
         </View>
 
-        <View style={styles.sectionHeader}>
-          <Txt variant="title" style={styles.rowText}>{t('common.budget')}</Txt>
-          <Pressable
-            onPress={() => navigation.navigate('Budget', { month: selectedMonth })}
-            style={styles.headerLink}
-            accessibilityRole="button"
-          >
-            <Txt variant="bodyStrong">{t(budgets.length === 0 ? 'common.set' : 'common.all')}</Txt>
-          </Pressable>
-        </View>
-        <View style={styles.list}>
-          {budgets.length === 0 ? (
-            <Txt tone="inkMuted" style={styles.note}>{t('dashboard.noBudgets')}</Txt>
-          ) : budgetAlerts.length === 0 ? (
-            <Txt tone="inkMuted" style={styles.note}>{t('dashboard.budgetsFine')}</Txt>
-          ) : (
-            budgetAlerts.map(({ line, status }) => (
-              <Pressable
-                key={`${line.categoryId}-${line.currency}`}
-                onPress={() => navigation.navigate('CategoryDetail', { categoryId: line.categoryId, month: selectedMonth })}
-                style={styles.budgetRow}
-                accessibilityRole="button"
-              >
-                <Txt variant="bodyStrong" numberOfLines={1}>{line.categoryName}</Txt>
-                <BudgetBar status={status} currency={line.currency} />
-              </Pressable>
-            ))
-          )}
-        </View>
-
-        <View style={styles.sectionHeader}>
-          <Txt variant="title" style={styles.rowText}>{t('nav.accounts')}</Txt>
-          <Pressable onPress={() => navigation.navigate('TransferForm')} style={styles.headerLink} accessibilityRole="button">
-            <Txt variant="bodyStrong">{t('common.transfer')}</Txt>
-          </Pressable>
-          <Pressable onPress={() => navigation.navigate('Accounts')} style={styles.headerLink} accessibilityRole="button">
-            <Txt variant="bodyStrong">{t('common.manage')}</Txt>
-          </Pressable>
-        </View>
-        <View style={styles.list}>
-          {accounts.map((account) => (
-            <Pressable
-              key={account.id}
-              onPress={() => navigation.navigate('Transactions', { month: selectedMonth, accountId: account.id })}
-              style={styles.row}
-              accessibilityRole="button"
-            >
-              <View style={styles.rowText}>
-                <Txt numberOfLines={1}>{account.name}</Txt>
-                <Txt variant="code" tone={account.currency === 'EUR' ? 'eur' : 'idrText'}>{account.currency}</Txt>
-              </View>
-              <Money
-                minor={account.balanceMinor}
-                currency={account.currency}
-                variant="bodyStrong"
-                tone={account.balanceMinor < 0 ? 'expense' : 'neutral'}
-              />
-              <Txt tone="inkMuted" style={styles.chevron}>›</Txt>
-            </Pressable>
-          ))}
-        </View>
-
-        <Txt variant="title" style={styles.sectionTitle}>{t('nav.categories')}</Txt>
-        <View style={styles.list}>
-          {categories.map((cat) => {
-            const catTotals = categoryTotals.filter((total) => total.categoryId === cat.id);
-            return (
-              <Pressable
-                key={cat.id}
-                onPress={() => navigation.navigate('CategoryDetail', { categoryId: cat.id, month: selectedMonth })}
-                style={styles.row}
-                accessibilityRole="button"
-              >
-                <Txt style={styles.rowText} numberOfLines={1}>{cat.name}</Txt>
-                <View style={styles.rowTotals}>
-                  {catTotals.map((total) => (
-                    <Money key={total.currency} minor={total.netMinor} currency={total.currency} variant="label" tone="signed" sign />
-                  ))}
-                </View>
-                <Txt tone="inkMuted" style={styles.chevron}>›</Txt>
-              </Pressable>
-            );
-          })}
-          {fees.length > 0 && (
-            <View style={styles.row}>
-              <Txt style={styles.rowText} numberOfLines={1}>{t('common.transferFee')}</Txt>
-              <View style={styles.rowTotals}>
-                {fees.map((fee) => (
-                  <Money key={fee.currency} minor={-fee.feeMinor} currency={fee.currency} variant="label" tone="expense" />
-                ))}
-              </View>
-              <View style={styles.chevronSpace} />
-            </View>
-          )}
-          <Pressable onPress={() => navigation.navigate('CategoryForm')} style={styles.row} accessibilityRole="button">
-            <Txt variant="bodyStrong">{t('categories.add')}</Txt>
-          </Pressable>
-        </View>
+        <BudgetsSection budgets={budgets} shown={budgetAlerts} emptyNote={t('dashboard.budgetsFine')} month={selectedMonth} />
+        <AccountsSection accounts={accounts} month={selectedMonth} />
+        <CategoriesSection categories={categories} categoryTotals={categoryTotals} totals={totals} month={selectedMonth} />
       </ScrollView>
       <Pressable
         onPress={() => quickAdd.open()}
@@ -335,34 +239,6 @@ const makeStyles = ({ color, radius, space }: Theme) =>
     offer: {
       marginBottom: space.lg,
     },
-    note: {
-      paddingVertical: space.md,
-    },
-    budgetRow: {
-      paddingVertical: space.sm,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: color.line,
-    },
-    sectionHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginTop: space.xl,
-      marginBottom: space.xs,
-    },
-    headerLink: {
-      minHeight: 48,
-      justifyContent: 'center',
-      paddingLeft: space.md,
-    },
-    sectionTitle: {
-      marginTop: space.xl,
-      marginBottom: space.xs,
-    },
-    list: {
-      borderTopWidth: 1,
-      borderTopColor: color.ink,
-    },
     row: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -375,14 +251,7 @@ const makeStyles = ({ color, radius, space }: Theme) =>
       flex: 1,
       marginRight: space.sm,
     },
-    rowTotals: {
-      alignItems: 'flex-end',
-    },
     chevron: {
       marginLeft: space.sm,
-    },
-    // Keeps fee amounts aligned with the chevron rows above.
-    chevronSpace: {
-      width: 14,
     },
   });
