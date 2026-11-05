@@ -12,6 +12,7 @@
     "test": "jest",
     "test:e2e": "node tests/e2e/run.js",
     "test:e2e:docker": "node tests/e2e/run.js --docker",
+    "screenshots": "node tests/e2e/run.js --docker screenshots",
     "brand:assets": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --disable-warning=ExperimentalWarning scripts/render-brand-assets.ts"
   },
   "dependencies": {
