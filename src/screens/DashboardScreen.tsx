@@ -17,6 +17,7 @@ import { combinedTotal } from '../domain/fx';
 import type { CurrencyCode } from '../domain/money';
 import type { AccountWithBalance, Category, CurrencyBalance, CurrencyTotals } from '../domain/types';
 import { AppHeader } from '../components/AppHeader';
+import { DesktopHeader } from '../components/DesktopHeader';
 import { BalanceHero } from '../components/BalanceHero';
 import { CombinedTotal } from '../components/CombinedTotal';
 import { SampleDataOffer } from '../components/SampleDataOffer';
@@ -158,11 +159,15 @@ export default function DashboardScreen() {
 
   return (
     <View style={styles.screen}>
-      <AppHeader
-        month={selectedMonth}
-        onChangeMonth={setSelectedMonth}
-        onPressSettings={() => navigation.navigate('Settings')}
-      />
+      {wide ? (
+        <DesktopHeader month={selectedMonth} onChangeMonth={setSelectedMonth} onAdd={() => quickAdd.open()} />
+      ) : (
+        <AppHeader
+          month={selectedMonth}
+          onChangeMonth={setSelectedMonth}
+          onPressSettings={() => navigation.navigate('Settings')}
+        />
+      )}
       <ScrollView
         // The wide layout sets its own width and padding.
         contentContainerStyle={[styles.content, { paddingHorizontal: wide ? 0 : inset }]}
@@ -234,14 +239,17 @@ export default function DashboardScreen() {
           </>
         )}
       </ScrollView>
-      <Pressable
-        onPress={() => quickAdd.open()}
-        style={[styles.fab, { bottom: insets.bottom + 16 }]}
-        accessibilityRole="button"
-        accessibilityLabel={t('dashboard.add')}
-      >
-        <Txt variant="title" tone="onInk">+</Txt>
-      </Pressable>
+      {/* Wide web has "+ Add transaction" in the header instead. */}
+      {!wide && (
+        <Pressable
+          onPress={() => quickAdd.open()}
+          style={[styles.fab, { bottom: insets.bottom + 16 }]}
+          accessibilityRole="button"
+          accessibilityLabel={t('dashboard.add')}
+        >
+          <Txt variant="title" tone="onInk">+</Txt>
+        </Pressable>
+      )}
     </View>
   );
 }

@@ -10,6 +10,7 @@ export const en: Messages = {
     edit: 'Edit',
     editMore: 'Edit ›',
     failed: 'Something went wrong',
+    close: 'Close',
     today: 'Today',
     yesterday: 'Yesterday',
     income: 'Income',
@@ -66,6 +67,7 @@ export const en: Messages = {
   header: {
     hideBalances: 'Hide balances',
     settings: 'Settings',
+    addTransaction: '+ Add transaction',
   },
   balance: {
     noAccounts: 'No accounts yet',

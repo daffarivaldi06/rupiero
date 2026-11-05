@@ -1,5 +1,5 @@
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { BackHandler, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { BackHandler, Dimensions, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import {
   BottomSheetBackdrop,
   BottomSheetModal,
@@ -47,6 +47,9 @@ import { fontFamily } from '../theme/typography';
 import { useI18n } from '../i18n/I18nProvider';
 import { useToast } from '../feedback/ToastProvider';
 import { SEPARATORS } from '../domain/money';
+import { breakpointFor } from '../theme/layout';
+import { QuickAddModal } from './QuickAddModal';
+import { useAddShortcut } from './useAddShortcut';
 import { useKeyboardKeypad } from './useKeyboardKeypad';
 
 
@@ -75,16 +78,32 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
   const referenceRate = useReferenceRate();
   const sheetRef = useRef<BottomSheetModal>(null);
   const [open, setOpen] = useState(false);
+  // Wide web (ADR 0001): a centered dialog instead of the bottom sheet. Chosen when opening and kept
+  // until closed, so resizing while it is open never switches containers. Always false on native.
+  const [asModal, setAsModal] = useState(false);
+  const amountRef = useRef<View>(null);
+
+  const close = useCallback(() => {
+    if (asModal) setOpen(false);
+    else sheetRef.current?.dismiss();
+  }, [asModal]);
 
   // Android back closes the sheet instead of leaving the screen (or the app) underneath.
   useEffect(() => {
     if (!open) return;
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      sheetRef.current?.dismiss();
+      close();
       return true;
     });
     return () => subscription.remove();
-  }, [open]);
+  }, [open, close]);
+
+  // The dialog starts on the amount, so typing drives the keypad straight away.
+  useEffect(() => {
+    if (!open || !asModal) return;
+    const timer = setTimeout(() => amountRef.current?.focus(), 50);
+    return () => clearTimeout(timer);
+  }, [open, asModal]);
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [type, setType] = useState<TransactionType>('expense');
@@ -113,45 +132,53 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
         : null;
   const canSave = !!account && amount !== null && amount > 0 && categoryId !== null;
 
-  useImperativeHandle(ref, () => ({
-    open: async (options = {}) => {
-      const today = todayLocal();
-      const [nextAccounts, nextCategories, lastAccountId, editing] = await Promise.all([
-        listAccounts(db),
-        listCategoriesByUse(db, { today }),
-        getLastAccountId(db),
-        options.transactionId !== undefined ? getTransaction(db, options.transactionId) : Promise.resolve(null),
-      ]);
-      setAccounts(nextAccounts);
-      setCategories(nextCategories);
-      setShowIosPicker(false);
-      setRepeat(null);
-      if (editing) {
-        setEditingId(editing.id);
-        setType(editing.type);
-        setAccountId(editing.accountId);
-        setCategoryId(editing.categoryId);
-        setExpression(expressionFromMinor(editing.amountMinor, editing.currency));
-        setDate(editing.date);
-        setNote(editing.note);
-      } else {
-        const fallback =
-          nextAccounts.find((a) => a.id === options.accountId) ??
-          nextAccounts.find((a) => a.id === lastAccountId) ??
-          nextAccounts[0] ??
-          null;
-        setEditingId(null);
-        setType(options.type ?? 'expense');
-        setAccountId(fallback?.id ?? null);
-        setCategoryId(nextCategories.some((c) => c.id === options.categoryId) ? options.categoryId! : null);
-        setExpression('');
-        setDate(today);
-        setNote('');
-      }
-      setOpen(true);
-      sheetRef.current?.present();
-    },
-  }));
+  const openWith = async (options: QuickAddOptions = {}) => {
+    const today = todayLocal();
+    const [nextAccounts, nextCategories, lastAccountId, editing] = await Promise.all([
+      listAccounts(db),
+      listCategoriesByUse(db, { today }),
+      getLastAccountId(db),
+      options.transactionId !== undefined ? getTransaction(db, options.transactionId) : Promise.resolve(null),
+    ]);
+    setAccounts(nextAccounts);
+    setCategories(nextCategories);
+    setShowIosPicker(false);
+    setRepeat(null);
+    if (editing) {
+      setEditingId(editing.id);
+      setType(editing.type);
+      setAccountId(editing.accountId);
+      setCategoryId(editing.categoryId);
+      setExpression(expressionFromMinor(editing.amountMinor, editing.currency));
+      setDate(editing.date);
+      setNote(editing.note);
+    } else {
+      const fallback =
+        nextAccounts.find((a) => a.id === options.accountId) ??
+        nextAccounts.find((a) => a.id === lastAccountId) ??
+        nextAccounts[0] ??
+        null;
+      setEditingId(null);
+      setType(options.type ?? 'expense');
+      setAccountId(fallback?.id ?? null);
+      setCategoryId(nextCategories.some((c) => c.id === options.categoryId) ? options.categoryId! : null);
+      setExpression('');
+      setDate(today);
+      setNote('');
+    }
+    const breakpoint = breakpointFor(Dimensions.get('window').width);
+    const modal = Platform.OS === 'web' && (breakpoint === 'wide' || breakpoint === 'xl');
+    setAsModal(modal);
+    setOpen(true);
+    if (!modal) sheetRef.current?.present();
+  };
+
+  useImperativeHandle(ref, () => ({ open: openWith }));
+
+  // Web: N opens quick-add from anywhere while it is closed.
+  useAddShortcut(!open, () => {
+    openWith().catch(console.error);
+  });
 
   const onKey = useCallback(
     (key: KeypadKey) => setExpression((current) => pressKey(current, key, currency)),
@@ -191,7 +218,7 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
       } else await createTransaction(db, tx);
       await setLastAccountId(db, account.id);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      sheetRef.current?.dismiss();
+      close();
       toast.show(t(editingId !== null ? 'quickAdd.updated' : 'quickAdd.saved'));
       return true;
     } catch (e) {
@@ -206,7 +233,7 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
     if (editingId === null) return;
     try {
       const deleted = await deleteTransaction(db, editingId);
-      sheetRef.current?.dismiss();
+      close();
       if (!deleted) return;
       toast.show(t('quickAdd.deleted'), {
         action: {
@@ -226,7 +253,7 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
   };
 
   // Web: the physical keyboard drives the keypad too. Does nothing on Android.
-  useKeyboardKeypad(open, { onKey, onSave: save, onClose: () => sheetRef.current?.dismiss() });
+  useKeyboardKeypad(open, { onKey, onSave: save, onClose: close });
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} pressBehavior="close" />,
@@ -240,116 +267,134 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
   const preview =
     referenceRate && amount !== null && amount > 0 ? safeConvert(amount, currency, otherCurrency, referenceRate.rateMicro) : null;
 
-  return (
-    <BottomSheetModal
-      ref={sheetRef}
-      onDismiss={() => setOpen(false)}
-      // Tall content (large fonts) scrolls inside the sheet instead of sliding under the status bar.
-      topInset={insets.top}
-      backdropComponent={renderBackdrop}
-      backgroundStyle={styles.sheet}
-      handleIndicatorStyle={{ backgroundColor: color.lineStrong }}
-      keyboardBehavior="interactive"
-      keyboardBlurBehavior="restore"
-      android_keyboardInputMode="adjustResize"
-    >
-      <BottomSheetScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 12 }]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.typeRow}>
-          {(['expense', 'income'] as const).map((value) => {
-            const selected = type === value;
+  // The bottom sheet needs its own text input for keyboard handling; the dialog uses a plain one.
+  const NoteInput = asModal ? TextInput : BottomSheetTextInput;
+
+  const body = (
+    <>
+      <View style={styles.typeRow}>
+        {(['expense', 'income'] as const).map((value) => {
+          const selected = type === value;
+          return (
+            <Pressable
+              key={value}
+              onPress={() => setType(value)}
+              style={[styles.typeButton, selected && (value === 'expense' ? styles.expenseSelected : styles.incomeSelected)]}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+            >
+              <Txt variant="bodyStrong" tone={selected ? (value === 'expense' ? 'onExpense' : 'onIncome') : 'ink'}>
+                {t(value === 'expense' ? 'common.expense' : 'common.income')}
+              </Txt>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <AccountPicker accounts={accounts} selectedId={accountId} onSelect={selectAccount} />
+
+      {/* Focusable in the dialog only, where it receives the initial focus. */}
+      <View ref={amountRef} style={styles.amountBlock} accessibilityLiveRegion="polite" focusable={asModal || undefined}>
+        {hasOperator(expression) && (
+          <Txt variant="body" tone="inkMuted" numberOfLines={1} style={styles.expression}>
+            {expression.replace(/,/g, SEPARATORS[locale].decimal)}
+          </Txt>
+        )}
+        <Money
+          minor={amount !== null && expression ? amount : 0}
+          currency={currency}
+          variant="display"
+          tone={expression ? 'neutral' : 'inkMuted'}
+          reveal
+        />
+        {preview !== null && referenceRate && (
+          <Txt variant="caption" tone="inkMuted">
+            ≈ <Money minor={preview} currency={otherCurrency} variant="caption" tone="inkMuted" reveal /> ·{' '}
+            {t('common.ecbRate', { date: formatDayMonth(referenceRate.date, locale) })}
+          </Txt>
+        )}
+      </View>
+
+      <CategoryChips categories={categories} selectedId={categoryId} onSelect={setCategoryId} />
+
+      <View style={styles.metaRow}>
+        <Pressable onPress={pickDate} style={styles.dateChip} accessibilityRole="button" accessibilityLabel={t('common.dateValue', { date: dateLabel })}>
+          <Txt variant="label">{dateLabel}</Txt>
+        </Pressable>
+        <NoteInput
+          value={note}
+          onChangeText={setNote}
+          placeholder={t('common.noteOptional')}
+          placeholderTextColor={color.inkMuted}
+          style={styles.note}
+          returnKeyType="done"
+        />
+      </View>
+      {editingId === null && (
+        <View style={styles.repeatRow}>
+          <Txt variant="label" tone="inkMuted">{t('quickAdd.repeat')}</Txt>
+          {([null, ...FREQUENCIES] as const).map((value) => {
+            const selected = repeat === value;
             return (
               <Pressable
-                key={value}
-                onPress={() => setType(value)}
-                style={[styles.typeButton, selected && (value === 'expense' ? styles.expenseSelected : styles.incomeSelected)]}
+                key={value ?? 'none'}
+                onPress={() => setRepeat(value)}
+                style={[styles.repeatChip, selected && styles.repeatSelected]}
+                hitSlop={4}
                 accessibilityRole="radio"
                 accessibilityState={{ selected }}
               >
-                <Txt variant="bodyStrong" tone={selected ? (value === 'expense' ? 'onExpense' : 'onIncome') : 'ink'}>
-                  {t(value === 'expense' ? 'common.expense' : 'common.income')}
-                </Txt>
+                <Txt variant="caption" tone={selected ? 'onInk' : 'ink'}>{t(value === null ? 'quickAdd.repeatNone' : `frequency.${value}`)}</Txt>
               </Pressable>
             );
           })}
         </View>
+      )}
+      {showIosPicker && (
+        <DateTimePicker value={fromLocalDate(date)} mode="date" display="inline" onChange={(_, picked) => picked && setDate(toLocalDate(picked))} />
+      )}
 
-        <AccountPicker accounts={accounts} selectedId={accountId} onSelect={selectAccount} />
+      <Keypad currency={currency} onKey={onKey} onClear={() => setExpression('')} backspaceIcon={asModal} />
 
-        <View style={styles.amountBlock} accessibilityLiveRegion="polite">
-          {hasOperator(expression) && (
-            <Txt variant="body" tone="inkMuted" numberOfLines={1} style={styles.expression}>
-              {expression.replace(/,/g, SEPARATORS[locale].decimal)}
-            </Txt>
-          )}
-          <Money
-            minor={amount !== null && expression ? amount : 0}
-            currency={currency}
-            variant="display"
-            tone={expression ? 'neutral' : 'inkMuted'}
-            reveal
-          />
-          {preview !== null && referenceRate && (
-            <Txt variant="caption" tone="inkMuted">
-              ≈ <Money minor={preview} currency={otherCurrency} variant="caption" tone="inkMuted" reveal /> ·{' '}
-              {t('common.ecbRate', { date: formatDayMonth(referenceRate.date, locale) })}
-            </Txt>
-          )}
-        </View>
+      <View style={styles.actions}>
+        {editingId !== null && <Button title={t('common.delete')} variant="outline" onPress={remove} style={styles.deleteButton} />}
+        <Button title={t(editingId !== null ? 'common.saveChanges' : 'common.save')} onPress={save} disabled={!canSave} style={styles.saveButton} />
+      </View>
+      {/* Always rendered (blank when nothing is missing) so Save does not move as the hint comes and goes. */}
+      <Txt variant="caption" tone="inkMuted" style={styles.missing} accessibilityLiveRegion="polite">
+        {missing ?? ' '}
+      </Txt>
+    </>
+  );
 
-        <CategoryChips categories={categories} selectedId={categoryId} onSelect={setCategoryId} />
-
-        <View style={styles.metaRow}>
-          <Pressable onPress={pickDate} style={styles.dateChip} accessibilityRole="button" accessibilityLabel={t('common.dateValue', { date: dateLabel })}>
-            <Txt variant="label">{dateLabel}</Txt>
-          </Pressable>
-          <BottomSheetTextInput
-            value={note}
-            onChangeText={setNote}
-            placeholder={t('common.noteOptional')}
-            placeholderTextColor={color.inkMuted}
-            style={styles.note}
-            returnKeyType="done"
-          />
-        </View>
-        {editingId === null && (
-          <View style={styles.repeatRow}>
-            <Txt variant="label" tone="inkMuted">{t('quickAdd.repeat')}</Txt>
-            {([null, ...FREQUENCIES] as const).map((value) => {
-              const selected = repeat === value;
-              return (
-                <Pressable
-                  key={value ?? 'none'}
-                  onPress={() => setRepeat(value)}
-                  style={[styles.repeatChip, selected && styles.repeatSelected]}
-                  hitSlop={4}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected }}
-                >
-                  <Txt variant="caption" tone={selected ? 'onInk' : 'ink'}>{t(value === null ? 'quickAdd.repeatNone' : `frequency.${value}`)}</Txt>
-                </Pressable>
-              );
-            })}
-          </View>
+  return (
+    <>
+      <BottomSheetModal
+        ref={sheetRef}
+        onDismiss={() => setOpen(false)}
+        // Tall content (large fonts) scrolls inside the sheet instead of sliding under the status bar.
+        topInset={insets.top}
+        backdropComponent={renderBackdrop}
+        backgroundStyle={styles.sheet}
+        handleIndicatorStyle={{ backgroundColor: color.lineStrong }}
+        keyboardBehavior="interactive"
+        keyboardBlurBehavior="restore"
+        android_keyboardInputMode="adjustResize"
+      >
+        {!asModal && (
+          <BottomSheetScrollView
+            contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 12 }]}
+            keyboardShouldPersistTaps="handled"
+          >
+            {body}
+          </BottomSheetScrollView>
         )}
-        {showIosPicker && (
-          <DateTimePicker value={fromLocalDate(date)} mode="date" display="inline" onChange={(_, picked) => picked && setDate(toLocalDate(picked))} />
-        )}
-
-        <Keypad currency={currency} onKey={onKey} onClear={() => setExpression('')} />
-
-        <View style={styles.actions}>
-          {editingId !== null && <Button title={t('common.delete')} variant="outline" onPress={remove} style={styles.deleteButton} />}
-          <Button title={t(editingId !== null ? 'common.saveChanges' : 'common.save')} onPress={save} disabled={!canSave} style={styles.saveButton} />
-        </View>
-        {/* Always rendered (blank when nothing is missing) so Save does not move as the hint comes and goes. */}
-        <Txt variant="caption" tone="inkMuted" style={styles.missing} accessibilityLiveRegion="polite">
-          {missing ?? ' '}
-        </Txt>
-      </BottomSheetScrollView>
-    </BottomSheetModal>
+      </BottomSheetModal>
+      {/* Wide web only; renders nothing on native. */}
+      <QuickAddModal visible={open && asModal} onClose={close} contentContainerStyle={[styles.content, styles.modalContent]}>
+        {asModal && body}
+      </QuickAddModal>
+    </>
   );
 });
 
@@ -371,6 +416,11 @@ const makeStyles = ({ color, radius, space }: Theme) =>
     content: {
       paddingHorizontal: space.lg,
       gap: space.md,
+    },
+    // The dialog has no drag handle above the content and no safe-area inset below it.
+    modalContent: {
+      paddingTop: space.lg,
+      paddingBottom: space.md,
     },
     typeRow: {
       flexDirection: 'row',

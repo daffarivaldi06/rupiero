@@ -1,5 +1,22 @@
 import { pressKey } from '../calc';
-import { keyboardAction } from '../keyboard';
+import { isAddShortcut, keyboardAction } from '../keyboard';
+
+describe('isAddShortcut', () => {
+  it('is N, with or without Shift', () => {
+    expect(isAddShortcut({ key: 'n' })).toBe(true);
+    expect(isAddShortcut({ key: 'N' })).toBe(true);
+  });
+
+  it('leaves Ctrl+N, Cmd+N and Alt+N to the browser', () => {
+    expect(isAddShortcut({ key: 'n', ctrlKey: true })).toBe(false);
+    expect(isAddShortcut({ key: 'n', metaKey: true })).toBe(false);
+    expect(isAddShortcut({ key: 'N', altKey: true })).toBe(false);
+  });
+
+  it('ignores other keys', () => {
+    for (const key of ['m', 'b', 'Enter', ' ', '1', 'Escape']) expect(isAddShortcut({ key })).toBe(false);
+  });
+});
 
 describe('keyboardAction', () => {
   it('maps digits to keypad digits', () => {

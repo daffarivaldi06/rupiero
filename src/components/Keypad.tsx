@@ -3,7 +3,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import type { KeypadKey } from '../domain/calc';
 import { CURRENCIES, SEPARATORS, type CurrencyCode } from '../domain/money';
-import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { BackspaceIcon } from './BackspaceIcon';
 import { Txt } from './Txt';
 import { useI18n } from '../i18n/I18nProvider';
 import type { MessageKey } from '../i18n';
@@ -13,6 +14,8 @@ interface KeypadProps {
   onKey: (key: KeypadKey) => void;
   /** Long-press on backspace. */
   onClear: () => void;
+  /** Draw backspace as an icon instead of the ⌫ character (the web quick-add modal). */
+  backspaceIcon?: boolean;
 }
 
 const A11Y: Partial<Record<KeypadKey, MessageKey>> = {
@@ -29,8 +32,9 @@ const A11Y: Partial<Record<KeypadKey, MessageKey>> = {
  * Digits and + − × ÷ for the quick-add calculator. EUR gets a decimal key (shown as the language's
  * separator, always ',' in the expression), IDR gets "000" instead.
  */
-export const Keypad: React.FC<KeypadProps> = ({ currency, onKey, onClear }) => {
+export const Keypad: React.FC<KeypadProps> = ({ currency, onKey, onClear, backspaceIcon = false }) => {
   const styles = useThemedStyles(makeStyles);
+  const { color } = useTheme();
   const { t, locale } = useI18n();
   const label = (key: KeypadKey) => (key === 'back' ? '⌫' : key === ',' ? SEPARATORS[locale].decimal : key);
   const special: KeypadKey = CURRENCIES[currency].minorDigits > 0 ? ',' : '000';
@@ -62,7 +66,11 @@ export const Keypad: React.FC<KeypadProps> = ({ currency, onKey, onClear }) => {
                 accessibilityLabel={A11Y[key] ? t(A11Y[key]) : key}
                 accessibilityHint={key === 'back' ? t('keypad.clearHint') : undefined}
               >
-                <Txt variant="title" tone={isOperator ? 'inkMuted' : 'ink'}>{label(key)}</Txt>
+                {key === 'back' && backspaceIcon ? (
+                  <BackspaceIcon color={color.ink} />
+                ) : (
+                  <Txt variant="title" tone={isOperator ? 'inkMuted' : 'ink'}>{label(key)}</Txt>
+                )}
               </Pressable>
             );
           })}

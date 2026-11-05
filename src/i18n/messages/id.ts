@@ -10,6 +10,7 @@ export const id = {
     edit: 'Ubah',
     editMore: 'Ubah ›',
     failed: 'Gagal',
+    close: 'Tutup',
     today: 'Hari ini',
     yesterday: 'Kemarin',
     income: 'Pemasukan',
@@ -66,6 +67,7 @@ export const id = {
   header: {
     hideBalances: 'Sembunyikan saldo',
     settings: 'Pengaturan',
+    addTransaction: '+ Catat transaksi',
   },
   balance: {
     noAccounts: 'Belum ada akun',
