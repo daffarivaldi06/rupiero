@@ -49,6 +49,7 @@ import { useToast } from '../feedback/ToastProvider';
 import { SEPARATORS } from '../domain/money';
 import { breakpointFor } from '../theme/layout';
 import { QuickAddModal } from './QuickAddModal';
+import { useAddShortcut } from './useAddShortcut';
 import { useKeyboardKeypad } from './useKeyboardKeypad';
 
 
@@ -131,48 +132,53 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
         : null;
   const canSave = !!account && amount !== null && amount > 0 && categoryId !== null;
 
-  useImperativeHandle(ref, () => ({
-    open: async (options = {}) => {
-      const today = todayLocal();
-      const [nextAccounts, nextCategories, lastAccountId, editing] = await Promise.all([
-        listAccounts(db),
-        listCategoriesByUse(db, { today }),
-        getLastAccountId(db),
-        options.transactionId !== undefined ? getTransaction(db, options.transactionId) : Promise.resolve(null),
-      ]);
-      setAccounts(nextAccounts);
-      setCategories(nextCategories);
-      setShowIosPicker(false);
-      setRepeat(null);
-      if (editing) {
-        setEditingId(editing.id);
-        setType(editing.type);
-        setAccountId(editing.accountId);
-        setCategoryId(editing.categoryId);
-        setExpression(expressionFromMinor(editing.amountMinor, editing.currency));
-        setDate(editing.date);
-        setNote(editing.note);
-      } else {
-        const fallback =
-          nextAccounts.find((a) => a.id === options.accountId) ??
-          nextAccounts.find((a) => a.id === lastAccountId) ??
-          nextAccounts[0] ??
-          null;
-        setEditingId(null);
-        setType(options.type ?? 'expense');
-        setAccountId(fallback?.id ?? null);
-        setCategoryId(nextCategories.some((c) => c.id === options.categoryId) ? options.categoryId! : null);
-        setExpression('');
-        setDate(today);
-        setNote('');
-      }
-      const breakpoint = breakpointFor(Dimensions.get('window').width);
-      const modal = Platform.OS === 'web' && (breakpoint === 'wide' || breakpoint === 'xl');
-      setAsModal(modal);
-      setOpen(true);
-      if (!modal) sheetRef.current?.present();
-    },
-  }));
+  const openWith = async (options: QuickAddOptions = {}) => {
+    const today = todayLocal();
+    const [nextAccounts, nextCategories, lastAccountId, editing] = await Promise.all([
+      listAccounts(db),
+      listCategoriesByUse(db, { today }),
+      getLastAccountId(db),
+      options.transactionId !== undefined ? getTransaction(db, options.transactionId) : Promise.resolve(null),
+    ]);
+    setAccounts(nextAccounts);
+    setCategories(nextCategories);
+    setShowIosPicker(false);
+    setRepeat(null);
+    if (editing) {
+      setEditingId(editing.id);
+      setType(editing.type);
+      setAccountId(editing.accountId);
+      setCategoryId(editing.categoryId);
+      setExpression(expressionFromMinor(editing.amountMinor, editing.currency));
+      setDate(editing.date);
+      setNote(editing.note);
+    } else {
+      const fallback =
+        nextAccounts.find((a) => a.id === options.accountId) ??
+        nextAccounts.find((a) => a.id === lastAccountId) ??
+        nextAccounts[0] ??
+        null;
+      setEditingId(null);
+      setType(options.type ?? 'expense');
+      setAccountId(fallback?.id ?? null);
+      setCategoryId(nextCategories.some((c) => c.id === options.categoryId) ? options.categoryId! : null);
+      setExpression('');
+      setDate(today);
+      setNote('');
+    }
+    const breakpoint = breakpointFor(Dimensions.get('window').width);
+    const modal = Platform.OS === 'web' && (breakpoint === 'wide' || breakpoint === 'xl');
+    setAsModal(modal);
+    setOpen(true);
+    if (!modal) sheetRef.current?.present();
+  };
+
+  useImperativeHandle(ref, () => ({ open: openWith }));
+
+  // Web: N opens quick-add from anywhere while it is closed.
+  useAddShortcut(!open, () => {
+    openWith().catch(console.error);
+  });
 
   const onKey = useCallback(
     (key: KeypadKey) => setExpression((current) => pressKey(current, key, currency)),

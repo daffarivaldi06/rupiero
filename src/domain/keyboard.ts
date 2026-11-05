@@ -27,6 +27,11 @@ const KEYS: Record<string, KeyboardAction> = {
  * What a key press does in the quick-add sheet, or null to leave it to the browser. Shift is allowed
  * ("+" and "*" need it on many layouts); Ctrl, Cmd and Alt are not, so browser shortcuts keep working.
  */
+/** N opens quick-add. With Ctrl, Cmd or Alt it stays the browser's (Ctrl+N is "new window"). */
+export function isAddShortcut({ key, ctrlKey, metaKey, altKey }: KeyPress): boolean {
+  return (key === 'n' || key === 'N') && !ctrlKey && !metaKey && !altKey;
+}
+
 export function keyboardAction({ key, ctrlKey, metaKey, altKey }: KeyPress): KeyboardAction | null {
   if (ctrlKey || metaKey || altKey) return null;
   if (key.length === 1 && key >= '0' && key <= '9') return key as KeypadKey;

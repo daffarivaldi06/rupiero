@@ -1,14 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { keyboardAction } from '../domain/keyboard';
+import { isTextField } from './textField';
 import type { KeyboardKeypadHandlers } from './useKeyboardKeypad';
-
-/** Typing in a text field (the note) stays normal typing, Enter and Escape included. */
-function isTextField(target: EventTarget | null): boolean {
-  return (
-    target instanceof HTMLElement &&
-    (target.isContentEditable || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')
-  );
-}
 
 /**
  * While `enabled` (the quick-add sheet is open), keyboard keys drive the keypad, Enter saves and
