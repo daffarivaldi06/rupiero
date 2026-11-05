@@ -83,3 +83,11 @@ export const space = {
   xl: 24,
   xxl: 32,
 } as const;
+
+/** Wide web layouts (ADR 0001). The phone and tablet text column is MAX_CONTENT_WIDTH in layout.ts. */
+export const layout = {
+  /** The main content area stops growing here; the rest becomes margin. */
+  contentMaxWidth: 1200,
+  /** The permanent sidebar. */
+  sidebarWidth: 240,
+} as const;

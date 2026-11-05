@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useMemo } from 'react';
 import { useColorScheme } from 'react-native';
 import { DarkTheme, DefaultTheme, type Theme as NavigationTheme } from '@react-navigation/native';
-import { palettes, radius, space, type ColorScheme, type Palette } from './tokens';
+import { layout, palettes, radius, space, type ColorScheme, type Palette } from './tokens';
 import { fontFamily } from './typography';
 
 export interface Theme {
@@ -9,11 +9,12 @@ export interface Theme {
   color: Palette;
   radius: typeof radius;
   space: typeof space;
+  layout: typeof layout;
 }
 
 const themes: Record<ColorScheme, Theme> = {
-  light: { scheme: 'light', color: palettes.light, radius, space },
-  dark: { scheme: 'dark', color: palettes.dark, radius, space },
+  light: { scheme: 'light', color: palettes.light, radius, space, layout },
+  dark: { scheme: 'dark', color: palettes.dark, radius, space, layout },
 };
 
 const ThemeContext = createContext<Theme>(themes.light);
