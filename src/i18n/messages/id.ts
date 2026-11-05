@@ -409,6 +409,7 @@ export const id = {
     title: 'Rupiero tidak dapat dibuka',
     schemaTooNew: 'Data di perangkat ini dibuat oleh versi Rupiero yang lebih baru. Perbarui aplikasi; datamu tidak diubah.',
     failed: 'Database tidak dapat dibuka. Datamu tidak diubah. Coba lagi, atau tutup dan buka ulang aplikasi.',
+    openInAnotherTab: 'Rupiero sedang terbuka di tab lain. Tutup tab itu, lalu coba lagi.',
     detail: 'Detail: {message}',
   },
   errorBoundary: {

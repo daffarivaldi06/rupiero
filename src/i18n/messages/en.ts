@@ -409,6 +409,7 @@ export const en: Messages = {
     title: 'Rupiero could not open',
     schemaTooNew: 'The data on this device was made by a newer version of Rupiero. Update the app; your data was not changed.',
     failed: 'The database could not be opened. Your data was not changed. Try again, or close and reopen the app.',
+    openInAnotherTab: 'Rupiero is open in another tab. Close it, then try again.',
     detail: 'Details: {message}',
   },
   errorBoundary: {
