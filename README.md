@@ -25,7 +25,7 @@ Before the demo, the app already showed an approximate total in EUR only. Story 
 
 **Backlog**
 - Date picker on the web (the web build can only record transactions dated today)
-- Backup and CSV export on the web
+- Backup, import and CSV export on web
 - Testing in mobile browsers
 - Using the app in more than one tab at a time
 - A single budget across both currencies (each currency has its own budget today)
