@@ -13,33 +13,36 @@ import { IntroProvider } from './src/intro/IntroProvider';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { PrivacyProvider } from './src/privacy/PrivacyProvider';
 import { QuickAddProvider } from './src/quickadd/QuickAddProvider';
+import { FontGate } from './src/theme/FontGate';
 import { ThemeProvider } from './src/theme/ThemeProvider';
 
 export default function App() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
-        <ThemeProvider>
-          <IntroProvider>
-            <ErrorBoundary>
-              <DatabaseProvider>
-                <I18nProvider>
-                  <ToastProvider>
-                    <PrivacyProvider>
-                      <DataProvider>
-                        <FxProvider>
-                          <QuickAddProvider>
-                            <RootNavigator />
-                          </QuickAddProvider>
-                        </FxProvider>
-                      </DataProvider>
-                    </PrivacyProvider>
-                  </ToastProvider>
-                </I18nProvider>
-              </DatabaseProvider>
-            </ErrorBoundary>
-          </IntroProvider>
-        </ThemeProvider>
+        <FontGate>
+          <ThemeProvider>
+            <IntroProvider>
+              <ErrorBoundary>
+                <DatabaseProvider>
+                  <I18nProvider>
+                    <ToastProvider>
+                      <PrivacyProvider>
+                        <DataProvider>
+                          <FxProvider>
+                            <QuickAddProvider>
+                              <RootNavigator />
+                            </QuickAddProvider>
+                          </FxProvider>
+                        </DataProvider>
+                      </PrivacyProvider>
+                    </ToastProvider>
+                  </I18nProvider>
+                </DatabaseProvider>
+              </ErrorBoundary>
+            </IntroProvider>
+          </ThemeProvider>
+        </FontGate>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
