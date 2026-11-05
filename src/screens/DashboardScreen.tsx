@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Pressable } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Pressable, Platform } from 'react-native';
 import { useSQLiteContext } from '../db/DatabaseProvider';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,6 +17,7 @@ import type { AccountWithBalance, Category, CurrencyBalance, CurrencyTotals } fr
 import { AppHeader } from '../components/AppHeader';
 import { BalanceHero } from '../components/BalanceHero';
 import { BudgetBar } from '../components/BudgetBar';
+import { CombinedTotal } from '../components/CombinedTotal';
 import { Money } from '../components/Money';
 import { MonthFlow } from '../components/MonthFlow';
 import { LoadError } from '../components/LoadError';
@@ -126,13 +127,22 @@ export default function DashboardScreen() {
       >
         {failed && <LoadError onRetry={loadData} />}
         <BalanceHero label={isCurrentMonth ? t('dashboard.balanceNow') : t('dashboard.balanceEnd', { month: monthLabel })} balances={balances} roll={roll} />
-        {combined !== null && referenceRate && (
-          <Txt variant="caption" tone="inkMuted" style={styles.combined}>
-            {renderMessage('dashboard.combined', {
-              amount: <Money minor={combined} currency={baseCurrency} variant="caption" tone="inkMuted" />,
-              date: formatDayMonth(referenceRate.date),
-            })}
-          </Txt>
+        {Platform.OS === 'web' ? (
+          // Web (ADR 0001): the total in the chosen base currency, whenever there is a balance, and a
+          // message instead of the figure until an ECB rate has been fetched.
+          balances.length > 0 && (
+            <CombinedTotal balances={balances} base={baseCurrency} rate={referenceRate} style={styles.total} />
+          )
+        ) : (
+          combined !== null &&
+          referenceRate && (
+            <Txt variant="caption" tone="inkMuted" style={styles.combined}>
+              {renderMessage('dashboard.combined', {
+                amount: <Money minor={combined} currency={baseCurrency} variant="caption" tone="inkMuted" />,
+                date: formatDayMonth(referenceRate.date),
+              })}
+            </Txt>
+          )
         )}
 
         <View style={styles.section}>
@@ -293,6 +303,9 @@ const makeStyles = ({ color, radius, space }: Theme) =>
     },
     combined: {
       marginTop: space.sm,
+    },
+    total: {
+      marginTop: space.lg,
     },
     note: {
       paddingVertical: space.md,
