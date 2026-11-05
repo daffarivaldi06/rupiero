@@ -66,6 +66,7 @@ export const id = {
   header: {
     hideBalances: 'Sembunyikan saldo',
     settings: 'Pengaturan',
+    addTransaction: '+ Catat transaksi',
   },
   balance: {
     noAccounts: 'Belum ada akun',

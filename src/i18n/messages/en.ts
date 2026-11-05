@@ -66,6 +66,7 @@ export const en: Messages = {
   header: {
     hideBalances: 'Hide balances',
     settings: 'Settings',
+    addTransaction: '+ Add transaction',
   },
   balance: {
     noAccounts: 'No accounts yet',
