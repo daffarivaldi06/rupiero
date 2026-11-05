@@ -89,6 +89,10 @@ npm run lint
 
 - During human testing on the web, the on-screen keypad felt too mobile on a laptop, so we added physical keyboard
   support to the quick-add sheet.
+- Repeated-load tests sometimes showed "could not open … Invalid VFS state". The cause was the browser's
+  back/forward cache: a page we left stayed frozen in memory, and its expo-sqlite worker kept the database files
+  locked. The web build now ends that worker when the page is hidden and reloads a page restored from the cache. It is
+  a workaround tied to expo-sqlite 16.x (`src/db/pageLifecycle.web.ts`), to recheck on every expo-sqlite upgrade.
 
 ## Status and next steps
 
