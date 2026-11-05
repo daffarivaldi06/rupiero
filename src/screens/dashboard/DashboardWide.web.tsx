@@ -23,7 +23,7 @@ const MAX_BUDGETS = 6;
 
 /**
  * The Dashboard on wide web screens (ADR 0001): balance cards in a row, then a 2:1 grid with cash
- * flow and recent transactions on the left, budgets, accounts and categories on the right.
+ * flow, recent transactions and categories on the left, budgets and accounts on the right.
  */
 export function DashboardWide({
   top,
@@ -113,6 +113,8 @@ export function DashboardWide({
               })
             )}
           </View>
+          {/* Here rather than under Accounts: budget rows are tall, so this keeps the columns even. */}
+          <CategoriesSection categories={categories} categoryTotals={categoryTotals} totals={totals} month={month} />
         </View>
 
         <View style={styles.side}>
@@ -130,7 +132,6 @@ export function DashboardWide({
             }
           />
           <AccountsSection accounts={accounts} month={month} />
-          <CategoriesSection categories={categories} categoryTotals={categoryTotals} totals={totals} month={month} />
         </View>
       </View>
     </View>
