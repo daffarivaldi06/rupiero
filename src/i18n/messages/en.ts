@@ -180,6 +180,13 @@ export const en: Messages = {
     budgetsFine: 'All categories are still below 80% of their budget.',
     add: 'Add transaction',
   },
+  sampleOffer: {
+    title: 'Try Rupiero with sample data',
+    body: 'Load three months of example accounts and transactions in EUR and IDR. They are stored only in this browser.',
+    load: 'Load sample data',
+    dismiss: 'No thanks',
+    failed: 'The sample data could not be loaded',
+  },
   insights: {
     empty: 'No spending this month.',
     trend: 'Last 6 months',
@@ -402,6 +409,7 @@ export const en: Messages = {
     title: 'Rupiero could not open',
     schemaTooNew: 'The data on this device was made by a newer version of Rupiero. Update the app; your data was not changed.',
     failed: 'The database could not be opened. Your data was not changed. Try again, or close and reopen the app.',
+    openInAnotherTab: 'Rupiero is open in another tab. Close it, then try again.',
     detail: 'Details: {message}',
   },
   errorBoundary: {

@@ -12,6 +12,7 @@ import { getThemePreference } from './repos/settings';
 import { serializeTransactions } from './serialize';
 // Web: must load before the database opens (see pageLifecycle.web.ts). Empty on native.
 import './pageLifecycle';
+import { isOpenInAnotherTab, retryStartup } from './startupRecovery';
 
 // One connection per process, shared by the app and the home-screen widget task. The widget task
 // runs in the app's JS runtime when the app is alive, and expo-sqlite shares native connections by
@@ -46,6 +47,8 @@ const DatabaseContext = createContext<SQLiteDatabase | null>(null);
 export function DatabaseProvider({ children }: { children: React.ReactNode }) {
   const [db, setDb] = useState<SQLiteDatabase | null>(null);
   const [error, setError] = useState<Error | null>(null);
+  // Web: the database is held by Rupiero in another tab (always false on native).
+  const [anotherTab, setAnotherTab] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const intro = useIntro();
 
@@ -58,7 +61,9 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
         if (cancelled) return;
         // The stored language could not be read; the phone's is the best guess.
         setLocale(resolveLocale('system', systemLanguageCodes()));
-        setError(e instanceof Error ? e : new Error(String(e)));
+        const failure = e instanceof Error ? e : new Error(String(e));
+        setAnotherTab(isOpenInAnotherTab(failure));
+        setError(failure);
         intro.ready();
       });
     return () => {
@@ -77,9 +82,10 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
       <ErrorScreen
         key={getLocale()}
         title={t('startup.title')}
-        message={t(tooNew ? 'startup.schemaTooNew' : 'startup.failed')}
-        detail={tooNew ? undefined : error.message}
-        onRetry={retry}
+        message={t(tooNew ? 'startup.schemaTooNew' : anotherTab ? 'startup.openInAnotherTab' : 'startup.failed')}
+        detail={tooNew || anotherTab ? undefined : error.message}
+        // Native: open again in the app. Web: reload the page (startupRecovery.web.ts).
+        onRetry={() => retryStartup(retry)}
       />
     );
   }

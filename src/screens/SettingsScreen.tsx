@@ -227,37 +227,45 @@ export default function SettingsScreen() {
             accessibilityLabel={t('header.hideBalances')}
           />
         </View>
-        <View style={styles.row}>
-          <View style={styles.rowText}>
-            <Txt variant="bodyStrong">{t('settings.hideInWidget')}</Txt>
-            <Txt variant="caption" tone="inkMuted">{t('settings.hideInWidgetHint')}</Txt>
+        {/* There is no home-screen widget on the web. */}
+        {Platform.OS !== 'web' && (
+          <View style={styles.row}>
+            <View style={styles.rowText}>
+              <Txt variant="bodyStrong">{t('settings.hideInWidget')}</Txt>
+              <Txt variant="caption" tone="inkMuted">{t('settings.hideInWidgetHint')}</Txt>
+            </View>
+            <Switch
+              value={privacy.hideInWidget}
+              onValueChange={privacy.setHideInWidget}
+              trackColor={{ false: color.line, true: color.ink }}
+              thumbColor={color.surface}
+              accessibilityLabel={t('settings.hideInWidget')}
+            />
           </View>
-          <Switch
-            value={privacy.hideInWidget}
-            onValueChange={privacy.setHideInWidget}
-            trackColor={{ false: color.line, true: color.ink }}
-            thumbColor={color.surface}
-            accessibilityLabel={t('settings.hideInWidget')}
-          />
-        </View>
+        )}
       </View>
 
-      <Txt variant="label" tone="inkMuted" style={styles.sectionLabel}>{t('settings.data')}</Txt>
-      <View style={styles.list}>
-        {[
-          { title: t('settings.exportJson'), description: t('settings.exportJsonHint'), onPress: () => run(() => shareJsonBackup(db), t('settings.exportJsonFailed')) },
-          { title: t('settings.exportCsv'), description: t('settings.exportCsvHint'), onPress: () => run(() => shareLedgerCsv(db), t('settings.exportCsvFailed')) },
-          { title: t('settings.importJson'), description: t('settings.importJsonHint'), onPress: handleImport },
-        ].map((item) => (
-          <Pressable key={item.title} onPress={item.onPress} style={styles.row} accessibilityRole="button">
-            <View style={styles.rowText}>
-              <Txt variant="bodyStrong">{item.title}</Txt>
-              <Txt variant="caption" tone="inkMuted">{item.description}</Txt>
-            </View>
-            <Txt tone="inkMuted">›</Txt>
-          </Pressable>
-        ))}
-      </View>
+      {/* Backup, import and CSV export use expo-file-system, which has no web implementation. */}
+      {Platform.OS !== 'web' && (
+        <>
+          <Txt variant="label" tone="inkMuted" style={styles.sectionLabel}>{t('settings.data')}</Txt>
+          <View style={styles.list}>
+            {[
+              { title: t('settings.exportJson'), description: t('settings.exportJsonHint'), onPress: () => run(() => shareJsonBackup(db), t('settings.exportJsonFailed')) },
+              { title: t('settings.exportCsv'), description: t('settings.exportCsvHint'), onPress: () => run(() => shareLedgerCsv(db), t('settings.exportCsvFailed')) },
+              { title: t('settings.importJson'), description: t('settings.importJsonHint'), onPress: handleImport },
+            ].map((item) => (
+              <Pressable key={item.title} onPress={item.onPress} style={styles.row} accessibilityRole="button">
+                <View style={styles.rowText}>
+                  <Txt variant="bodyStrong">{item.title}</Txt>
+                  <Txt variant="caption" tone="inkMuted">{item.description}</Txt>
+                </View>
+                <Txt tone="inkMuted">›</Txt>
+              </Pressable>
+            ))}
+          </View>
+        </>
+      )}
 
       {SHOW_DEV_TOOLS && (
         <Card style={styles.devCard}>
