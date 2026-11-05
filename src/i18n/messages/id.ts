@@ -179,6 +179,9 @@ export const id = {
     noBudgets: 'Belum ada budget bulan ini.',
     budgetsFine: 'Semua kategori masih di bawah 80% budget.',
     add: 'Catat transaksi',
+    recent: 'Transaksi terbaru',
+    viewAll: 'Lihat semua →',
+    allBudgets: 'Semua budget →',
   },
   sampleOffer: {
     title: 'Coba Rupiero dengan data contoh',

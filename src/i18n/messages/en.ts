@@ -179,6 +179,9 @@ export const en: Messages = {
     noBudgets: 'No budgets this month.',
     budgetsFine: 'All categories are still below 80% of their budget.',
     add: 'Add transaction',
+    recent: 'Recent transactions',
+    viewAll: 'View all →',
+    allBudgets: 'All budgets →',
   },
   sampleOffer: {
     title: 'Try Rupiero with sample data',

@@ -1,4 +1,30 @@
-import { budgetStatus } from '../budget';
+import { budgetStatus, sortByUsage } from '../budget';
+
+describe('sortByUsage', () => {
+  const line = (name: string, spentMinor: number, limitMinor: number) => ({ name, spentMinor, limitMinor });
+
+  it('puts the highest share of the limit first, over budget at the top', () => {
+    const sorted = sortByUsage([line('transport', 3500, 10000), line('fun', 10400, 10000), line('groceries', 7200, 10000)]);
+    expect(sorted.map((l) => l.name)).toEqual(['fun', 'groceries', 'transport']);
+  });
+
+  it('compares shares exactly, not the rounded percent', () => {
+    // 66.66…% vs 66.7%: both round to 67 %.
+    const sorted = sortByUsage([line('a', 2000, 3000), line('b', 667, 1000)]);
+    expect(sorted.map((l) => l.name)).toEqual(['b', 'a']);
+  });
+
+  it('keeps the order of equal shares and does not change the input', () => {
+    const input = [line('x', 500, 1000), line('y', 50_000, 100_000), line('z', 900, 1000)];
+    expect(sortByUsage(input).map((l) => l.name)).toEqual(['z', 'x', 'y']);
+    expect(input.map((l) => l.name)).toEqual(['x', 'y', 'z']);
+  });
+
+  it('handles IDR-sized amounts without losing precision', () => {
+    const sorted = sortByUsage([line('rent', 9_007_199_254_740_000, 9_007_199_254_740_991), line('ok', 1, 2)]);
+    expect(sorted.map((l) => l.name)).toEqual(['rent', 'ok']);
+  });
+});
 
 describe('budgetStatus', () => {
   it('reports 83 % with a warning for € 250 of € 300', () => {

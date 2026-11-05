@@ -9,6 +9,7 @@ import { listBudgets, type BudgetLine } from '../db/repos/budgets';
 import { getBaseCurrency } from '../db/repos/settings';
 import { dismissSampleData, loadSampleData, shouldOfferSampleData } from '../db/repos/sampleData';
 import { listCategories } from '../db/repos/categories';
+import { listLedger, type LedgerItem } from '../db/repos/ledger';
 import { getCategoryMonthTotals, getMonthSummary, type CategoryCurrencyTotal } from '../db/repos/reports';
 import { currentMonth, formatDayMonth, formatMonthLabel, monthRange } from '../domain/dates';
 import { budgetStatus } from '../domain/budget';
@@ -29,12 +30,16 @@ import { useIntro } from '../intro/IntroProvider';
 import { useDataRevision } from '../data/DataProvider';
 import { useQuickAdd } from '../quickadd/QuickAddProvider';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
-import { useReadableInset } from '../theme/layout';
+import { useBreakpoint, useReadableInset } from '../theme/layout';
 import { space } from '../theme/tokens';
 import { useI18n } from '../i18n/I18nProvider';
 import { renderMessage } from '../i18n/rich';
 import type { RootNavigation } from '../navigation/types';
 import { AccountsSection, BudgetsSection, CategoriesSection } from './dashboard/sections';
+import { DashboardWide } from './dashboard/DashboardWide';
+
+/** Recent ledger entries on the wide web Dashboard. */
+const RECENT_COUNT = 8;
 
 export default function DashboardScreen() {
   const db = useSQLiteContext();
@@ -49,8 +54,13 @@ export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const referenceRate = useReferenceRate();
   const toast = useToast();
+  const breakpoint = useBreakpoint();
+  // Web from 1024 px (ADR 0001): cards and a 2:1 grid. Phones, Android and narrower windows keep the column.
+  const wide = Platform.OS === 'web' && (breakpoint === 'wide' || breakpoint === 'xl');
 
   const [balances, setBalances] = useState<CurrencyBalance[]>([]);
+  // Wide web only: the newest entries of the month.
+  const [recent, setRecent] = useState<LedgerItem[]>([]);
   // Web only: the first-launch offer to try the app with sample data.
   const [offerSample, setOfferSample] = useState(false);
   const [accounts, setAccounts] = useState<AccountWithBalance[]>([]);
@@ -68,7 +78,7 @@ export default function DashboardScreen() {
   const loadData = useCallback(async () => {
     try {
       const asOf = monthRange(selectedMonth).end;
-      const [nextBalances, nextAccounts, nextBase, nextTotals, nextCategories, nextCategoryTotals, nextBudgets, nextOffer] = await Promise.all([
+      const [nextBalances, nextAccounts, nextBase, nextTotals, nextCategories, nextCategoryTotals, nextBudgets, nextOffer, nextRecent] = await Promise.all([
         getBalancesByCurrency(db, { asOf }),
         listAccountsWithBalance(db, { asOf }),
         getBaseCurrency(db),
@@ -77,8 +87,10 @@ export default function DashboardScreen() {
         getCategoryMonthTotals(db, selectedMonth),
         listBudgets(db, selectedMonth),
         Platform.OS === 'web' ? shouldOfferSampleData(db) : Promise.resolve(false),
+        wide ? listLedger(db, { month: selectedMonth, limit: RECENT_COUNT }) : Promise.resolve([]),
       ]);
       setOfferSample(nextOffer);
+      setRecent(nextRecent);
       setBudgets(nextBudgets);
       setBalances(nextBalances);
       setAccounts(nextAccounts);
@@ -93,7 +105,7 @@ export default function DashboardScreen() {
     } finally {
       introReady();
     }
-  }, [db, selectedMonth, introReady]);
+  }, [db, selectedMonth, introReady, wide]);
 
   useFocusEffect(
     useCallback(() => {
@@ -136,6 +148,13 @@ export default function DashboardScreen() {
   const budgetAlerts = budgets
     .map((line) => ({ line, status: budgetStatus(line.spentMinor, line.limitMinor) }))
     .filter(({ status }) => status.level !== 'ok');
+  const balanceLabel = isCurrentMonth ? t('dashboard.balanceNow') : t('dashboard.balanceEnd', { month: monthLabel });
+  const top = (
+    <>
+      {failed && <LoadError onRetry={loadData} />}
+      {offerSample && <SampleDataOffer onLoad={loadSample} onDismiss={dismissSample} style={styles.offer} />}
+    </>
+  );
 
   return (
     <View style={styles.screen}>
@@ -145,53 +164,75 @@ export default function DashboardScreen() {
         onPressSettings={() => navigation.navigate('Settings')}
       />
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingHorizontal: inset }]}
+        // The wide layout sets its own width and padding.
+        contentContainerStyle={[styles.content, { paddingHorizontal: wide ? 0 : inset }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={color.ink} />}
       >
-        {failed && <LoadError onRetry={loadData} />}
-        {offerSample && <SampleDataOffer onLoad={loadSample} onDismiss={dismissSample} style={styles.offer} />}
-        <BalanceHero label={isCurrentMonth ? t('dashboard.balanceNow') : t('dashboard.balanceEnd', { month: monthLabel })} balances={balances} roll={roll} />
-        {Platform.OS === 'web' ? (
-          // Web (ADR 0001): the total in the chosen base currency, whenever there is a balance, and a
-          // message instead of the figure until an ECB rate has been fetched.
-          balances.length > 0 && (
-            <CombinedTotal balances={balances} base={baseCurrency} rate={referenceRate} style={styles.total} />
-          )
+        {wide ? (
+          <DashboardWide
+            top={top}
+            balanceLabel={balanceLabel}
+            balances={balances}
+            roll={roll}
+            baseCurrency={baseCurrency}
+            referenceRate={referenceRate}
+            flowTitle={t('dashboard.flow', { month: monthLabel })}
+            totals={totals}
+            recent={recent}
+            budgets={budgets}
+            accounts={accounts}
+            categories={categories}
+            categoryTotals={categoryTotals}
+            month={selectedMonth}
+            isCurrentMonth={isCurrentMonth}
+          />
         ) : (
-          combined !== null &&
-          referenceRate && (
-            <Txt variant="caption" tone="inkMuted" style={styles.combined}>
-              {renderMessage('dashboard.combined', {
-                amount: <Money minor={combined} currency={baseCurrency} variant="caption" tone="inkMuted" />,
-                date: formatDayMonth(referenceRate.date),
-              })}
-            </Txt>
-          )
+          <>
+            {top}
+            <BalanceHero label={balanceLabel} balances={balances} roll={roll} />
+            {Platform.OS === 'web' ? (
+              // Web (ADR 0001): the total in the chosen base currency, whenever there is a balance, and a
+              // message instead of the figure until an ECB rate has been fetched.
+              balances.length > 0 && (
+                <CombinedTotal balances={balances} base={baseCurrency} rate={referenceRate} style={styles.total} />
+              )
+            ) : (
+              combined !== null &&
+              referenceRate && (
+                <Txt variant="caption" tone="inkMuted" style={styles.combined}>
+                  {renderMessage('dashboard.combined', {
+                    amount: <Money minor={combined} currency={baseCurrency} variant="caption" tone="inkMuted" />,
+                    date: formatDayMonth(referenceRate.date),
+                  })}
+                </Txt>
+              )
+            )}
+
+            <View style={styles.section}>
+              <MonthFlow title={t('dashboard.flow', { month: monthLabel })} totals={totals} />
+              <Pressable
+                onPress={() => navigation.navigate('Transactions', { month: selectedMonth })}
+                style={styles.row}
+                accessibilityRole="button"
+              >
+                <Txt variant="bodyStrong" style={styles.rowText}>{t('dashboard.allTransactions')}</Txt>
+                <Txt tone="inkMuted" style={styles.chevron}>›</Txt>
+              </Pressable>
+              <Pressable
+                onPress={() => navigation.navigate('Insights', { month: selectedMonth })}
+                style={styles.row}
+                accessibilityRole="button"
+              >
+                <Txt variant="bodyStrong" style={styles.rowText}>{t('dashboard.charts')}</Txt>
+                <Txt tone="inkMuted" style={styles.chevron}>›</Txt>
+              </Pressable>
+            </View>
+
+            <BudgetsSection budgets={budgets} shown={budgetAlerts} emptyNote={t('dashboard.budgetsFine')} month={selectedMonth} />
+            <AccountsSection accounts={accounts} month={selectedMonth} />
+            <CategoriesSection categories={categories} categoryTotals={categoryTotals} totals={totals} month={selectedMonth} />
+          </>
         )}
-
-        <View style={styles.section}>
-          <MonthFlow title={t('dashboard.flow', { month: monthLabel })} totals={totals} />
-          <Pressable
-            onPress={() => navigation.navigate('Transactions', { month: selectedMonth })}
-            style={styles.row}
-            accessibilityRole="button"
-          >
-            <Txt variant="bodyStrong" style={styles.rowText}>{t('dashboard.allTransactions')}</Txt>
-            <Txt tone="inkMuted" style={styles.chevron}>›</Txt>
-          </Pressable>
-          <Pressable
-            onPress={() => navigation.navigate('Insights', { month: selectedMonth })}
-            style={styles.row}
-            accessibilityRole="button"
-          >
-            <Txt variant="bodyStrong" style={styles.rowText}>{t('dashboard.charts')}</Txt>
-            <Txt tone="inkMuted" style={styles.chevron}>›</Txt>
-          </Pressable>
-        </View>
-
-        <BudgetsSection budgets={budgets} shown={budgetAlerts} emptyNote={t('dashboard.budgetsFine')} month={selectedMonth} />
-        <AccountsSection accounts={accounts} month={selectedMonth} />
-        <CategoriesSection categories={categories} categoryTotals={categoryTotals} totals={totals} month={selectedMonth} />
       </ScrollView>
       <Pressable
         onPress={() => quickAdd.open()}

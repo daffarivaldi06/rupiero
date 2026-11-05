@@ -21,3 +21,14 @@ export function budgetStatus(spentMinor: number, limitMinor: number): BudgetStat
   const level: BudgetLevel = spent > limit ? 'over' : spent * 100n >= BigInt(WARNING_PERCENT) * limit ? 'warning' : 'ok';
   return { spentMinor, limitMinor, remainingMinor: limitMinor - spentMinor, percent, level };
 }
+
+/**
+ * Budgets by share of the limit used, highest first. Compared exactly (spent × other limit, in
+ * BigInt), so two budgets with the same rounded percent still sort right; equal shares keep their order.
+ */
+export function sortByUsage<T extends { spentMinor: number; limitMinor: number }>(lines: readonly T[]): T[] {
+  return [...lines].sort((a, b) => {
+    const diff = BigInt(b.spentMinor) * BigInt(a.limitMinor) - BigInt(a.spentMinor) * BigInt(b.limitMinor);
+    return diff > 0n ? 1 : diff < 0n ? -1 : 0;
+  });
+}
