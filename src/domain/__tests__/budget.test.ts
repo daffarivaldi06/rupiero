@@ -1,4 +1,25 @@
-import { budgetStatus, sortByUsage } from '../budget';
+import { budgetStatus, sortByHighestUsage, sortByUsage } from '../budget';
+
+describe('sortByHighestUsage', () => {
+  const lines: Record<string, { spentMinor: number; limitMinor: number }[]> = {
+    salary: [],
+    rent: [{ spentMinor: 65000, limitMinor: 60000 }],
+    bills: [{ spentMinor: 3999, limitMinor: 10000 }, { spentMinor: 450_000, limitMinor: 500_000 }],
+    food: [],
+    transport: [{ spentMinor: 8640, limitMinor: 10000 }],
+    fun: [{ spentMinor: 0, limitMinor: 5000 }],
+  };
+  const sorted = (names: string[]) => sortByHighestUsage(names, (n) => lines[n]);
+
+  it('ranks a category by its most-used currency', () => {
+    // bills: 40 % in EUR but 90 % in IDR, so it goes above transport (86 %).
+    expect(sorted(['salary', 'rent', 'bills', 'food', 'transport', 'fun'])).toEqual(['rent', 'bills', 'transport', 'fun', 'salary', 'food']);
+  });
+
+  it('puts categories without a budget last, in their order', () => {
+    expect(sorted(['food', 'salary', 'fun'])).toEqual(['fun', 'food', 'salary']);
+  });
+});
 
 describe('sortByUsage', () => {
   const line = (name: string, spentMinor: number, limitMinor: number) => ({ name, spentMinor, limitMinor });
