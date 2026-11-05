@@ -236,13 +236,29 @@ follows in every session:
 
 ## Status and next steps
 
-*To be written after the demo on 13 November 2026.*
+**What works** (web build, phone and laptop widths):
 
-Known limits:
+- All four stories: income and expenses in EUR and IDR, the total in EUR or IDR at the ECB rate, budgets per
+  category, and trying the app in the browser with sample data.
+- From 1024 px: a sidebar with a URL per section, the Dashboard in cards and a 2:1 grid, transactions in a table,
+  Budget and Charts in two columns, quick-add as a dialog, and keyboard input (amounts, Enter, Esc, N).
+- Below 1024 px and on Android: the phone layout, unchanged.
+
+**Known limits:**
+
 - **Data stays in one browser.** It is stored in that browser profile only. Another device, another browser, a
   private window or clearing site data each start empty.
-- **One tab at a time.** A second tab cannot open the database while the first one is open.
-- **expo-sqlite on the web is alpha.** Expo labels its web support as alpha and possibly unstable.
+- **One tab at a time.** A second tab cannot open the database while the first one is open; it says so and offers to
+  try again.
+- **expo-sqlite on the web is alpha.** Expo labels its web support as alpha and possibly unstable, and two fixes here
+  (`pageLifecycle.web.ts`, `startupRecovery.web.ts`) depend on its current version.
+- **Not deployed yet.** The Vercel configuration is ready, but the first deploy and its header check are still to do.
+
+**Backlog:** the list under [Features](#features-user-stories), led by the date picker on the web.
+
+**Natural next step:** deploy to Vercel, check the headers on the preview (`curl -I`), run
+`npm run test:e2e -- <preview URL>`, then merge `demo/develop` into `demo/main` for the demo on 13 November. After
+the course, the date picker on the web is the most useful missing piece.
 
 ---
 
