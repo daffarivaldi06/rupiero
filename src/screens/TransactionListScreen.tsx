@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { useSQLiteContext } from '../db/DatabaseProvider';
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
@@ -20,7 +20,8 @@ import type { RootNavigation, RootStackParamList } from '../navigation/types';
 import { useDataRevision } from '../data/DataProvider';
 import { useQuickAdd } from '../quickadd/QuickAddProvider';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
-import { useBreakpoint, useReadableInset } from '../theme/layout';
+import { useReadableInset } from '../theme/layout';
+import { useDesktopLayout } from '../navigation/useDesktopLayout';
 import { DesktopHeader } from '../components/DesktopHeader';
 import { LedgerTableDay, LedgerTableHead, LedgerTableRow } from './transactions/LedgerTable';
 import { space } from '../theme/tokens';
@@ -50,14 +51,8 @@ export default function TransactionListScreen() {
   const { t } = useI18n();
   const quickAdd = useQuickAdd();
   const { revision } = useDataRevision();
-  const breakpoint = useBreakpoint();
   // Web from 1024 px (ADR 0001): desktop header and a table. Phones, Android and narrower windows keep the list.
-  const wide = Platform.OS === 'web' && (breakpoint === 'wide' || breakpoint === 'xl');
-
-  // On wide web the desktop header replaces the stack header; it comes back when the window narrows.
-  useLayoutEffect(() => {
-    if (Platform.OS === 'web') navigation.setOptions({ headerShown: !wide });
-  }, [navigation, wide]);
+  const wide = useDesktopLayout();
 
   const [month, setMonth] = useState(route.params?.month ?? currentMonth());
   const [type, setType] = useState<LedgerTypeFilter>('all');

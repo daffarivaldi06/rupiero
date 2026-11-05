@@ -27,8 +27,24 @@ export function budgetStatus(spentMinor: number, limitMinor: number): BudgetStat
  * BigInt), so two budgets with the same rounded percent still sort right; equal shares keep their order.
  */
 export function sortByUsage<T extends { spentMinor: number; limitMinor: number }>(lines: readonly T[]): T[] {
-  return [...lines].sort((a, b) => {
-    const diff = BigInt(b.spentMinor) * BigInt(a.limitMinor) - BigInt(a.spentMinor) * BigInt(b.limitMinor);
-    return diff > 0n ? 1 : diff < 0n ? -1 : 0;
-  });
+  return [...lines].sort(byUsage);
+}
+
+type Usage = { spentMinor: number; limitMinor: number };
+
+/** Highest share first: spent ÷ limit compared exactly, by cross-multiplying in BigInt. */
+function byUsage(a: Usage, b: Usage): number {
+  const diff = BigInt(b.spentMinor) * BigInt(a.limitMinor) - BigInt(a.spentMinor) * BigInt(b.limitMinor);
+  return diff > 0n ? 1 : diff < 0n ? -1 : 0;
+}
+
+/**
+ * Groups (categories) by the highest share used among their budget lines (one per currency),
+ * highest first. Groups without a budget go last; ties keep their order.
+ */
+export function sortByHighestUsage<G>(groups: readonly G[], linesOf: (group: G) => readonly Usage[]): G[] {
+  const top = groups.map((group) => ({ group, line: sortByUsage(linesOf(group))[0] ?? null }));
+  return top
+    .sort((a, b) => (a.line && b.line ? byUsage(a.line, b.line) : a.line ? -1 : b.line ? 1 : 0))
+    .map(({ group }) => group);
 }

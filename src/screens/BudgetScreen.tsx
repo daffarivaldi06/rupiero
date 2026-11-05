@@ -5,15 +5,19 @@ import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-
 
 import { copyBudgetsFromPreviousMonth, listBudgets, type BudgetLine } from '../db/repos/budgets';
 import { listCategories } from '../db/repos/categories';
-import { budgetStatus } from '../domain/budget';
+import { budgetStatus, sortByHighestUsage } from '../domain/budget';
 import { addMonths, currentMonth, formatMonthLabel, formatMonthName } from '../domain/dates';
 import type { Category } from '../domain/types';
 import { BudgetBar } from '../components/BudgetBar';
 import { Button } from '../components/Button';
+import { Card } from '../components/Card';
+import { DesktopHeader } from '../components/DesktopHeader';
 import { Txt } from '../components/Txt';
 import { LoadError } from '../components/LoadError';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
-import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useDesktopLayout } from '../navigation/useDesktopLayout';
+import { useQuickAdd } from '../quickadd/QuickAddProvider';
+import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { useReadableInset } from '../theme/layout';
 import { space } from '../theme/tokens';
 import { useI18n } from '../i18n/I18nProvider';
@@ -27,6 +31,10 @@ export default function BudgetScreen() {
   const inset = useReadableInset(space.lg);
   const { t } = useI18n();
   const toast = useToast();
+  const { layout } = useTheme();
+  const quickAdd = useQuickAdd();
+  // Web from 1024 px: desktop header and a grid of cards. Phones, Android and narrower windows keep the list.
+  const wide = useDesktopLayout();
 
   const [month, setMonth] = useState(route.params?.month ?? currentMonth());
   const [categories, setCategories] = useState<Category[]>([]);
@@ -51,6 +59,8 @@ export default function BudgetScreen() {
     }, [load]),
   );
 
+  const copyLabel = t('budget.copyFrom', { month: formatMonthName(addMonths(month, -1)) });
+
   const copyPrevious = async () => {
     try {
       const added = await copyBudgetsFromPreviousMonth(db, month);
@@ -66,6 +76,37 @@ export default function BudgetScreen() {
     }
   };
 
+  if (wide) {
+    // Wide web (ADR 0001): a 2-column grid of cards, the most-used budgets first.
+    const lines = (category: Category) => budgets.filter((b) => b.categoryId === category.id);
+    return (
+      <View style={styles.screen}>
+        <DesktopHeader title={t('nav.budget')} month={month} onChangeMonth={setMonth} onAdd={() => quickAdd.open()} />
+        <ScrollView contentContainerStyle={[styles.content, styles.wideContent, { maxWidth: layout.contentMaxWidth }]}>
+          {failed && <LoadError onRetry={load} />}
+          <Button title={copyLabel} variant="outline" onPress={copyPrevious} style={styles.copyWide} />
+          <View style={styles.grid}>
+            {sortByHighestUsage(categories, lines).map((category) => (
+              <View key={category.id} style={styles.cell}>
+                <Pressable onPress={() => navigation.navigate('BudgetForm', { categoryId: category.id, month })} style={styles.cellPress} accessibilityRole="button">
+                  <Card style={styles.card}>
+                    <View style={styles.rowHeader}>
+                      <Txt variant="bodyStrong" style={styles.rowTitle} numberOfLines={1}>{category.name}</Txt>
+                      <Txt tone="inkMuted">{lines(category).length === 0 ? t('common.setMore') : '›'}</Txt>
+                    </View>
+                    {lines(category).map((line) => (
+                      <BudgetBar key={line.currency} status={budgetStatus(line.spentMinor, line.limitMinor)} currency={line.currency} />
+                    ))}
+                  </Card>
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={[styles.content, { paddingHorizontal: inset }]}>
       <View style={styles.monthRow}>
@@ -79,7 +120,7 @@ export default function BudgetScreen() {
       </View>
 
       {failed && <LoadError onRetry={load} />}
-      <Button title={t('budget.copyFrom', { month: formatMonthName(addMonths(month, -1)) })} variant="outline" onPress={copyPrevious} />
+      <Button title={copyLabel} variant="outline" onPress={copyPrevious} />
 
       <View style={styles.list}>
         {categories.map((category) => {
@@ -141,5 +182,38 @@ const makeStyles = ({ color, space }: Theme) =>
     },
     rowTitle: {
       flex: 1,
+    },
+    // Wide web only.
+    screen: {
+      flex: 1,
+      backgroundColor: color.bg,
+    },
+    wideContent: {
+      width: '100%',
+      alignSelf: 'center',
+      paddingHorizontal: space.xl,
+    },
+    copyWide: {
+      alignSelf: 'flex-start',
+    },
+    // Two equal columns: each cell is half the row, the gap comes from the cells' padding.
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginTop: space.md,
+      marginHorizontal: -space.sm,
+    },
+    cell: {
+      width: '50%',
+      paddingHorizontal: space.sm,
+      marginBottom: space.lg,
+    },
+    cellPress: {
+      flex: 1,
+    },
+    card: {
+      flex: 1,
+      marginVertical: 0,
+      gap: space.xs,
     },
   });

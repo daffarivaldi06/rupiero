@@ -7,6 +7,8 @@ import { getCategoryBreakdown, getMonthlyTrend, type CategorySpending, type Mont
 import { topShares } from '../domain/chart';
 import { addMonths, currentMonth, formatMonthLabel, type Month } from '../domain/dates';
 import { CURRENCY_CODES, type CurrencyCode } from '../domain/money';
+import { Card } from '../components/Card';
+import { DesktopHeader } from '../components/DesktopHeader';
 import { DonutChart } from '../components/DonutChart';
 import { Money } from '../components/Money';
 import { TrendBars } from '../components/TrendBars';
@@ -14,6 +16,8 @@ import { Txt } from '../components/Txt';
 import { LoadError } from '../components/LoadError';
 import { useDataRevision } from '../data/DataProvider';
 import type { RootStackParamList } from '../navigation/types';
+import { useDesktopLayout } from '../navigation/useDesktopLayout';
+import { useQuickAdd } from '../quickadd/QuickAddProvider';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { useReadableInset } from '../theme/layout';
 import { space } from '../theme/tokens';
@@ -31,6 +35,10 @@ export default function InsightsScreen() {
   const inset = useReadableInset(space.lg);
   const { t } = useI18n();
   const { revision } = useDataRevision();
+  const { layout } = useTheme();
+  const quickAdd = useQuickAdd();
+  // Web from 1024 px: desktop header and the currencies side by side. Phones, Android and narrower windows keep the column.
+  const wide = useDesktopLayout();
 
   const [month, setMonth] = useState<Month>(route.params?.month ?? currentMonth());
   const [breakdown, setBreakdown] = useState<CategorySpending[]>([]);
@@ -69,6 +77,87 @@ export default function InsightsScreen() {
   const hue = (currency: CurrencyCode) => (currency === 'EUR' ? color.eur : color.idrText);
   const currencies = CURRENCY_CODES.filter((c) => trend.some((point) => point.currency === c)).sort();
 
+  /** One currency: total, donut with legend, top shares, six-month trend. The same on every layout. */
+  const section = (currency: CurrencyCode) => {
+    const items = breakdown
+      .filter((b) => b.currency === currency)
+      .map((b) => ({ key: b.categoryId ?? 0, label: b.name, value: b.expenseMinor }));
+    const shares = topShares(items, TOP);
+    const total = items.reduce((sum, i) => sum + i.value, 0);
+    const points = trend.filter((point) => point.currency === currency).map((point) => ({ month: point.month, value: point.expenseMinor }));
+    const trendBars = <TrendBars points={points} currency={currency} color={hue(currency)} selected={month} onSelect={changeMonth} />;
+    return (
+      <>
+        <Txt variant="code" tone={currency === 'EUR' ? 'eur' : 'idrText'}>{currency}</Txt>
+        <Txt variant="label" tone="inkMuted">{t('categorySummary.expenseIn', { month: formatMonthLabel(month) })}</Txt>
+        <Money minor={total} currency={currency} variant="display" />
+        <View style={styles.topRule} />
+
+        {shares.length === 0 ? (
+          <Txt tone="inkMuted" style={styles.empty}>{t('insights.empty')}</Txt>
+        ) : (
+          <View style={styles.breakdown}>
+            <DonutChart
+              slices={shares.map((s, i) => ({ key: String(s.key), value: s.value, color: hue(currency), opacity: OPACITIES[i] }))}
+              trackColor={color.line}
+            />
+            <View style={styles.legend}>
+              {shares.map((share, i) => (
+                <View key={String(share.key)} style={styles.legendRow}>
+                  <View style={[styles.swatch, { backgroundColor: hue(currency), opacity: OPACITIES[i] }]} />
+                  <Txt variant="caption" style={styles.legendLabel} numberOfLines={1}>{share.label}</Txt>
+                  <Txt variant="caption" tone="inkMuted" style={styles.percent}>{share.percent}%</Txt>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {shares.length > 0 && (
+          <View style={styles.table}>
+            {shares.map((share) => (
+              <View key={String(share.key)} style={styles.tableRow}>
+                <Txt style={styles.legendLabel} numberOfLines={1}>{share.label}</Txt>
+                <Money minor={share.value} currency={currency} variant="bodyStrong" />
+              </View>
+            ))}
+          </View>
+        )}
+
+        <Txt variant="label" tone="inkMuted" style={styles.trendTitle}>{t('insights.trend')}</Txt>
+        {/* Wide web: bars stop widening at a readable width instead of stretching across the card. */}
+        {wide ? <View style={styles.trendWide}>{trendBars}</View> : trendBars}
+      </>
+    );
+  };
+
+  const statusMessage = (
+    <>
+      {status === 'loading' && <ActivityIndicator style={styles.empty} accessibilityLabel={t('common.loading')} />}
+      {status === 'failed' && <LoadError onRetry={load} />}
+      {status === 'ready' && currencies.length === 0 && <Txt tone="inkMuted" style={styles.empty}>{t('insights.noData')}</Txt>}
+    </>
+  );
+
+  if (wide) {
+    // Wide web (ADR 0001): one column per currency, EUR beside IDR; a lone currency keeps half the width.
+    return (
+      <View style={styles.screen}>
+        <DesktopHeader title={t('nav.insights')} month={month} onChangeMonth={changeMonth} onAdd={() => quickAdd.open()} />
+        <ScrollView contentContainerStyle={[styles.content, styles.wideContent, { maxWidth: layout.contentMaxWidth }]}>
+          {statusMessage}
+          <View style={styles.grid}>
+            {currencies.map((currency) => (
+              <View key={currency} style={styles.cell}>
+                <Card style={styles.card}>{section(currency)}</Card>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={[styles.content, { paddingHorizontal: inset }]}>
       <View style={styles.monthRow}>
@@ -81,59 +170,12 @@ export default function InsightsScreen() {
         </Pressable>
       </View>
 
-      {status === 'loading' && <ActivityIndicator style={styles.empty} accessibilityLabel={t('common.loading')} />}
-      {status === 'failed' && <LoadError onRetry={load} />}
-      {status === 'ready' && currencies.length === 0 && <Txt tone="inkMuted" style={styles.empty}>{t('insights.noData')}</Txt>}
-      {currencies.map((currency) => {
-        const items = breakdown
-          .filter((b) => b.currency === currency)
-          .map((b) => ({ key: b.categoryId ?? 0, label: b.name, value: b.expenseMinor }));
-        const shares = topShares(items, TOP);
-        const total = items.reduce((sum, i) => sum + i.value, 0);
-        const points = trend.filter((point) => point.currency === currency).map((point) => ({ month: point.month, value: point.expenseMinor }));
-        return (
-          <View key={currency} style={styles.section}>
-            <Txt variant="code" tone={currency === 'EUR' ? 'eur' : 'idrText'}>{currency}</Txt>
-            <Txt variant="label" tone="inkMuted">{t('categorySummary.expenseIn', { month: formatMonthLabel(month) })}</Txt>
-            <Money minor={total} currency={currency} variant="display" />
-            <View style={styles.topRule} />
-
-            {shares.length === 0 ? (
-              <Txt tone="inkMuted" style={styles.empty}>{t('insights.empty')}</Txt>
-            ) : (
-              <View style={styles.breakdown}>
-                <DonutChart
-                  slices={shares.map((s, i) => ({ key: String(s.key), value: s.value, color: hue(currency), opacity: OPACITIES[i] }))}
-                  trackColor={color.line}
-                />
-                <View style={styles.legend}>
-                  {shares.map((share, i) => (
-                    <View key={String(share.key)} style={styles.legendRow}>
-                      <View style={[styles.swatch, { backgroundColor: hue(currency), opacity: OPACITIES[i] }]} />
-                      <Txt variant="caption" style={styles.legendLabel} numberOfLines={1}>{share.label}</Txt>
-                      <Txt variant="caption" tone="inkMuted" style={styles.percent}>{share.percent}%</Txt>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {shares.length > 0 && (
-              <View style={styles.table}>
-                {shares.map((share) => (
-                  <View key={String(share.key)} style={styles.tableRow}>
-                    <Txt style={styles.legendLabel} numberOfLines={1}>{share.label}</Txt>
-                    <Money minor={share.value} currency={currency} variant="bodyStrong" />
-                  </View>
-                ))}
-              </View>
-            )}
-
-            <Txt variant="label" tone="inkMuted" style={styles.trendTitle}>{t('insights.trend')}</Txt>
-            <TrendBars points={points} currency={currency} color={hue(currency)} selected={month} onSelect={changeMonth} />
-          </View>
-        );
-      })}
+      {statusMessage}
+      {currencies.map((currency) => (
+        <View key={currency} style={styles.section}>
+          {section(currency)}
+        </View>
+      ))}
     </ScrollView>
   );
 }
@@ -211,5 +253,33 @@ const makeStyles = ({ color, space }: Theme) =>
     trendTitle: {
       marginTop: space.lg,
       marginBottom: space.sm,
+    },
+    // Wide web only.
+    screen: {
+      flex: 1,
+      backgroundColor: color.bg,
+    },
+    wideContent: {
+      width: '100%',
+      alignSelf: 'center',
+      paddingHorizontal: space.xl,
+    },
+    // Two equal columns; a lone currency keeps half the width rather than stretching.
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginHorizontal: -space.sm,
+    },
+    cell: {
+      width: '50%',
+      paddingHorizontal: space.sm,
+      marginBottom: space.lg,
+    },
+    card: {
+      flex: 1,
+      marginVertical: 0,
+    },
+    trendWide: {
+      maxWidth: 480,
     },
   });
