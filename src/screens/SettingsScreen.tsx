@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Alert, ScrollView, Pressable, Switch } from 'react-native';
+import { View, StyleSheet, Alert, ScrollView, Pressable, Switch, Platform } from 'react-native';
 import { useSQLiteContext } from '../db/DatabaseProvider';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
@@ -16,7 +16,8 @@ import { useReadableInset } from '../theme/layout';
 import { space } from '../theme/tokens';
 import type { RootNavigation } from '../navigation/types';
 import { usePrivacy } from '../privacy/PrivacyProvider';
-import { getThemePreference, setThemePreference } from '../db/repos/settings';
+import { getBaseCurrency, getThemePreference, setBaseCurrency, setThemePreference } from '../db/repos/settings';
+import type { CurrencyCode } from '../domain/money';
 import { applyThemePreference, THEME_PREFERENCES, type ThemePreference } from '../theme/themePreference';
 import { useI18n } from '../i18n/I18nProvider';
 import { useToast } from '../feedback/ToastProvider';
@@ -38,6 +39,12 @@ const THEME_LABEL: Record<ThemePreference, MessageKey> = {
   dark: 'settings.themeDark',
 };
 
+const BASE_CURRENCY_LABEL: Record<CurrencyCode, MessageKey> = {
+  EUR: 'settings.baseCurrencyEur',
+  IDR: 'settings.baseCurrencyIdr',
+};
+const BASE_CURRENCIES = Object.keys(BASE_CURRENCY_LABEL) as CurrencyCode[];
+
 /** Each language is named in itself, so it can be found whatever the current language is. */
 const LANGUAGE_LABEL: Record<LanguagePreference, MessageKey> = {
   system: 'settings.languageSystem',
@@ -57,12 +64,15 @@ export default function SettingsScreen() {
   const systemLocale = resolveLocale('system', systemLanguageCodes());
   const [schemaVersion, setSchemaVersion] = useState<number>();
   const [theme, setTheme] = useState<ThemePreference>('system');
+  // Web only for now: the base-currency choice and the Dashboard total it drives (ADR 0001).
+  const [baseCurrency, setBase] = useState<CurrencyCode>('EUR');
 
   useFocusEffect(
     useCallback(() => {
       (async () => {
         setSchemaVersion(await getUserVersion(db));
         setTheme(await getThemePreference(db));
+        if (Platform.OS === 'web') setBase(await getBaseCurrency(db));
       })().catch(console.error);
     }, [db])
   );
@@ -80,6 +90,11 @@ export default function SettingsScreen() {
     setTheme(next);
     applyThemePreference(next);
     setThemePreference(db, next).catch(console.error);
+  };
+
+  const changeBaseCurrency = (next: CurrencyCode) => {
+    setBase(next);
+    setBaseCurrency(db, next).catch(console.error);
   };
 
   const handleImport = async () => {
@@ -180,6 +195,22 @@ export default function SettingsScreen() {
           <RadioRow key={option} label={t(THEME_LABEL[option])} selected={theme === option} onPress={() => changeTheme(option)} />
         ))}
       </View>
+
+      {Platform.OS === 'web' && (
+        <>
+          <Txt variant="label" tone="inkMuted" style={styles.sectionLabel}>{t('settings.baseCurrency')}</Txt>
+          <View style={styles.list} accessibilityRole="radiogroup">
+            {BASE_CURRENCIES.map((option) => (
+              <RadioRow
+                key={option}
+                label={t(BASE_CURRENCY_LABEL[option])}
+                selected={baseCurrency === option}
+                onPress={() => changeBaseCurrency(option)}
+              />
+            ))}
+          </View>
+        </>
+      )}
 
       <Txt variant="label" tone="inkMuted" style={styles.sectionLabel}>{t('settings.privacy')}</Txt>
       <View style={styles.list}>
