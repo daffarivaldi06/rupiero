@@ -10,6 +10,8 @@ import { SchemaTooNewError } from './migrations';
 import { DATABASE_NAME, initDb } from './init';
 import { getThemePreference } from './repos/settings';
 import { serializeTransactions } from './serialize';
+// Web: must load before the database opens (see pageLifecycle.web.ts). Empty on native.
+import './pageLifecycle';
 
 // One connection per process, shared by the app and the home-screen widget task. The widget task
 // runs in the app's JS runtime when the app is alive, and expo-sqlite shares native connections by
