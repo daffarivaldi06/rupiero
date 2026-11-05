@@ -3,6 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useI18n } from '../i18n/I18nProvider';
 import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import type { QuickAddModalProps } from './QuickAddModal.types';
+import { isTextField } from './textField';
 
 /** Width of the dialog on wide screens. */
 const WIDTH = 460;
@@ -14,8 +15,13 @@ const WIDTH = 460;
 export function QuickAddModal({ visible, onClose, contentContainerStyle, children }: QuickAddModalProps) {
   const styles = useThemedStyles(makeStyles);
   const { t } = useI18n();
+  // react-native-web closes a Modal on any Escape keyup in the document. Escape while typing the
+  // note stays the note's, as in the bottom sheet (useKeyboardKeypad).
+  const requestClose = () => {
+    if (!isTextField(document.activeElement)) onClose();
+  };
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={requestClose}>
       <View style={styles.overlay}>
         <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel={t('common.close')} />
         <View style={styles.card} role="dialog" aria-modal>
