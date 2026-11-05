@@ -180,6 +180,13 @@ export const id = {
     budgetsFine: 'Semua kategori masih di bawah 80% budget.',
     add: 'Catat transaksi',
   },
+  sampleOffer: {
+    title: 'Coba Rupiero dengan data contoh',
+    body: 'Muat contoh akun dan transaksi selama tiga bulan dalam EUR dan IDR. Data hanya disimpan di browser ini.',
+    load: 'Muat data contoh',
+    dismiss: 'Tidak, terima kasih',
+    failed: 'Data contoh tidak dapat dimuat',
+  },
   insights: {
     empty: 'Belum ada pengeluaran bulan ini.',
     trend: '6 bulan terakhir',

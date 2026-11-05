@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getBalancesByCurrency, listAccountsWithBalance } from '../db/repos/accounts';
 import { listBudgets, type BudgetLine } from '../db/repos/budgets';
 import { getBaseCurrency } from '../db/repos/settings';
+import { dismissSampleData, loadSampleData, shouldOfferSampleData } from '../db/repos/sampleData';
 import { listCategories } from '../db/repos/categories';
 import { getCategoryMonthTotals, getMonthSummary, type CategoryCurrencyTotal } from '../db/repos/reports';
 import { currentMonth, formatDayMonth, formatMonthLabel, monthRange } from '../domain/dates';
@@ -18,6 +19,8 @@ import { AppHeader } from '../components/AppHeader';
 import { BalanceHero } from '../components/BalanceHero';
 import { BudgetBar } from '../components/BudgetBar';
 import { CombinedTotal } from '../components/CombinedTotal';
+import { SampleDataOffer } from '../components/SampleDataOffer';
+import { useToast } from '../feedback/ToastProvider';
 import { Money } from '../components/Money';
 import { MonthFlow } from '../components/MonthFlow';
 import { LoadError } from '../components/LoadError';
@@ -45,8 +48,11 @@ export default function DashboardScreen() {
   const { revision } = useDataRevision();
   const insets = useSafeAreaInsets();
   const referenceRate = useReferenceRate();
+  const toast = useToast();
 
   const [balances, setBalances] = useState<CurrencyBalance[]>([]);
+  // Web only: the first-launch offer to try the app with sample data.
+  const [offerSample, setOfferSample] = useState(false);
   const [accounts, setAccounts] = useState<AccountWithBalance[]>([]);
   const [baseCurrency, setBaseCurrency] = useState<CurrencyCode>('EUR');
   const [totals, setTotals] = useState<CurrencyTotals[]>([]);
@@ -62,7 +68,7 @@ export default function DashboardScreen() {
   const loadData = useCallback(async () => {
     try {
       const asOf = monthRange(selectedMonth).end;
-      const [nextBalances, nextAccounts, nextBase, nextTotals, nextCategories, nextCategoryTotals, nextBudgets] = await Promise.all([
+      const [nextBalances, nextAccounts, nextBase, nextTotals, nextCategories, nextCategoryTotals, nextBudgets, nextOffer] = await Promise.all([
         getBalancesByCurrency(db, { asOf }),
         listAccountsWithBalance(db, { asOf }),
         getBaseCurrency(db),
@@ -70,7 +76,9 @@ export default function DashboardScreen() {
         listCategories(db),
         getCategoryMonthTotals(db, selectedMonth),
         listBudgets(db, selectedMonth),
+        Platform.OS === 'web' ? shouldOfferSampleData(db) : Promise.resolve(false),
       ]);
+      setOfferSample(nextOffer);
       setBudgets(nextBudgets);
       setBalances(nextBalances);
       setAccounts(nextAccounts);
@@ -99,6 +107,22 @@ export default function DashboardScreen() {
     if (revision > 0) loadData();
   }, [revision, loadData]);
 
+  const loadSample = async () => {
+    setOfferSample(false);
+    try {
+      await loadSampleData(db);
+    } catch (e) {
+      console.error(e);
+      setOfferSample(true);
+      toast.show(t('sampleOffer.failed'), { tone: 'error' });
+    }
+  };
+
+  const dismissSample = () => {
+    setOfferSample(false);
+    dismissSampleData(db).catch(console.error);
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     await loadData();
@@ -126,6 +150,7 @@ export default function DashboardScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={color.ink} />}
       >
         {failed && <LoadError onRetry={loadData} />}
+        {offerSample && <SampleDataOffer onLoad={loadSample} onDismiss={dismissSample} style={styles.offer} />}
         <BalanceHero label={isCurrentMonth ? t('dashboard.balanceNow') : t('dashboard.balanceEnd', { month: monthLabel })} balances={balances} roll={roll} />
         {Platform.OS === 'web' ? (
           // Web (ADR 0001): the total in the chosen base currency, whenever there is a balance, and a
@@ -306,6 +331,9 @@ const makeStyles = ({ color, radius, space }: Theme) =>
     },
     total: {
       marginTop: space.lg,
+    },
+    offer: {
+      marginBottom: space.lg,
     },
     note: {
       paddingVertical: space.md,
