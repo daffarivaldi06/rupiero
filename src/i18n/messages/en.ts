@@ -286,6 +286,7 @@ export const en: Messages = {
     add: '+ Add subscription',
   },
   transactions: {
+    columns: { date: 'Date', description: 'Description', category: 'Category', account: 'Account', amount: 'Amount' },
     subtitle: '{category} · {account}',
     transferTo: 'Transfer to {name}',
     transferFrom: 'Transfer from {name}',

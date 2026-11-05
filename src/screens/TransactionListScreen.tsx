@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { useSQLiteContext } from '../db/DatabaseProvider';
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
@@ -19,8 +19,10 @@ import { LoadError } from '../components/LoadError';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
 import { useDataRevision } from '../data/DataProvider';
 import { useQuickAdd } from '../quickadd/QuickAddProvider';
-import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
-import { useReadableInset } from '../theme/layout';
+import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useBreakpoint, useReadableInset } from '../theme/layout';
+import { DesktopHeader } from '../components/DesktopHeader';
+import { LedgerTableDay, LedgerTableHead, LedgerTableRow } from './transactions/LedgerTable';
 import { space } from '../theme/tokens';
 import { useI18n } from '../i18n/I18nProvider';
 import type { MessageKey } from '../i18n';
@@ -43,10 +45,19 @@ export default function TransactionListScreen() {
   const navigation = useNavigation<RootNavigation>();
   const route = useRoute<RouteProp<RootStackParamList, 'Transactions'>>();
   const styles = useThemedStyles(makeStyles);
+  const { layout } = useTheme();
   const inset = useReadableInset(space.lg);
   const { t } = useI18n();
   const quickAdd = useQuickAdd();
   const { revision } = useDataRevision();
+  const breakpoint = useBreakpoint();
+  // Web from 1024 px (ADR 0001): desktop header and a table. Phones, Android and narrower windows keep the list.
+  const wide = Platform.OS === 'web' && (breakpoint === 'wide' || breakpoint === 'xl');
+
+  // On wide web the desktop header replaces the stack header; it comes back when the window narrows.
+  useLayoutEffect(() => {
+    if (Platform.OS === 'web') navigation.setOptions({ headerShown: !wide });
+  }, [navigation, wide]);
 
   const [month, setMonth] = useState(route.params?.month ?? currentMonth());
   const [type, setType] = useState<LedgerTypeFilter>('all');
@@ -134,15 +145,18 @@ export default function TransactionListScreen() {
 
   const header = (
     <View style={styles.filters}>
-      <View style={styles.monthRow}>
-        <Pressable onPress={() => setMonth(addMonths(month, -1))} style={styles.monthButton} accessibilityRole="button" accessibilityLabel={t('common.previousMonth')}>
-          <Txt variant="title">‹</Txt>
-        </Pressable>
-        <Txt variant="heading">{formatMonthLabel(month)}</Txt>
-        <Pressable onPress={() => setMonth(addMonths(month, 1))} style={styles.monthButton} accessibilityRole="button" accessibilityLabel={t('common.nextMonth')}>
-          <Txt variant="title">›</Txt>
-        </Pressable>
-      </View>
+      {/* Wide web: the month picker is in the desktop header. */}
+      {!wide && (
+        <View style={styles.monthRow}>
+          <Pressable onPress={() => setMonth(addMonths(month, -1))} style={styles.monthButton} accessibilityRole="button" accessibilityLabel={t('common.previousMonth')}>
+            <Txt variant="title">‹</Txt>
+          </Pressable>
+          <Txt variant="heading">{formatMonthLabel(month)}</Txt>
+          <Pressable onPress={() => setMonth(addMonths(month, 1))} style={styles.monthButton} accessibilityRole="button" accessibilityLabel={t('common.nextMonth')}>
+            <Txt variant="title">›</Txt>
+          </Pressable>
+        </View>
+      )}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
         {TYPES.map((option) => chip(t(option.labelKey), type === option.value, () => setType(option.value), option.value))}
       </ScrollView>
@@ -158,12 +172,23 @@ export default function TransactionListScreen() {
     </View>
   );
 
-  return (
+  const list = (
     <FlatList
       data={data}
       keyExtractor={(entry) => entry.key}
-      ListHeaderComponent={header}
-      contentContainerStyle={[styles.content, { paddingHorizontal: inset }]}
+      ListHeaderComponent={
+        wide ? (
+          <>
+            {header}
+            <LedgerTableHead />
+          </>
+        ) : (
+          header
+        )
+      }
+      contentContainerStyle={
+        wide ? [styles.content, styles.wideContent, { maxWidth: layout.contentMaxWidth }] : [styles.content, { paddingHorizontal: inset }]
+      }
       onEndReached={loadMore}
       onEndReachedThreshold={0.5}
       ListEmptyComponent={
@@ -179,6 +204,13 @@ export default function TransactionListScreen() {
         )
       }
       renderItem={({ item: entry }) => {
+        if (wide) {
+          return entry.type === 'day' ? (
+            <LedgerTableDay date={entry.date} totals={entry.totals} />
+          ) : (
+            <LedgerTableRow item={entry.item} onPress={() => open(entry.item)} />
+          );
+        }
         if (entry.type === 'day') {
           return (
             <View style={styles.day}>
@@ -199,13 +231,32 @@ export default function TransactionListScreen() {
       }}
     />
   );
+
+  return wide ? (
+    <View style={styles.screen}>
+      <DesktopHeader title={t('nav.transactions')} month={month} onChangeMonth={setMonth} onAdd={() => quickAdd.open()} />
+      {list}
+    </View>
+  ) : (
+    list
+  );
 }
 
 const makeStyles = ({ color, radius, space }: Theme) =>
   StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: color.bg,
+    },
     content: {
       paddingHorizontal: space.lg,
       paddingBottom: space.xxl,
+    },
+    // Wide web: the content column of the desktop layout, centered.
+    wideContent: {
+      width: '100%',
+      alignSelf: 'center',
+      paddingHorizontal: space.xl,
     },
     filters: {
       gap: space.sm,
