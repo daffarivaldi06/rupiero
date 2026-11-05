@@ -35,6 +35,18 @@ Before the demo, the app already showed an approximate total in EUR only. Story 
   (language, theme, total balance currency). react-native-web renders them with `role="radio"` but without
   `aria-checked`.
 
+## Screenshots
+
+From the Docker build with sample data (`npm run screenshots` regenerates them).
+
+| Dashboard on a laptop | Transactions as a table |
+|---|---|
+| ![Wide Dashboard: balance cards, cash flow, recent transactions, budgets and accounts](docs/screenshots/dashboard-wide.png) | ![Transactions table with Date, Description, Category, Account and Amount](docs/screenshots/transactions-table.png) |
+| **Budget** | **Charts** |
+| ![Budget cards in two columns, most-used first](docs/screenshots/budget.png) | ![Spending charts for EUR and IDR side by side](docs/screenshots/charts.png) |
+| **Quick-add dialog** | **Dashboard on a phone (390 px)** |
+| ![Quick-add as a centered dialog with the keypad](docs/screenshots/quick-add.png) | <img src="docs/screenshots/dashboard-narrow.png" alt="Phone layout of the Dashboard" width="260"> |
+
 ## How to run it
 
 **Requirements:** Docker, or Node 22 for development. The Android SDK is needed only to run on Android.
