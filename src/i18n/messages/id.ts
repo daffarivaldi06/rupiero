@@ -10,6 +10,7 @@ export const id = {
     edit: 'Ubah',
     editMore: 'Ubah ›',
     failed: 'Gagal',
+    close: 'Tutup',
     today: 'Hari ini',
     yesterday: 'Kemarin',
     income: 'Pemasukan',

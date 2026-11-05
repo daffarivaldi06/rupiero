@@ -10,6 +10,7 @@ export const en: Messages = {
     edit: 'Edit',
     editMore: 'Edit ›',
     failed: 'Something went wrong',
+    close: 'Close',
     today: 'Today',
     yesterday: 'Yesterday',
     income: 'Income',
