@@ -16,6 +16,9 @@ Tests use Jest (`jest-expo`). The scripts are in `package.json`.
 - `demo/main` is production and `demo/develop` is integration. Each feature gets its own branch,
   `demo/feature/<name>`, created from `demo/develop` and merged back into `demo/develop`.
 - `master` is the repo's default branch (the course calls it "main"). Never commit to `master` or merge into it.
+- The `demo/*` branches are for the web build on Vercel only: verify their work on the web (dev server, Docker
+  build). The user's Android app stays on `master`, so never build, install or ask the user to test an Android APK
+  from a demo branch. Keep Android code paths unchanged anyway, so the web work can be merged into `master` later.
 - Use Conventional Commits (`feat`, `fix`, `docs`, `refactor`, `test`, `chore`), one small step per commit. Each
   commit passes `npm run typecheck` and `npm test`.
 - Commit messages and PR descriptions never carry AI attribution: no `Co-Authored-By` trailer and no
