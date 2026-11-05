@@ -17,7 +17,8 @@ Bank reference rates, fetched through [Frankfurter](https://frankfurter.dev).
 1. **Add income and expenses in EUR or IDR**, so that all my finances are in one place. *(Already existed.)*
 2. **See my total balance converted into EUR or IDR**, so that I know how much I really have. *(Built in the demo.)*
 3. **A monthly budget per category showing what's left**, so that I don't overspend. *(Already existed.)*
-4. **Use Rupiero in the browser, with sample data to try it**, so that I can see what it does without installing anything. *(Built in the demo.)*
+4. **Use Rupiero in the browser, with sample data to try it**, so that I can see what it does without installing anything.
+   On a laptop, amounts can be typed on the physical keyboard: Enter saves and Escape closes. *(Built in the demo.)*
 
 Stories 1 and 3 were built before this final project, with Claude Code working through the phases in [PLAN.md](PLAN.md).
 Before the demo, the app already showed an approximate total in EUR only. Story 2 adds the choice between EUR and IDR.
@@ -76,6 +77,9 @@ npm run lint
 ### What went well
 
 ### What was hard
+
+- During human testing on the web, the on-screen keypad felt too mobile on a laptop, so we added physical keyboard
+  support to the quick-add sheet.
 
 ## Status and next steps
 
