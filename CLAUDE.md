@@ -39,6 +39,9 @@ Build only what a user story's acceptance criteria require. Anything else is a b
 
 - **Never break the Android build.** Put web-only code in `*.web.ts` / `*.web.tsx` files or behind `Platform.OS`
   checks, so native code paths stay unchanged.
+- **Desktop UI renders only on wide web screens.** Put it in `*.web.tsx` files or behind `Platform.OS === 'web'`
+  checks, and in both cases also gate it on the wide breakpoint (≥1024px), so Android and compact web stay unchanged.
+  [ADR 0001](docs/adr/0001-adapt-not-rebuild.md) records why the app is adapted rather than rebuilt.
 - **Money is always stored in integer minor units** (cents for EUR, rupiah for IDR), parsed and formatted by
   `src/domain/money.ts`; never use floats for amounts. Currency conversion goes through `src/domain/fx.ts` (BigInt
   with one half-up rounding at the end). The only stored rate is EUR→IDR, as the integer `rate_micro`.
