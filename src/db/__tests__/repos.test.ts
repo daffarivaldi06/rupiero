@@ -1,4 +1,5 @@
 import { createTestDb, type TestDb } from '../../../test/sqljs-db';
+import { onDataChanged } from '../events';
 import { initDb } from '../init';
 import {
   AccountCurrencyLockedError,
@@ -29,6 +30,7 @@ import {
   getHideBalancesInWidget,
   getLastAccountId,
   getSetting,
+  setBaseCurrency,
   setHideBalances,
   setHideBalancesInWidget,
   setLastAccountId,
@@ -373,6 +375,21 @@ it('defaults the base currency to EUR', async () => {
   expect(await getBaseCurrency(db)).toBe('IDR');
   await setSetting(db, 'base_currency', 'USD');
   expect(await getBaseCurrency(db)).toBe('EUR');
+});
+
+it('saves the base currency and tells the screens', async () => {
+  const listener = jest.fn();
+  const unsubscribe = onDataChanged(listener);
+  try {
+    await setBaseCurrency(db, 'IDR');
+    expect(await getBaseCurrency(db)).toBe('IDR');
+    expect(listener).toHaveBeenCalledTimes(1);
+    await setBaseCurrency(db, 'EUR');
+    expect(await getBaseCurrency(db)).toBe('EUR');
+    expect(listener).toHaveBeenCalledTimes(2);
+  } finally {
+    unsubscribe();
+  }
 });
 
 it('stores the hide-balance switches, off by default', async () => {

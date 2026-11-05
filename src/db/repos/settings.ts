@@ -37,6 +37,12 @@ export async function getBaseCurrency(db: Db): Promise<CurrencyCode> {
   return value !== null && isCurrencyCode(value) ? value : 'EUR';
 }
 
+export async function setBaseCurrency(db: Db, currency: CurrencyCode): Promise<void> {
+  await setSetting(db, BASE_CURRENCY_KEY, currency);
+  // The Dashboard total is drawn in this currency.
+  notifyDataChanged();
+}
+
 export const HIDE_BALANCES_KEY = 'hide_balances';
 export const HIDE_BALANCES_WIDGET_KEY = 'hide_balances_widget';
 
