@@ -19,9 +19,10 @@ import { LoadError } from '../components/LoadError';
 import type { RootNavigation, RootStackParamList } from '../navigation/types';
 import { useDataRevision } from '../data/DataProvider';
 import { useQuickAdd } from '../quickadd/QuickAddProvider';
-import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
+import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { useBreakpoint, useReadableInset } from '../theme/layout';
 import { DesktopHeader } from '../components/DesktopHeader';
+import { LedgerTableDay, LedgerTableHead, LedgerTableRow } from './transactions/LedgerTable';
 import { space } from '../theme/tokens';
 import { useI18n } from '../i18n/I18nProvider';
 import type { MessageKey } from '../i18n';
@@ -44,6 +45,7 @@ export default function TransactionListScreen() {
   const navigation = useNavigation<RootNavigation>();
   const route = useRoute<RouteProp<RootStackParamList, 'Transactions'>>();
   const styles = useThemedStyles(makeStyles);
+  const { layout } = useTheme();
   const inset = useReadableInset(space.lg);
   const { t } = useI18n();
   const quickAdd = useQuickAdd();
@@ -174,8 +176,19 @@ export default function TransactionListScreen() {
     <FlatList
       data={data}
       keyExtractor={(entry) => entry.key}
-      ListHeaderComponent={header}
-      contentContainerStyle={[styles.content, { paddingHorizontal: inset }]}
+      ListHeaderComponent={
+        wide ? (
+          <>
+            {header}
+            <LedgerTableHead />
+          </>
+        ) : (
+          header
+        )
+      }
+      contentContainerStyle={
+        wide ? [styles.content, styles.wideContent, { maxWidth: layout.contentMaxWidth }] : [styles.content, { paddingHorizontal: inset }]
+      }
       onEndReached={loadMore}
       onEndReachedThreshold={0.5}
       ListEmptyComponent={
@@ -191,6 +204,13 @@ export default function TransactionListScreen() {
         )
       }
       renderItem={({ item: entry }) => {
+        if (wide) {
+          return entry.type === 'day' ? (
+            <LedgerTableDay date={entry.date} totals={entry.totals} />
+          ) : (
+            <LedgerTableRow item={entry.item} onPress={() => open(entry.item)} />
+          );
+        }
         if (entry.type === 'day') {
           return (
             <View style={styles.day}>
@@ -231,6 +251,12 @@ const makeStyles = ({ color, radius, space }: Theme) =>
     content: {
       paddingHorizontal: space.lg,
       paddingBottom: space.xxl,
+    },
+    // Wide web: the content column of the desktop layout, centered.
+    wideContent: {
+      width: '100%',
+      alignSelf: 'center',
+      paddingHorizontal: space.xl,
     },
     filters: {
       gap: space.sm,

@@ -286,6 +286,7 @@ export const id = {
     add: '+ Tambah langganan',
   },
   transactions: {
+    columns: { date: 'Tanggal', description: 'Keterangan', category: 'Kategori', account: 'Akun', amount: 'Jumlah' },
     subtitle: '{category} · {account}',
     transferTo: 'Transfer ke {name}',
     transferFrom: 'Transfer dari {name}',
