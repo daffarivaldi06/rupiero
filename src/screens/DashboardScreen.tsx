@@ -9,6 +9,7 @@ import { listBudgets, type BudgetLine } from '../db/repos/budgets';
 import { getBaseCurrency } from '../db/repos/settings';
 import { dismissSampleData, loadSampleData, shouldOfferSampleData } from '../db/repos/sampleData';
 import { listCategories } from '../db/repos/categories';
+import { listLedger, type LedgerItem } from '../db/repos/ledger';
 import { getCategoryMonthTotals, getMonthSummary, type CategoryCurrencyTotal } from '../db/repos/reports';
 import { currentMonth, formatDayMonth, formatMonthLabel, monthRange } from '../domain/dates';
 import { budgetStatus } from '../domain/budget';
@@ -17,7 +18,6 @@ import type { CurrencyCode } from '../domain/money';
 import type { AccountWithBalance, Category, CurrencyBalance, CurrencyTotals } from '../domain/types';
 import { AppHeader } from '../components/AppHeader';
 import { BalanceHero } from '../components/BalanceHero';
-import { BudgetBar } from '../components/BudgetBar';
 import { CombinedTotal } from '../components/CombinedTotal';
 import { SampleDataOffer } from '../components/SampleDataOffer';
 import { useToast } from '../feedback/ToastProvider';
@@ -30,11 +30,16 @@ import { useIntro } from '../intro/IntroProvider';
 import { useDataRevision } from '../data/DataProvider';
 import { useQuickAdd } from '../quickadd/QuickAddProvider';
 import { useTheme, useThemedStyles, type Theme } from '../theme/ThemeProvider';
-import { useReadableInset } from '../theme/layout';
+import { useBreakpoint, useReadableInset } from '../theme/layout';
 import { space } from '../theme/tokens';
 import { useI18n } from '../i18n/I18nProvider';
 import { renderMessage } from '../i18n/rich';
 import type { RootNavigation } from '../navigation/types';
+import { AccountsSection, BudgetsSection, CategoriesSection } from './dashboard/sections';
+import { DashboardWide } from './dashboard/DashboardWide';
+
+/** Recent ledger entries on the wide web Dashboard. */
+const RECENT_COUNT = 8;
 
 export default function DashboardScreen() {
   const db = useSQLiteContext();
@@ -49,8 +54,13 @@ export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const referenceRate = useReferenceRate();
   const toast = useToast();
+  const breakpoint = useBreakpoint();
+  // Web from 1024 px (ADR 0001): cards and a 2:1 grid. Phones, Android and narrower windows keep the column.
+  const wide = Platform.OS === 'web' && (breakpoint === 'wide' || breakpoint === 'xl');
 
   const [balances, setBalances] = useState<CurrencyBalance[]>([]);
+  // Wide web only: the newest entries of the month.
+  const [recent, setRecent] = useState<LedgerItem[]>([]);
   // Web only: the first-launch offer to try the app with sample data.
   const [offerSample, setOfferSample] = useState(false);
   const [accounts, setAccounts] = useState<AccountWithBalance[]>([]);
@@ -68,7 +78,7 @@ export default function DashboardScreen() {
   const loadData = useCallback(async () => {
     try {
       const asOf = monthRange(selectedMonth).end;
-      const [nextBalances, nextAccounts, nextBase, nextTotals, nextCategories, nextCategoryTotals, nextBudgets, nextOffer] = await Promise.all([
+      const [nextBalances, nextAccounts, nextBase, nextTotals, nextCategories, nextCategoryTotals, nextBudgets, nextOffer, nextRecent] = await Promise.all([
         getBalancesByCurrency(db, { asOf }),
         listAccountsWithBalance(db, { asOf }),
         getBaseCurrency(db),
@@ -77,8 +87,10 @@ export default function DashboardScreen() {
         getCategoryMonthTotals(db, selectedMonth),
         listBudgets(db, selectedMonth),
         Platform.OS === 'web' ? shouldOfferSampleData(db) : Promise.resolve(false),
+        wide ? listLedger(db, { month: selectedMonth, limit: RECENT_COUNT }) : Promise.resolve([]),
       ]);
       setOfferSample(nextOffer);
+      setRecent(nextRecent);
       setBudgets(nextBudgets);
       setBalances(nextBalances);
       setAccounts(nextAccounts);
@@ -93,7 +105,7 @@ export default function DashboardScreen() {
     } finally {
       introReady();
     }
-  }, [db, selectedMonth, introReady]);
+  }, [db, selectedMonth, introReady, wide]);
 
   useFocusEffect(
     useCallback(() => {
@@ -132,11 +144,17 @@ export default function DashboardScreen() {
   const monthLabel = formatMonthLabel(selectedMonth);
   // Hidden until an ECB rate has been fetched at least once.
   const combined = referenceRate && balances.length > 1 ? combinedTotal(balances, baseCurrency, referenceRate.rateMicro) : null;
-  const fees = totals.filter((total) => total.feeMinor > 0);
   // Only budgets that need attention (≥ 80 %) are shown here; the budget screen has the rest.
   const budgetAlerts = budgets
     .map((line) => ({ line, status: budgetStatus(line.spentMinor, line.limitMinor) }))
     .filter(({ status }) => status.level !== 'ok');
+  const balanceLabel = isCurrentMonth ? t('dashboard.balanceNow') : t('dashboard.balanceEnd', { month: monthLabel });
+  const top = (
+    <>
+      {failed && <LoadError onRetry={loadData} />}
+      {offerSample && <SampleDataOffer onLoad={loadSample} onDismiss={dismissSample} style={styles.offer} />}
+    </>
+  );
 
   return (
     <View style={styles.screen}>
@@ -146,148 +164,75 @@ export default function DashboardScreen() {
         onPressSettings={() => navigation.navigate('Settings')}
       />
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingHorizontal: inset }]}
+        // The wide layout sets its own width and padding.
+        contentContainerStyle={[styles.content, { paddingHorizontal: wide ? 0 : inset }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={color.ink} />}
       >
-        {failed && <LoadError onRetry={loadData} />}
-        {offerSample && <SampleDataOffer onLoad={loadSample} onDismiss={dismissSample} style={styles.offer} />}
-        <BalanceHero label={isCurrentMonth ? t('dashboard.balanceNow') : t('dashboard.balanceEnd', { month: monthLabel })} balances={balances} roll={roll} />
-        {Platform.OS === 'web' ? (
-          // Web (ADR 0001): the total in the chosen base currency, whenever there is a balance, and a
-          // message instead of the figure until an ECB rate has been fetched.
-          balances.length > 0 && (
-            <CombinedTotal balances={balances} base={baseCurrency} rate={referenceRate} style={styles.total} />
-          )
+        {wide ? (
+          <DashboardWide
+            top={top}
+            balanceLabel={balanceLabel}
+            balances={balances}
+            roll={roll}
+            baseCurrency={baseCurrency}
+            referenceRate={referenceRate}
+            flowTitle={t('dashboard.flow', { month: monthLabel })}
+            totals={totals}
+            recent={recent}
+            budgets={budgets}
+            accounts={accounts}
+            categories={categories}
+            categoryTotals={categoryTotals}
+            month={selectedMonth}
+            isCurrentMonth={isCurrentMonth}
+          />
         ) : (
-          combined !== null &&
-          referenceRate && (
-            <Txt variant="caption" tone="inkMuted" style={styles.combined}>
-              {renderMessage('dashboard.combined', {
-                amount: <Money minor={combined} currency={baseCurrency} variant="caption" tone="inkMuted" />,
-                date: formatDayMonth(referenceRate.date),
-              })}
-            </Txt>
-          )
-        )}
+          <>
+            {top}
+            <BalanceHero label={balanceLabel} balances={balances} roll={roll} />
+            {Platform.OS === 'web' ? (
+              // Web (ADR 0001): the total in the chosen base currency, whenever there is a balance, and a
+              // message instead of the figure until an ECB rate has been fetched.
+              balances.length > 0 && (
+                <CombinedTotal balances={balances} base={baseCurrency} rate={referenceRate} style={styles.total} />
+              )
+            ) : (
+              combined !== null &&
+              referenceRate && (
+                <Txt variant="caption" tone="inkMuted" style={styles.combined}>
+                  {renderMessage('dashboard.combined', {
+                    amount: <Money minor={combined} currency={baseCurrency} variant="caption" tone="inkMuted" />,
+                    date: formatDayMonth(referenceRate.date),
+                  })}
+                </Txt>
+              )
+            )}
 
-        <View style={styles.section}>
-          <MonthFlow title={t('dashboard.flow', { month: monthLabel })} totals={totals} />
-          <Pressable
-            onPress={() => navigation.navigate('Transactions', { month: selectedMonth })}
-            style={styles.row}
-            accessibilityRole="button"
-          >
-            <Txt variant="bodyStrong" style={styles.rowText}>{t('dashboard.allTransactions')}</Txt>
-            <Txt tone="inkMuted" style={styles.chevron}>›</Txt>
-          </Pressable>
-          <Pressable
-            onPress={() => navigation.navigate('Insights', { month: selectedMonth })}
-            style={styles.row}
-            accessibilityRole="button"
-          >
-            <Txt variant="bodyStrong" style={styles.rowText}>{t('dashboard.charts')}</Txt>
-            <Txt tone="inkMuted" style={styles.chevron}>›</Txt>
-          </Pressable>
-        </View>
-
-        <View style={styles.sectionHeader}>
-          <Txt variant="title" style={styles.rowText}>{t('common.budget')}</Txt>
-          <Pressable
-            onPress={() => navigation.navigate('Budget', { month: selectedMonth })}
-            style={styles.headerLink}
-            accessibilityRole="button"
-          >
-            <Txt variant="bodyStrong">{t(budgets.length === 0 ? 'common.set' : 'common.all')}</Txt>
-          </Pressable>
-        </View>
-        <View style={styles.list}>
-          {budgets.length === 0 ? (
-            <Txt tone="inkMuted" style={styles.note}>{t('dashboard.noBudgets')}</Txt>
-          ) : budgetAlerts.length === 0 ? (
-            <Txt tone="inkMuted" style={styles.note}>{t('dashboard.budgetsFine')}</Txt>
-          ) : (
-            budgetAlerts.map(({ line, status }) => (
+            <View style={styles.section}>
+              <MonthFlow title={t('dashboard.flow', { month: monthLabel })} totals={totals} />
               <Pressable
-                key={`${line.categoryId}-${line.currency}`}
-                onPress={() => navigation.navigate('CategoryDetail', { categoryId: line.categoryId, month: selectedMonth })}
-                style={styles.budgetRow}
-                accessibilityRole="button"
-              >
-                <Txt variant="bodyStrong" numberOfLines={1}>{line.categoryName}</Txt>
-                <BudgetBar status={status} currency={line.currency} />
-              </Pressable>
-            ))
-          )}
-        </View>
-
-        <View style={styles.sectionHeader}>
-          <Txt variant="title" style={styles.rowText}>{t('nav.accounts')}</Txt>
-          <Pressable onPress={() => navigation.navigate('TransferForm')} style={styles.headerLink} accessibilityRole="button">
-            <Txt variant="bodyStrong">{t('common.transfer')}</Txt>
-          </Pressable>
-          <Pressable onPress={() => navigation.navigate('Accounts')} style={styles.headerLink} accessibilityRole="button">
-            <Txt variant="bodyStrong">{t('common.manage')}</Txt>
-          </Pressable>
-        </View>
-        <View style={styles.list}>
-          {accounts.map((account) => (
-            <Pressable
-              key={account.id}
-              onPress={() => navigation.navigate('Transactions', { month: selectedMonth, accountId: account.id })}
-              style={styles.row}
-              accessibilityRole="button"
-            >
-              <View style={styles.rowText}>
-                <Txt numberOfLines={1}>{account.name}</Txt>
-                <Txt variant="code" tone={account.currency === 'EUR' ? 'eur' : 'idrText'}>{account.currency}</Txt>
-              </View>
-              <Money
-                minor={account.balanceMinor}
-                currency={account.currency}
-                variant="bodyStrong"
-                tone={account.balanceMinor < 0 ? 'expense' : 'neutral'}
-              />
-              <Txt tone="inkMuted" style={styles.chevron}>›</Txt>
-            </Pressable>
-          ))}
-        </View>
-
-        <Txt variant="title" style={styles.sectionTitle}>{t('nav.categories')}</Txt>
-        <View style={styles.list}>
-          {categories.map((cat) => {
-            const catTotals = categoryTotals.filter((total) => total.categoryId === cat.id);
-            return (
-              <Pressable
-                key={cat.id}
-                onPress={() => navigation.navigate('CategoryDetail', { categoryId: cat.id, month: selectedMonth })}
+                onPress={() => navigation.navigate('Transactions', { month: selectedMonth })}
                 style={styles.row}
                 accessibilityRole="button"
               >
-                <Txt style={styles.rowText} numberOfLines={1}>{cat.name}</Txt>
-                <View style={styles.rowTotals}>
-                  {catTotals.map((total) => (
-                    <Money key={total.currency} minor={total.netMinor} currency={total.currency} variant="label" tone="signed" sign />
-                  ))}
-                </View>
+                <Txt variant="bodyStrong" style={styles.rowText}>{t('dashboard.allTransactions')}</Txt>
                 <Txt tone="inkMuted" style={styles.chevron}>›</Txt>
               </Pressable>
-            );
-          })}
-          {fees.length > 0 && (
-            <View style={styles.row}>
-              <Txt style={styles.rowText} numberOfLines={1}>{t('common.transferFee')}</Txt>
-              <View style={styles.rowTotals}>
-                {fees.map((fee) => (
-                  <Money key={fee.currency} minor={-fee.feeMinor} currency={fee.currency} variant="label" tone="expense" />
-                ))}
-              </View>
-              <View style={styles.chevronSpace} />
+              <Pressable
+                onPress={() => navigation.navigate('Insights', { month: selectedMonth })}
+                style={styles.row}
+                accessibilityRole="button"
+              >
+                <Txt variant="bodyStrong" style={styles.rowText}>{t('dashboard.charts')}</Txt>
+                <Txt tone="inkMuted" style={styles.chevron}>›</Txt>
+              </Pressable>
             </View>
-          )}
-          <Pressable onPress={() => navigation.navigate('CategoryForm')} style={styles.row} accessibilityRole="button">
-            <Txt variant="bodyStrong">{t('categories.add')}</Txt>
-          </Pressable>
-        </View>
+
+            <BudgetsSection budgets={budgets} shown={budgetAlerts} emptyNote={t('dashboard.budgetsFine')} month={selectedMonth} />
+            <AccountsSection accounts={accounts} month={selectedMonth} />
+            <CategoriesSection categories={categories} categoryTotals={categoryTotals} totals={totals} month={selectedMonth} />
+          </>
+        )}
       </ScrollView>
       <Pressable
         onPress={() => quickAdd.open()}
@@ -335,34 +280,6 @@ const makeStyles = ({ color, radius, space }: Theme) =>
     offer: {
       marginBottom: space.lg,
     },
-    note: {
-      paddingVertical: space.md,
-    },
-    budgetRow: {
-      paddingVertical: space.sm,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: color.line,
-    },
-    sectionHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginTop: space.xl,
-      marginBottom: space.xs,
-    },
-    headerLink: {
-      minHeight: 48,
-      justifyContent: 'center',
-      paddingLeft: space.md,
-    },
-    sectionTitle: {
-      marginTop: space.xl,
-      marginBottom: space.xs,
-    },
-    list: {
-      borderTopWidth: 1,
-      borderTopColor: color.ink,
-    },
     row: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -375,14 +292,7 @@ const makeStyles = ({ color, radius, space }: Theme) =>
       flex: 1,
       marginRight: space.sm,
     },
-    rowTotals: {
-      alignItems: 'flex-end',
-    },
     chevron: {
       marginLeft: space.sm,
-    },
-    // Keeps fee amounts aligned with the chevron rows above.
-    chevronSpace: {
-      width: 14,
     },
   });

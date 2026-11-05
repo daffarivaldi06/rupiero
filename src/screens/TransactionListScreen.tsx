@@ -11,6 +11,7 @@ import { addMonths, currentMonth, formatMonthLabel } from '../domain/dates';
 import { groupByDate, type DayTotal } from '../domain/ledger';
 import type { Account } from '../domain/types';
 import { LedgerRow } from '../components/LedgerRow';
+import { describeLedgerItem } from '../components/ledgerText';
 import { LedgerDayHeader } from '../components/LedgerSection';
 import { Txt } from '../components/Txt';
 import { Button } from '../components/Button';
@@ -22,7 +23,7 @@ import { useThemedStyles, type Theme } from '../theme/ThemeProvider';
 import { useReadableInset } from '../theme/layout';
 import { space } from '../theme/tokens';
 import { useI18n } from '../i18n/I18nProvider';
-import { t as translate, type MessageKey } from '../i18n';
+import type { MessageKey } from '../i18n';
 
 const PAGE_SIZE = 50;
 
@@ -36,21 +37,6 @@ const TYPES: { value: LedgerTypeFilter; labelKey: MessageKey }[] = [
 type ListItem =
   | { key: string; type: 'day'; date: string; totals?: DayTotal[] }
   | { key: string; type: 'row'; item: LedgerItem };
-
-function describe(item: LedgerItem): { title?: string; subtitle: string } {
-  switch (item.kind) {
-    case 'tx':
-      return item.note
-        ? { title: item.note, subtitle: translate('transactions.subtitle', { category: item.categoryName ?? '', account: item.accountName }) }
-        : { title: item.categoryName ?? undefined, subtitle: item.accountName };
-    case 'transfer_out':
-      return { title: translate('transactions.transferTo', { name: item.counterpartyName ?? '' }), subtitle: item.note || item.accountName };
-    case 'transfer_in':
-      return { title: translate('transactions.transferFrom', { name: item.counterpartyName ?? '' }), subtitle: item.note || item.accountName };
-    case 'transfer_fee':
-      return { title: translate('common.transferFee'), subtitle: `${item.accountName} → ${item.counterpartyName}` };
-  }
-}
 
 export default function TransactionListScreen() {
   const db = useSQLiteContext();
@@ -200,7 +186,7 @@ export default function TransactionListScreen() {
             </View>
           );
         }
-        const { title, subtitle } = describe(entry.item);
+        const { title, subtitle } = describeLedgerItem(entry.item);
         return (
           <LedgerRow
             title={title}
