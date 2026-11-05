@@ -56,3 +56,6 @@ local.properties
 # Gradle output of local native modules
 modules/*/android/build/
 modules/*/android/.cxx/
+
+# Screenshots and pixel diffs from the headless Chrome checks (tests/e2e)
+tests/e2e/output/
