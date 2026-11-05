@@ -11,7 +11,7 @@ Human testing on a laptop showed that the web build is the phone app stretched t
 a floating add button, quick-add as a bottom sheet, and navigation through stacked "All transactions ›" rows. The
 course demo runs in the browser on 13 November 2026, eight days away. Rupiero is a single Expo SDK 54 / React Native
 Web codebase that also ships on Android. On the web, its data lives in wa-sqlite in OPFS, and the static build is
-served by nginx on Cloud Run. The evidence for the options below is in
+deployed on Vercel. The evidence for the options below is in
 [desktop-web-research.md](../desktop-web-research.md).
 
 ## Options

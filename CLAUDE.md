@@ -28,9 +28,12 @@ Build only what a user story's acceptance criteria require. Anything else is a b
 ## Environments
 
 - Development runs in a DevContainer.
-- Production is the static web build (`npx expo export -p web` → `dist/`), served by nginx in Docker on Google Cloud
-  Run, in region `europe-west1`. expo-sqlite on the web needs nginx to send `Cross-Origin-Opener-Policy: same-origin`
-  and `Cross-Origin-Embedder-Policy: credentialless`, and to serve `.wasm` files as `application/wasm`.
+- Production is the static web build (`npx expo export -p web` → `dist/`) on Vercel, configured in `vercel.json`; the
+  course instructor deploys with Vercel. Docker with nginx (`Dockerfile`, `docker/nginx.conf`) runs the same build on
+  a clean machine.
+- expo-sqlite on the web needs every response to carry `Cross-Origin-Opener-Policy: same-origin` and
+  `Cross-Origin-Embedder-Policy: credentialless`, and `.wasm` files to be served as `application/wasm`. `vercel.json`
+  and `docker/nginx.conf` both set this, so a header or caching change goes in both files.
 - Secrets come from environment variables only. `.env` files stay out of git, and every variable is listed in a
   committed `.env.example`. Gotcha: the `.env*` rule in `.gitignore` also matches `.env.example`, so committing it
   needs a `!.env.example` line.
