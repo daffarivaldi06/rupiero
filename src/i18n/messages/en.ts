@@ -44,6 +44,7 @@ export const en: Messages = {
     amountHint: 'Example: {example}',
   },
   nav: {
+    dashboard: 'Dashboard',
     settings: 'Settings',
     accounts: 'Accounts',
     newAccount: 'New account',
