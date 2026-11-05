@@ -29,6 +29,8 @@ Before the demo, the app already showed an approximate total in EUR only. Story 
 - Testing in mobile browsers
 - Using the app in more than one tab at a time
 - A single budget across both currencies (each currency has its own budget today)
+- Known issue: on the web, the quick-add note field logs `currentlyFocusedInput is not a function` to the console
+  when it loses focus. The error comes from `@gorhom/bottom-sheet`'s `BottomSheetTextInput`, and the note still works.
 
 ## How to run it
 
