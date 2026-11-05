@@ -47,6 +47,7 @@ import { fontFamily } from '../theme/typography';
 import { useI18n } from '../i18n/I18nProvider';
 import { useToast } from '../feedback/ToastProvider';
 import { SEPARATORS } from '../domain/money';
+import { useKeyboardKeypad } from './useKeyboardKeypad';
 
 
 export interface QuickAddOptions {
@@ -177,8 +178,9 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
     }
   };
 
-  const save = async () => {
-    if (!canSave) return;
+  /** Resolves to true if the transaction was saved. */
+  const save = async (): Promise<boolean> => {
+    if (!canSave) return false;
     const tx = { accountId: account.id, categoryId, type, amountMinor: amount, date, note };
     try {
       if (editingId !== null) await updateTransaction(db, editingId, tx);
@@ -191,9 +193,11 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       sheetRef.current?.dismiss();
       toast.show(t(editingId !== null ? 'quickAdd.updated' : 'quickAdd.saved'));
+      return true;
     } catch (e) {
       console.error(e);
       toast.show(t('quickAdd.saveFailed'), { tone: 'error' });
+      return false;
     }
   };
 
@@ -220,6 +224,9 @@ export const QuickAddSheet = forwardRef<QuickAddSheetHandle>(function QuickAddSh
       toast.show(t('quickAdd.deleteFailed'), { tone: 'error' });
     }
   };
+
+  // Web: the physical keyboard drives the keypad too. Does nothing on Android.
+  useKeyboardKeypad(open, { onKey, onSave: save, onClose: () => sheetRef.current?.dismiss() });
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} pressBehavior="close" />,
